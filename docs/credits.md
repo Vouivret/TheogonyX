@@ -6,3 +6,4 @@
 | :--- | :--- | :--- | :--- | :--- |
 | Godot Engine | エンジン | https://godotengine.org | MIT | 全体（配布物にライセンス表記が必要） |
 | Ponytail | Claude Code のスキル | https://github.com/DietrichGebert/ponytail | MIT | `.claude/skills/`（配布物には含めない） |
+| 予言者のスプライト（座った姿・寝ている姿） | 画像 | 開発者が生成 AI で作成（2026-10-11。ツール名は未記録）。4コマの待機アニメーションへの分割と色の整理は Claude Code が行った | 生成 AI ツールの利用規約に従う（ツール名と規約は未確認） | `game/assets/sprites/prophet_idle.png`・`prophet_fallen.png` |
