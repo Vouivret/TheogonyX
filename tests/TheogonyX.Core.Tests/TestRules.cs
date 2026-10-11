@@ -42,4 +42,18 @@ internal static class TestRules
             BarrenForestAtOrBelow: 0f,
             TemperatureAtOrAbove: 70f,
             TemperatureAtOrBelow: -40f));
+
+    // docs/domain/planet-display.md の「タイル種別の判定」と列数の式。
+    public static readonly TerrainRules Terrain = new(
+        Columns: 16,
+        Anomalies:
+        [
+            new TerrainAnomaly(TileType.Glacier, WorldMetric.Temperature, ThresholdComparison.AtOrBelow, Threshold: 0f, ZeroColumnValue: 0f, FullColumnValue: -50f),
+            new TerrainAnomaly(TileType.Scorched, WorldMetric.Temperature, ThresholdComparison.AtOrAbove, Threshold: 50f, ZeroColumnValue: 50f, FullColumnValue: 80f),
+            new TerrainAnomaly(TileType.Desert, WorldMetric.WaterAmount, ThresholdComparison.AtOrBelow, Threshold: 20f, ZeroColumnValue: 100f, FullColumnValue: 0f),
+            new TerrainAnomaly(TileType.Jungle, WorldMetric.ForestAmount, ThresholdComparison.AtOrAbove, Threshold: 70f, ZeroColumnValue: 70f, FullColumnValue: 100f),
+        ]);
+
+    // docs/domain/time-control.md の「100年跳躍ボタン」。
+    public const int JumpYears = 100;
 }

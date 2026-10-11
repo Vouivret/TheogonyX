@@ -2,5 +2,69 @@
 
 [ext_resource type="Script" uid="uid://drgm5qfi6d3te" path="res://scenes/main/WorldCore.cs" id="1"]
 
-[node name="WorldCore" type="Node" unique_id=669599788]
+[node name="WorldCore" type="Node2D" unique_id=669599788]
 script = ExtResource("1")
+
+[node name="Terrain" type="TileMapLayer" parent="." unique_id=1465616334]
+unique_name_in_owner = true
+texture_filter = 1
+position = Vector2(16, 63)
+
+[node name="AutoPlayTimer" type="Timer" parent="." unique_id=639291190]
+unique_name_in_owner = true
+
+[node name="Hud" type="CanvasLayer" parent="." unique_id=341956898]
+
+[node name="Panel" type="VBoxContainer" parent="Hud" unique_id=684590511]
+offset_left = 288.0
+offset_top = 16.0
+offset_right = 464.0
+offset_bottom = 254.0
+
+[node name="YearLabel" type="Label" parent="Hud/Panel" unique_id=1466526891]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ChaosLabel" type="Label" parent="Hud/Panel" unique_id=1040149012]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="HarmonyLabel" type="Label" parent="Hud/Panel" unique_id=278938667]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DogmaHeader" type="Label" parent="Hud/Panel" unique_id=2007951632]
+layout_mode = 2
+text = "HUD_DOGMAS"
+
+[node name="DogmaList" type="Label" parent="Hud/Panel" unique_id=2145796082]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Buttons" type="GridContainer" parent="Hud/Panel" unique_id=1995477256]
+layout_mode = 2
+columns = 2
+
+[node name="JumpButton" type="Button" parent="Hud/Panel/Buttons" unique_id=880300390]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="AutoPlayButton" type="Button" parent="Hud/Panel/Buttons" unique_id=1248966362]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BUTTON_AUTO_PLAY"
+
+[node name="PauseButton" type="Button" parent="Hud/Panel/Buttons" unique_id=1747718723]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BUTTON_PAUSE"
+
+[node name="SpeedButton" type="Button" parent="Hud/Panel/Buttons" unique_id=436145611]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ResetButton" type="Button" parent="Hud/Panel/Buttons" unique_id=49770663]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BUTTON_RESET"

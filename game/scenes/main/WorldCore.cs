@@ -8,40 +8,40 @@ using TheogonyX.Data;
 
 namespace TheogonyX.Scenes.Main;
 
-/// <summary>MVP のコアループ（夢の改ざん → ドグマ生成 → 時代跳躍）を通しで動かし、結果をログに出す。</summary>
-public partial class WorldCore : Node
+/// <summary>メインシーンの根。ゲームデータを読み、初期のドグマを作り、画面（<see cref="WorldScreen"/>）を組み立てる。</summary>
+public partial class WorldCore : Node2D
 {
-    private const int TimeSkipYears = 100;
+    private WorldScreen? _screen;
 
     public override void _Ready()
     {
         var rulesJson = ReadText("res://data/rules.json");
         var dreamRules = GameDataLoader.ParseDreamRules(ReadText("res://data/symbols.json"), rulesJson);
         var worldRules = GameDataLoader.ParseWorldRules(rulesJson);
+        var (terrainRules, mapRows) = GameDataLoader.ParseTerrain(rulesJson);
+        var timeSettings = GameDataLoader.ParseTimeControl(rulesJson);
 
+        var timeControl = new TimeControl(worldRules, CreateInitialDogmas(dreamRules), timeSettings.JumpYears);
+        _screen = new WorldScreen(this, timeControl, terrainRules, mapRows, timeSettings);
+    }
+
+    // 初期の夢の改ざん。夢を改ざんする画面ができるまでの仮の仕組み（docs/domain/time-control.md）。
+    private static List<Dogma> CreateInitialDogmas(DreamRules dreamRules)
+    {
         var dream = new List<DreamNode> { new("SYM_TREE", 0.5f), new("SYM_RAIN", 0.6f) };
         GD.Print(FormattableString.Invariant($"event=dream_created dreamNodes={Format(dream)}"));
 
         dream[1] = new DreamNode("SYM_BLOOD", 0.9f);
         GD.Print(FormattableString.Invariant($"event=dream_tampered dreamNodes={Format(dream)}"));
 
-        var world = WorldState.CreateInitial(worldRules);
-        var dogmas = new List<Dogma>();
         var dogma = DreamInterpreter.Interpret(dream, dreamRules);
-        if (dogma is not null)
+        if (dogma is null)
         {
-            dogmas.Add(dogma);
-            GD.Print(FormattableString.Invariant(
-                $"event=dogma_formed year={world.Year} symbolId={dogma.TargetSymbolId} dogmaType={dogma.Type} intensity={dogma.Intensity}"));
+            return [];
         }
-
-        WorldSimulator.SimulateTimeSkip(world, dogmas, TimeSkipYears, worldRules);
         GD.Print(FormattableString.Invariant(
-            $"event=time_skipped years={TimeSkipYears} year={world.Year} forestAmount={world.ForestAmount} waterAmount={world.WaterAmount} temperature={world.Temperature} chaosLevel={world.ChaosLevel} harmonyLevel={world.HarmonyLevel} isDestroyed={world.IsDestroyed}"));
-        if (world.IsDestroyed)
-        {
-            GD.Print(FormattableString.Invariant($"event=world_destroyed year={world.Year}"));
-        }
+            $"event=dogma_formed year=0 symbolId={dogma.TargetSymbolId} dogmaType={dogma.Type} intensity={dogma.Intensity}"));
+        return [dogma];
     }
 
     private static string ReadText(string path)

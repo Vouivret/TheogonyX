@@ -1,0 +1,20 @@
+keys,ja,en
+HUD_YEAR,創世紀 {0} 年,Genesis Year {0}
+HUD_CHAOS,カオス度 {0:F1}%,Chaos {0:F1}%
+HUD_HARMONY,調和度 {0:F1}%,Harmony {0:F1}%
+HUD_DOGMAS,ドグマ,Dogmas
+HUD_NO_DOGMA,（なし）,(none)
+DOGMA_ENTRY,{0}の{1},{1} of {0}
+SYMBOL_SYM_TREE,木,Tree
+SYMBOL_SYM_RAIN,恵みの雨,Blessed Rain
+SYMBOL_SYM_BLOOD,血,Blood
+SYMBOL_SYM_FIRE,聖なる火,Sacred Fire
+DOGMA_TYPE_TABOO,禁忌,Taboo
+DOGMA_TYPE_WORSHIP,崇拝,Worship
+DOGMA_TYPE_DESTRUCTION,破壊,Destruction
+BUTTON_JUMP,{0}年跳躍,Skip {0} Years
+BUTTON_AUTO_PLAY,自動進行,Auto-play
+BUTTON_PAUSE,一時停止,Pause
+BUTTON_SPEED_NORMAL,速さ: 通常,Speed: Normal
+BUTTON_SPEED_FAST,速さ: 高速,Speed: Fast
+BUTTON_RESET,世界再創生,Recreate World

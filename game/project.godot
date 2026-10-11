@@ -14,7 +14,24 @@ config/name="Theogony X"
 run/main_scene="res://scenes/main/main.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
+[display]
+
+window/size/viewport_width=480
+window/size/viewport_height=270
+window/size/window_width_override=1440
+window/size/window_height_override=810
+window/stretch/mode="viewport"
+window/stretch/scale_mode="integer"
+
 [dotnet]
 
 project/assembly_name="TheogonyX"
 project/solution_directory=".."
+
+[gui]
+
+theme/custom="res://ui/theme/main_theme.tres"
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://locales/ui.ja.translation", "res://locales/ui.en.translation")

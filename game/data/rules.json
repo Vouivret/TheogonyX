@@ -26,5 +26,20 @@
       "temperatureAtOrAbove": 70.0,
       "temperatureAtOrBelow": -40.0
     }
+  },
+  "terrain": {
+    "columns": 16,
+    "rows": 9,
+    "anomalies": [
+      { "tileType": "Glacier", "metric": "Temperature", "comparison": "AtOrBelow", "threshold": 0.0, "zeroColumnValue": 0.0, "fullColumnValue": -50.0 },
+      { "tileType": "Scorched", "metric": "Temperature", "comparison": "AtOrAbove", "threshold": 50.0, "zeroColumnValue": 50.0, "fullColumnValue": 80.0 },
+      { "tileType": "Desert", "metric": "WaterAmount", "comparison": "AtOrBelow", "threshold": 20.0, "zeroColumnValue": 100.0, "fullColumnValue": 0.0 },
+      { "tileType": "Jungle", "metric": "ForestAmount", "comparison": "AtOrAbove", "threshold": 70.0, "zeroColumnValue": 70.0, "fullColumnValue": 100.0 }
+    ]
+  },
+  "timeControl": {
+    "jumpYears": 100,
+    "normalYearsPerSecond": 1.0,
+    "fastYearsPerSecond": 10.0
   }
 }

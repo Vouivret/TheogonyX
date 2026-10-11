@@ -23,6 +23,15 @@ public static class GameDataLoader
 
     public static WorldRules ParseWorldRules(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").World;
 
+    /// <returns>判定の定義と、描画するマップの行数。</returns>
+    public static (TerrainRules Rules, int Rows) ParseTerrain(string rulesJson)
+    {
+        var terrain = Parse<RulesFile>(rulesJson, "rules.json").Terrain;
+        return (new TerrainRules(terrain.Columns, terrain.Anomalies), terrain.Rows);
+    }
+
+    public static TimeControlSettings ParseTimeControl(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").TimeControl;
+
     private static T Parse<T>(string json, string fileName)
     {
         try
@@ -40,5 +49,11 @@ public static class GameDataLoader
 
     private sealed record DogmaTypeThresholds(float TabooAtOrBelow, float WorshipAtOrAbove);
 
-    private sealed record RulesFile(DogmaTypeThresholds DogmaTypeThresholds, WorldRules World);
+    private sealed record TerrainFile(int Columns, int Rows, IReadOnlyList<TerrainAnomaly> Anomalies);
+
+    private sealed record RulesFile(
+        DogmaTypeThresholds DogmaTypeThresholds,
+        WorldRules World,
+        TerrainFile Terrain,
+        TimeControlSettings TimeControl);
 }
