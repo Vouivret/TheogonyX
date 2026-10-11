@@ -20,13 +20,13 @@
 | TS-time-skip-009 | AC-time-skip-009 | 崩壊後の跳躍は何も変えない | 受け入れ条件のとおり | 跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/WorldSimulatorTests.cs` |
 | TS-time-skip-010 | AC-time-skip-010 | ドグマが跳躍をまたいで効き続ける（分割しても結果が同じ） | 受け入れ条件のとおり | 跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/WorldSimulatorTests.cs` |
 | TS-time-skip-011 | — | 決定性: 同じ入力で2回実行すると、すべての値が一致する | 木の破壊と雨の破壊 | 100年跳躍を2回、別々の世界で行う | 2つの世界の状態が一致 | 自動 | `tests/TheogonyX.Core.Tests/WorldSimulatorTests.cs` |
-| TS-time-skip-012 | — | Godot 上でコアループが動く（`WorldCore` の出力） | `game/` を Godot 4.7.2 で開く | メインシーンを実行する（F5） | 出力に改ざん前後の夢、生成されたドグマ、100年後の世界の状態が出て、エラーが無い | 手動 | — |
+| TS-time-skip-012 | — | Godot 上でコアループが動く（`WorldCore` の出力） | `game/` を Godot 4.7.2 で開く | メインシーンを実行し（F5）、100年跳躍ボタンを押す | 出力に改ざん前後の夢、生成されたドグマ、100年後の世界の状態が出て、エラーが無い | 手動 | — |
 
 ## 手動テストの手順
 
 ### TS-time-skip-012
 1. Godot 4.7.2（.NET 版）で `game/project.godot` を開く。
-2. F5 でメインシーンを実行する。
+2. F5 でメインシーンを実行し、100年跳躍ボタンを押す。
 3. 出力パネルに、`event=` で始まるログ（夢の改ざん、`dogma_formed`、跳躍後の世界の状態）が出ることを確かめる。
 4. エラー・警告が出ていないことを確かめる。
 
