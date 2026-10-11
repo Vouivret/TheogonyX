@@ -54,6 +54,22 @@ internal static class TestRules
             new TerrainAnomaly(TileType.Jungle, WorldMetric.ForestAmount, ThresholdComparison.AtOrAbove, Threshold: 70f, ZeroColumnValue: 70f, FullColumnValue: 100f),
         ]);
 
+    // docs/domain/dream-tampering.md と prophet-request.md のルールの値。
+    public static readonly ProphetDreamRules ProphetDreams = new(
+        NodeCount: 3,
+        MinWeight: 0.3f,
+        MaxWeight: 1.0f,
+        YearsBetweenDreams: 100,
+        RequestCooldownYears: 50,
+        Requests:
+        [
+            new ProphetRequestRule("THIRST", WorldMetric.WaterAmount, ThresholdComparison.AtOrBelow, 30f, "SYM_RAIN"),
+            new ProphetRequestRule("FAMINE", WorldMetric.ForestAmount, ThresholdComparison.AtOrBelow, 30f, "SYM_TREE"),
+            new ProphetRequestRule("HEAT", WorldMetric.Temperature, ThresholdComparison.AtOrAbove, 40f, "SYM_RAIN"),
+            new ProphetRequestRule("COLD", WorldMetric.Temperature, ThresholdComparison.AtOrBelow, -10f, "SYM_FIRE"),
+            new ProphetRequestRule("CHAOS", WorldMetric.ChaosLevel, ThresholdComparison.AtOrAbove, 60f, "SYM_TREE"),
+        ]);
+
     // docs/domain/time-control.md の「100年跳躍ボタン」。
     public const int JumpYears = 100;
 

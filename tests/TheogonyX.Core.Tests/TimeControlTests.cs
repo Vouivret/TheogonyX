@@ -9,8 +9,15 @@ public class TimeControlTests
     private static readonly Dogma TreeTaboo = new("SYM_TREE", DogmaType.Taboo, 1.0f);
     private static readonly Dogma BloodDestruction = new("SYM_BLOOD", DogmaType.Destruction, 1.0f);
 
-    private static TimeControl Create(params Dogma[] initialDogmas) =>
-        new(TestRules.World, initialDogmas, TestRules.JumpYears);
+    private static TimeControl Create(params Dogma[] dogmas)
+    {
+        var control = new TimeControl(TestRules.World, TestRules.JumpYears);
+        foreach (var dogma in dogmas)
+        {
+            control.AddDogma(dogma);
+        }
+        return control;
+    }
 
     private static void AdvanceYears(TimeControl control, int years)
     {
@@ -77,10 +84,9 @@ public class TimeControlTests
 
     [Fact]
     [Trait("TS", "TS-time-control-004")]
-    public void Reset_崩壊している_初期値と初期のドグマに戻る()
+    public void Reset_崩壊している_初期値に戻りドグマが空になる()
     {
-        var control = Create(TreeTaboo);
-        control.AddDogma(BloodDestruction);
+        var control = Create(TreeTaboo, BloodDestruction);
         control.Jump();
         Assert.Equal(TimeControlState.Destroyed, control.State);
 
@@ -88,7 +94,7 @@ public class TimeControlTests
 
         Assert.Equal(TimeControlState.Stopped, control.State);
         AssertInitialWorld(control.World);
-        Assert.Equal([TreeTaboo], control.Dogmas);
+        Assert.Empty(control.Dogmas);
     }
 
     [Fact]
@@ -121,10 +127,9 @@ public class TimeControlTests
 
     [Fact]
     [Trait("TS", "TS-time-control-007")]
-    public void Reset_崩壊前の自動進行中_停止中になり初期のドグマに戻る()
+    public void Reset_崩壊前の自動進行中_停止中になりドグマが空になる()
     {
-        var control = Create(TreeTaboo);
-        control.AddDogma(BloodDestruction);
+        var control = Create(TreeTaboo, BloodDestruction);
         control.StartAutoPlay();
         AdvanceYears(control, 30);
 
@@ -132,7 +137,7 @@ public class TimeControlTests
 
         Assert.Equal(TimeControlState.Stopped, control.State);
         AssertInitialWorld(control.World);
-        Assert.Equal([TreeTaboo], control.Dogmas);
+        Assert.Empty(control.Dogmas);
     }
 
     public static TheoryData<TimeControlState, TimeControlAction> ForbiddenActions => new()

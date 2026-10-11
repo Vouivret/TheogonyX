@@ -45,10 +45,47 @@ offset_right = 53.0
 offset_bottom = 53.0
 mouse_filter = 2
 
-[node name="HostAddressButton" type="Button" parent="Hud"]
+[node name="HostAddressButton" type="Button" parent="Hud" unique_id=1013904577]
 unique_name_in_owner = true
 offset_left = 56.0
 offset_top = 8.0
+
+[node name="RequestBubble" type="Label" parent="Hud" unique_id=1100430842]
+unique_name_in_owner = true
+visible = false
+offset_left = 150.0
+offset_top = 30.0
+offset_right = 280.0
+offset_bottom = 90.0
+autowrap_mode = 3
+
+[node name="DreamPanel" type="VBoxContainer" parent="Hud" unique_id=745983899]
+offset_left = 16.0
+offset_top = 209.0
+offset_right = 280.0
+offset_bottom = 268.0
+
+[node name="DreamGuide" type="Label" parent="Hud/DreamPanel" unique_id=2090383597]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DreamRow" type="HBoxContainer" parent="Hud/DreamPanel" unique_id=1151324713]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DreamNodes" type="HBoxContainer" parent="Hud/DreamPanel/DreamRow" unique_id=1222824893]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="OracleButton" type="Button" parent="Hud/DreamPanel/DreamRow" unique_id=275136756]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BUTTON_ORACLE"
+
+[node name="DreamCards" type="HBoxContainer" parent="Hud/DreamPanel" unique_id=1594695030]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
 
 [node name="Panel" type="VBoxContainer" parent="Hud" unique_id=684590511]
 offset_left = 288.0
@@ -104,7 +141,7 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "BUTTON_RESET"
 
-[node name="ResetSessionsButton" type="Button" parent="Hud/Panel/Buttons"]
+[node name="ResetSessionsButton" type="Button" parent="Hud/Panel/Buttons" unique_id=567700276]
 unique_name_in_owner = true
 layout_mode = 2
 text = "BUTTON_RESET_SESSIONS"

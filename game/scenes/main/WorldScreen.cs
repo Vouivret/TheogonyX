@@ -49,6 +49,12 @@ public sealed class WorldScreen
     private bool _fast;
     private Tween? _resetBlink;
 
+    /// <summary>100 年跳躍の後と、自動進行の 1 年ごと。</summary>
+    public event Action? TimeAdvanced;
+
+    /// <summary>世界再創生の後。</summary>
+    public event Action? WorldReset;
+
     /// <param name="owner">ノードを探し、Tween を作るためのシーンの根。</param>
     public WorldScreen(Node owner, TimeControl timeControl, TerrainRules terrainRules, int mapRows, TimeControlSettings timeSettings)
     {
@@ -110,6 +116,7 @@ public sealed class WorldScreen
         {
             GD.Print(FormattableString.Invariant($"event=world_destroyed year={_timeControl.World.Year}"));
         }
+        TimeAdvanced?.Invoke();
         Refresh();
     }
 
@@ -135,6 +142,7 @@ public sealed class WorldScreen
     {
         _timeControl.Reset();
         GD.Print("event=world_reset year=0");
+        WorldReset?.Invoke();
         Refresh();
     }
 
@@ -150,7 +158,8 @@ public sealed class WorldScreen
         _speedButton.Text = Tr(_fast ? "BUTTON_SPEED_FAST" : "BUTTON_SPEED_NORMAL");
     }
 
-    private void Refresh()
+    /// <summary>地表・HUD・ボタンを描き直す（ドグマが増えたときなど）。</summary>
+    public void Refresh()
     {
         DrawTerrain();
         DrawHud();

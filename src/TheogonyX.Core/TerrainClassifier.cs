@@ -11,7 +11,7 @@ public static class TerrainClassifier
         // 優先度の順に調べ、最初に当てはまった異常で決める。
         foreach (var anomaly in rules.Anomalies)
         {
-            var value = ValueOf(world, anomaly.Metric);
+            var value = world.ValueOf(anomaly.Metric);
             var matched = anomaly.Comparison == ThresholdComparison.AtOrBelow
                 ? value <= anomaly.Threshold
                 : value >= anomaly.Threshold;
@@ -30,12 +30,4 @@ public static class TerrainClassifier
         var rounded = (int)MathF.Round(ratio * columns, MidpointRounding.AwayFromZero);
         return Math.Clamp(rounded, 1, columns);
     }
-
-    private static float ValueOf(WorldState world, WorldMetric metric) => metric switch
-    {
-        WorldMetric.ForestAmount => world.ForestAmount,
-        WorldMetric.WaterAmount => world.WaterAmount,
-        WorldMetric.Temperature => world.Temperature,
-        _ => throw new ArgumentOutOfRangeException(nameof(metric), metric, null),
-    };
 }

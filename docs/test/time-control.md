@@ -12,7 +12,7 @@
 | TS-time-control-001 | AC-time-control-001 | 停止中に100年跳躍すると、停止中のまま 100 年進む | 受け入れ条件のとおり | 跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/TimeControlTests.cs` |
 | TS-time-control-002 | AC-time-control-002 | 跳躍の途中で崩壊すると崩壊の状態になり、リセット以外は押せない | 受け入れ条件のとおり | 跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/TimeControlTests.cs` |
 | TS-time-control-003 | AC-time-control-003 | 自動進行中に崩壊すると、自動進行が止まる | 受け入れ条件のとおり | 1年経過させる | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/TimeControlTests.cs` |
-| TS-time-control-004 | AC-time-control-004 | 崩壊からのリセットで、初期値と初期のドグマに戻る | 受け入れ条件のとおり | リセットする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/TimeControlTests.cs` |
+| TS-time-control-004 | AC-time-control-004 | 崩壊からのリセットで、初期値に戻りドグマが空になる | 受け入れ条件のとおり | リセットする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/TimeControlTests.cs` |
 | TS-time-control-005 | AC-time-control-005 | 一時停止で年が進まなくなる | 受け入れ条件のとおり | 一時停止する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/TimeControlTests.cs` |
 | TS-time-control-006 | AC-time-control-006 | 自動進行中の100年跳躍で、自動進行が続く | 受け入れ条件のとおり | 跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/TimeControlTests.cs` |
 | TS-time-control-007 | AC-time-control-007 | 崩壊していなくてもリセットでき、自動進行も止まる | 受け入れ条件のとおり | リセットする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/TimeControlTests.cs` |
@@ -27,7 +27,7 @@
 3. 高速に切り替え、年が1秒におよそ 10 進むことを確かめる。
 4. 一時停止を押し、年が止まることを確かめる。
 5. 星が崩壊するまで進め、自動進行が止まること、100年跳躍と自動進行のボタンが押せなくなること、リセットボタンが赤く点滅することを確かめる。
-6. リセットを押し、「創世紀 0 年」・全面の密林・初期のドグマに戻ることを確かめる。
+6. リセットを押し、「創世紀 0 年」・全面の密林・ドグマの一覧が空（「（なし）」）に戻ることを確かめる。
 7. 出力パネルにエラー・警告が無いことを確かめる。
 
 ## 対象外

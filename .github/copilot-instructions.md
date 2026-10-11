@@ -182,6 +182,7 @@
   | `harmonyLevel` | 調和度（`WorldState.HarmonyLevel`） |
   | `isDestroyed` | 星が崩壊しているか（`WorldState.IsDestroyed`） |
   | `reason` | 失敗・拒否の理由（英小文字のスネークケース。例: `unknown_type_or_version`） |
+  | `requestType` | 予言者の依頼の困りごとの ID（例: `THIRST`。`ProphetRequestRule.Id`） |
 
 - 例外を握りつぶさない。catch したら、記録するか、文脈を足して投げ直す。
 

@@ -21,22 +21,17 @@ public sealed class TimeControl
     };
 
     private readonly WorldRules _worldRules;
-    private readonly IReadOnlyList<Dogma> _initialDogmas;
     private readonly int _jumpYears;
-    private readonly List<Dogma> _dogmas;
+    private readonly List<Dogma> _dogmas = [];
 
-    /// <param name="initialDogmas">起動時とリセット時のドグマ（初期の夢の改ざんから生まれたもの）。</param>
     /// <param name="jumpYears">100年跳躍ボタンで進める年数。</param>
-    public TimeControl(WorldRules worldRules, IReadOnlyList<Dogma> initialDogmas, int jumpYears)
+    public TimeControl(WorldRules worldRules, int jumpYears)
     {
         ArgumentNullException.ThrowIfNull(worldRules);
-        ArgumentNullException.ThrowIfNull(initialDogmas);
         ArgumentOutOfRangeException.ThrowIfNegative(jumpYears);
 
         _worldRules = worldRules;
-        _initialDogmas = [.. initialDogmas];
         _jumpYears = jumpYears;
-        _dogmas = [.. initialDogmas];
         World = WorldState.CreateInitial(worldRules);
     }
 
@@ -63,13 +58,12 @@ public sealed class TimeControl
 
     public void Pause() => State = NextState(TimeControlAction.Pause);
 
-    /// <summary>年 0・環境の初期値・初期のドグマに戻し、停止中にする。</summary>
+    /// <summary>年 0・環境の初期値に戻し、ドグマの一覧を空にして、停止中にする。</summary>
     public void Reset()
     {
         var next = NextState(TimeControlAction.Reset);
         World = WorldState.CreateInitial(_worldRules);
         _dogmas.Clear();
-        _dogmas.AddRange(_initialDogmas);
         State = next;
     }
 

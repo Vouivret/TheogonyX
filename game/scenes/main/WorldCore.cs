@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Godot;
 using TheogonyX.Core;
 using TheogonyX.Data;
@@ -9,13 +7,14 @@ using TheogonyX.Data;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// メインシーンの根。ゲームデータを読み、初期のドグマを作り、画面（<see cref="WorldScreen"/>）と
+/// メインシーンの根。ゲームデータを読み、画面（<see cref="WorldScreen"/>）・予言者の夢（<see cref="DreamView"/>）・
 /// コンパニオンとの通信（<see cref="CompanionHost"/>）を組み立てる。
 /// </summary>
 public partial class WorldCore : Node2D
 {
     private WorldScreen? _screen;
     private AmbienceView? _ambience;
+    private DreamView? _dreams;
     private CompanionHost? _companion;
 
     public override void _Ready()
@@ -27,10 +26,22 @@ public partial class WorldCore : Node2D
         var timeSettings = GameDataLoader.ParseTimeControl(rulesJson);
         var ambienceRules = GameDataLoader.ParseAmbience(rulesJson);
         var prophetSettings = GameDataLoader.ParseProphet(rulesJson);
+        var prophetDreamRules = GameDataLoader.ParseProphetDreams(rulesJson);
 
-        var timeControl = new TimeControl(worldRules, CreateInitialDogmas(dreamRules), timeSettings.JumpYears);
+        // シードは起動時の時刻から作り、記録する（同じシードで同じ夢を再現できる）
+        var seed = (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
+        GD.Print($"event=game_started seed={seed}");
+        var random = new Random(seed);
+
+        var timeControl = new TimeControl(worldRules, timeSettings.JumpYears);
+        var prophet = new ProphetDreams(
+            timeControl, dreamRules, prophetDreamRules, () => DreamGenerator.Generate(random, dreamRules, prophetDreamRules));
         _screen = new WorldScreen(this, timeControl, terrainRules, mapRows, timeSettings);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings);
+        _dreams = new DreamView(this, prophet, timeControl, dreamRules);
+        _screen.TimeAdvanced += _dreams.OnTimeAdvanced;
+        _screen.WorldReset += _dreams.OnWorldReset;
+        _dreams.OraclePronounced += _screen.Refresh;
 
         var companionSettings = GameDataLoader.ParseCompanion(ReadText("res://data/companion.json"));
         _companion = new CompanionHost(this, companionSettings, CompanionDirectory());
@@ -58,25 +69,6 @@ public partial class WorldCore : Node2D
             : Path.GetFullPath(Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "companion"));
     }
 
-    // 初期の夢の改ざん。夢を改ざんする画面ができるまでの仮の仕組み（docs/domain/time-control.md）。
-    private static List<Dogma> CreateInitialDogmas(DreamRules dreamRules)
-    {
-        var dream = new List<DreamNode> { new("SYM_TREE", 0.5f), new("SYM_RAIN", 0.6f) };
-        GD.Print(FormattableString.Invariant($"event=dream_created dreamNodes={Format(dream)}"));
-
-        dream[1] = new DreamNode("SYM_BLOOD", 0.9f);
-        GD.Print(FormattableString.Invariant($"event=dream_tampered dreamNodes={Format(dream)}"));
-
-        var dogma = DreamInterpreter.Interpret(dream, dreamRules);
-        if (dogma is null)
-        {
-            return [];
-        }
-        GD.Print(FormattableString.Invariant(
-            $"event=dogma_formed year=0 symbolId={dogma.TargetSymbolId} dogmaType={dogma.Type} intensity={dogma.Intensity}"));
-        return [dogma];
-    }
-
     private static string ReadText(string path)
     {
         var text = Godot.FileAccess.GetFileAsString(path);
@@ -87,7 +79,4 @@ public partial class WorldCore : Node2D
         }
         return text;
     }
-
-    private static string Format(IEnumerable<DreamNode> dream) =>
-        string.Join(",", dream.Select(node => FormattableString.Invariant($"{node.SymbolId}:{node.Weight}")));
 }

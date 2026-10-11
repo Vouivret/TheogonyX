@@ -19,3 +19,18 @@ BUTTON_SPEED_NORMAL,速さ: 通常,Speed: Normal
 BUTTON_SPEED_FAST,速さ: 高速,Speed: Fast
 BUTTON_RESET,世界再創生,Recreate World
 BUTTON_RESET_SESSIONS,全セッションリセット,Reset All Sessions
+BUTTON_ORACLE,神託を下す,Deliver Oracle
+DREAM_NONE,予言者は眠っている,The prophet is asleep
+DREAM_GUIDE_UNTAMPERED,夢を見た。コマを選べ（入れ替えは1回）,A dream came. Choose a node (one swap).
+DREAM_GUIDE_UNTAMPERED_PAUSED,夢を見た（時は止まっている）。コマを選べ,A dream came (time is paused). Choose a node.
+DREAM_GUIDE_CHOOSE_CARD,入れ替えるカードを選べ,Choose a card to swap in.
+DREAM_GUIDE_TAMPERED,夢を改ざんした。神託を下せ,Dream tampered. Deliver the oracle.
+DREAM_GUIDE_DESTROYED,星は滅びた,The planet has perished.
+BUTTON_CANCEL,やめる,Cancel
+DREAM_NODE_TOOLTIP,重み {0:F2},Weight {0:F2}
+REQUEST_BUBBLE,{0}に苦しんでいます。{1}をお恵みください,We suffer from {0}. Please grant us {1}.
+TROUBLE_THIRST,渇き,thirst
+TROUBLE_FAMINE,飢え,famine
+TROUBLE_HEAT,暑さ,heat
+TROUBLE_COLD,寒さ,cold
+TROUBLE_CHAOS,混乱,chaos

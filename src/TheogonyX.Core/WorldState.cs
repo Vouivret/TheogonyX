@@ -10,6 +10,16 @@ public sealed class WorldState
     public float HarmonyLevel { get; set; }
     public bool IsDestroyed { get; set; }
 
+    /// <summary>指標の今の値。</summary>
+    public float ValueOf(WorldMetric metric) => metric switch
+    {
+        WorldMetric.ForestAmount => ForestAmount,
+        WorldMetric.WaterAmount => WaterAmount,
+        WorldMetric.Temperature => Temperature,
+        WorldMetric.ChaosLevel => ChaosLevel,
+        _ => throw new ArgumentOutOfRangeException(nameof(metric), metric, null),
+    };
+
     /// <summary>年 0、環境は定義の初期値の世界を作る。</summary>
     public static WorldState CreateInitial(WorldRules rules)
     {

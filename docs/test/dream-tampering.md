@@ -1,0 +1,33 @@
+# テスト仕様書: 夢の改ざん
+
+- 受け入れ条件: [docs/domain/dream-tampering.md](../domain/dream-tampering.md)
+- 関連ADR: なし
+
+## テスト観点
+
+種別は「自動」「手動」「廃止」のどれか。自動テストの手順はテストコードに書き、ここには書かない。
+
+| ID | 受け入れ条件 | 観点 | 前提 | 操作 | 期待結果 | 種別 | 実装場所 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| TS-dream-tampering-001 | AC-dream-tampering-001, 011 | 夢の生成（3 つ、記号は 4 種類のどれか、重みは範囲内。同じシードなら同じ夢） | 受け入れ条件のとおり | 夢を作る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/DreamGeneratorTests.cs` |
+| TS-dream-tampering-002 | AC-dream-tampering-002, 003 | 改ざんで記号だけが替わり、2 回目はできない | 受け入れ条件のとおり | 入れ替える | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
+| TS-dream-tampering-003 | AC-dream-tampering-004, 005 | 神託でドグマが加わり、夢なしになる（改ざん前でも下せる） | 受け入れ条件のとおり | 神託を下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
+| TS-dream-tampering-004 | AC-dream-tampering-006, 007, 008 | 100 年ごとの夢と、夢があるあいだは新しい夢を見ないこと | 受け入れ条件のとおり | 年を進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
+| TS-dream-tampering-005 | AC-dream-tampering-009 | 崩壊しているあいだは改ざんも神託もできない | 受け入れ条件のとおり | 操作する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
+| TS-dream-tampering-006 | AC-dream-tampering-010 | 世界再創生でドグマが空になり、新しい夢を見る | 受け入れ条件のとおり | リセットする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
+| TS-dream-tampering-007 | — | 状態遷移表で「不可」の操作（夢なしでの改ざん・神託、改ざん済みでの改ざん）は受け付けない | 各状態 | 操作する | 例外になり、状態・夢・ドグマは変わらない | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
+| TS-dream-tampering-009 | AC-dream-tampering-013, 014 | 夢で自動進行が止まり、神託で再開する。止まっていたなら止まったまま。自分で再開していたら神託では何もしない | 受け入れ条件のとおり | 年を進める・神託を下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
+| TS-dream-tampering-008 | AC-dream-tampering-012 | PC の画面での改ざんと神託 | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 手動 | — |
+
+## 手動テストの手順
+
+### TS-dream-tampering-008
+1. メインシーンを実行し、地表の下に案内の一文と夢の 3 コマが出ていることを確かめる。
+2. 2 番目のコマを押し、夢のコマの段が手札の 4 枚と「やめる」に替わることを確かめる。血を選び、2 番目のコマが血に替わること、ほかのコマが押せなくなること、案内が「神託を下せ」に替わることを確かめる。
+3. 「神託を下す」を押し、HUD のドグマの一覧に加わり、案内が「予言者は眠っている」になることを確かめる。
+4. 自動進行（高速）にし、100 年たって夢が出ると自動進行が止まること、神託を下すと再開することを確かめる。自動進行中でも、コマと手札が毎回選べることを確かめる。
+5. 崩壊させ、夢のコマと「神託を下す」が押せず、案内が「星は滅びた」になることを確かめる。
+
+## 対象外
+
+なし。

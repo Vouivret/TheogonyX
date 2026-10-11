@@ -6,4 +6,5 @@ public enum WorldMetric
     ForestAmount,
     WaterAmount,
     Temperature,
+    ChaosLevel,
 }

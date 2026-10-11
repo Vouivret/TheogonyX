@@ -1,7 +1,7 @@
 {
   "dogmaTypeThresholds": {
-    "tabooAtOrBelow": -0.3,
-    "worshipAtOrAbove": 0.3
+    "tabooAtOrBelow": -0.6,
+    "worshipAtOrAbove": 0.6
   },
   "world": {
     "initial": { "forestAmount": 100.0, "waterAmount": 100.0, "temperature": 15.0, "chaosLevel": 0.0, "harmonyLevel": 50.0 },
@@ -51,5 +51,21 @@
   "prophet": {
     "column": 8,
     "frameSeconds": 0.5
+  },
+  "dream": {
+    "nodeCount": 3,
+    "minWeight": 0.3,
+    "maxWeight": 1.0,
+    "yearsBetweenDreams": 100
+  },
+  "prophetRequests": {
+    "cooldownYears": 50,
+    "requests": [
+      { "id": "THIRST", "metric": "WaterAmount", "comparison": "AtOrBelow", "threshold": 30.0, "symbolId": "SYM_RAIN" },
+      { "id": "FAMINE", "metric": "ForestAmount", "comparison": "AtOrBelow", "threshold": 30.0, "symbolId": "SYM_TREE" },
+      { "id": "HEAT", "metric": "Temperature", "comparison": "AtOrAbove", "threshold": 40.0, "symbolId": "SYM_RAIN" },
+      { "id": "COLD", "metric": "Temperature", "comparison": "AtOrBelow", "threshold": -10.0, "symbolId": "SYM_FIRE" },
+      { "id": "CHAOS", "metric": "ChaosLevel", "comparison": "AtOrAbove", "threshold": 60.0, "symbolId": "SYM_TREE" }
+    ]
   }
 }

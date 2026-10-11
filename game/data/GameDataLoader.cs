@@ -47,6 +47,15 @@ public static class GameDataLoader
 
     public static ProphetSettings ParseProphet(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").Prophet;
 
+    public static ProphetDreamRules ParseProphetDreams(string rulesJson)
+    {
+        var rules = Parse<RulesFile>(rulesJson, "rules.json");
+        var dream = rules.Dream;
+        var requests = rules.ProphetRequests;
+        return new ProphetDreamRules(
+            dream.NodeCount, dream.MinWeight, dream.MaxWeight, dream.YearsBetweenDreams, requests.CooldownYears, requests.Requests);
+    }
+
     public static CompanionSettings ParseCompanion(string companionJson)
     {
         var settings = Parse<CompanionSettings>(companionJson, "companion.json");
@@ -93,11 +102,17 @@ public static class GameDataLoader
 
     private sealed record AmbienceFile(float CycleSeconds, IReadOnlyList<string> CycleColors, string ChaosColor, string DestroyedColor);
 
+    private sealed record DreamFile(int NodeCount, float MinWeight, float MaxWeight, int YearsBetweenDreams);
+
+    private sealed record ProphetRequestsFile(int CooldownYears, IReadOnlyList<ProphetRequestRule> Requests);
+
     private sealed record RulesFile(
         DogmaTypeThresholds DogmaTypeThresholds,
         WorldRules World,
         TerrainFile Terrain,
         TimeControlSettings TimeControl,
         AmbienceFile Ambience,
-        ProphetSettings Prophet);
+        ProphetSettings Prophet,
+        DreamFile Dream,
+        ProphetRequestsFile ProphetRequests);
 }
