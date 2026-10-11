@@ -15,8 +15,8 @@ Godot 4.7.2（C#）上で、夢を改ざんするとドグマが生まれ、100�
 ## 決定事項
 | 決定 | 理由 | ADR化 |
 | :--- | :--- | :--- |
-| コアは `net10.0` のクラスライブラリ `TheogonyX.Core`。Godot に依存しない | xUnit で Godot なしにテストするため（`csharp.md`） | する |
-| Godot プロジェクトは `game/` に置き、`game/TheogonyX.csproj`（`Godot.NET.Sdk/4.7.2`、`net10.0`）からコアを `ProjectReference` で参照する | 直下に置くと、Godot が `src/`・`tests/` の `.cs` までビルドに含めるため | する |
+| コアは `net10.0` のクラスライブラリ `TheogonyX.Core`。Godot に依存しない | xUnit で Godot なしにテストするため（`csharp.md`） | 済（[0001](../docs/adr/0001-separate-core-library.md)） |
+| Godot プロジェクトは `game/` に置き、`game/TheogonyX.csproj`（`Godot.NET.Sdk/4.7.2`、`net10.0`）からコアを `ProjectReference` で参照する | 直下に置くと、Godot が `src/`・`tests/` の `.cs` までビルドに含めるため | 済（[0002](../docs/adr/0002-godot-project-in-game-dir.md)） |
 | テストは xUnit。パッケージは `dotnet new xunit` の既定のものを使う | 追加の依存を増やさない | しない |
 | 記号・極性・種別の閾値・環境の変化量・値の範囲・崩壊条件は `game/data/symbols.json` と `game/data/rules.json` に置く。コアはこれを読み込んだ定義オブジェクトを引数で受け取る | 調整値を直書きしない（`save-data.md`） | しない |
 | JSON の読み込みは `game/` 側で `System.Text.Json` を使う | 標準ライブラリで足りる | しない |
