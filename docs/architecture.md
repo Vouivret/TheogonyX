@@ -18,7 +18,7 @@ flowchart LR
         Game --> Save
     end
     subgraph Mobile["モバイル（PWA）"]
-        Companion["companion/<br>神託インターフェース（技術は未定）"]
+        Companion["companion/<br>神託インターフェース（素の HTML/JS）"]
     end
     Companion <-- "WebSocket（同じLAN）" --> Game
 ```
@@ -46,6 +46,7 @@ sequenceDiagram
 | Godot プロジェクトを `game/` に置き、コアを `ProjectReference` で参照する | [ADR 0002](adr/0002-godot-project-in-game-dir.md) |
 | 調整値はコードに書かず、ゲームデータ定義に置く | 未記録 |
 | コンパニオンは同じLANの WebSocket でホストに接続する | 未記録 |
+| 画面の配信は WebSocket のバイナリフレームで送り、先頭 2 バイトに種別とバージョンを置く | [ADR 0003](adr/0003-binary-frame-header.md) |
 
 ## 共通部品
 新しく作る前に、ここにあるものを使う。共通部品を追加したら、この表にも追加する。
@@ -65,5 +66,5 @@ sequenceDiagram
 | `game/data/` | ゲームデータ定義（`symbols.json`・`rules.json`）と、それをコアの定義（`DreamRules`・`WorldRules`・`TerrainRules`・`AmbienceRules` など）に変換する `GameDataLoader` |
 | `game/scenes/` | シーンとそのスクリプト（シーンごとにディレクトリを分ける） |
 | `game/locales/` | 翻訳ファイル |
-| `companion/` | モバイルのコンパニオン（技術は未定） |
+| `companion/` | モバイルのコンパニオン（素の HTML/JS） |
 | `docs/protocol/` | ホストとコンパニオンの通信の契約 |
