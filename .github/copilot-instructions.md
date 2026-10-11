@@ -145,10 +145,10 @@
 
 ## 6. Git操作
 
-- ブランチ作成・コミット・プッシュ・PR作成は、プロジェクトで許可されている場合のみ行う。
-- **禁止**: `push --force`、`reset --hard`、ブランチの削除、履歴の書き換え、フックの無効化（`--no-verify` など）、`main` への直接コミット。
-- 個人開発のため Issue と PR は任意である。ただしAIは `main` に直接コミットせず、作業ブランチに積む。
-- ブランチは `main` から切り、名前は `<種別>/<Issue番号>-<英語の短い説明>`、Issue が無ければ `<種別>/<英語の短い説明>` にする（例: `feat/12-dream-swap`、`feat/dogma-interpretation`）。
+- コミットとプッシュは、ユーザーに頼まれたときに行う。
+- **禁止**: `push --force`、`reset --hard`、ブランチの削除、履歴の書き換え、フックの無効化（`--no-verify` など）。
+- 個人開発のため Issue と PR は任意である。Phase 1 では `main` に直接コミット・プッシュしてよい。Phase 2 以降は作業ブランチに積み、PRで `main` に戻す。
+- 作業ブランチを切るときは `main` から切り、名前は `<種別>/<Issue番号>-<英語の短い説明>`、Issue が無ければ `<種別>/<英語の短い説明>` にする（例: `feat/12-dream-swap`、`feat/dogma-interpretation`）。
 - コミットメッセージは Conventional Commits の形式にする（概要は日本語でよい）。種別は `feat`・`fix`・`docs`・`refactor`・`test`・`perf`・`chore`（アセットの追加・差し替えは `chore(assets):`）。セーブデータの互換性を壊す変更は `feat!:` のように `!` を付け、本文に `BREAKING CHANGE:` を書く。Issue があれば本文の最後に `Refs #<Issue番号>` を書く。
 - PRを作るときは、説明に `.github/PULL_REQUEST_TEMPLATE.md` の項目をすべて埋める。該当しない項目は「なし」と書く。
 - PRの「セルフレビュー」欄は、`.git/ai-review-log.jsonl`（フックが記録する）だけを根拠に書き、記録が無いコマンドは「未実行」とする。AIはこのログに書き込まない。
