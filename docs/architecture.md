@@ -2,7 +2,7 @@
 
 システムの今の姿を書く。常に最新に書き換え、各項目から根拠のADRへリンクする。経緯はADRに任せ、ここには書かない。
 
-> 現在あるのは、コアループ（夢の解釈・時代跳躍）、地表の判定と時間の進め方（`TimeControl`）、それを描く Godot のメインシーン（`game/scenes/main/`。仮の単色タイル・HUD・操作ボタン）である。WebSocket サーバー・コンパニオン・セーブデータは、まだ無い（下の図では予定として描いている）。
+> 現在あるのは、コアループ（夢の解釈・時代跳躍）、地表の判定と時間の進め方（`TimeControl`）、それを描く Godot のメインシーン（`game/scenes/main/`。仮の単色タイル・HUD・操作ボタン・昼夜の環境光・予言者）である。WebSocket サーバー・コンパニオン・セーブデータは、まだ無い（下の図では予定として描いている）。
 
 ## 全体構成
 
@@ -62,7 +62,7 @@ sequenceDiagram
 | `src/TheogonyX.Core/` | モデル・夢の解釈・ドグマ・時代跳躍・セーブ形式・通信メッセージの型。Godot に依存しない |
 | `tests/TheogonyX.Core.Tests/` | コアの自動テスト（xUnit） |
 | `game/` | Godot プロジェクト（`project.godot`）。シーン・描画・入力・ファイル入出力・WebSocket サーバー |
-| `game/data/` | ゲームデータ定義（`symbols.json`・`rules.json`）と、それをコアの定義（`DreamRules`・`WorldRules`）に変換する `GameDataLoader` |
+| `game/data/` | ゲームデータ定義（`symbols.json`・`rules.json`）と、それをコアの定義（`DreamRules`・`WorldRules`・`TerrainRules`・`AmbienceRules` など）に変換する `GameDataLoader` |
 | `game/scenes/` | シーンとそのスクリプト（シーンごとにディレクトリを分ける） |
 | `game/locales/` | 翻訳ファイル |
 | `companion/` | モバイルのコンパニオン（技術は未定） |

@@ -10,6 +10,14 @@ unique_name_in_owner = true
 texture_filter = 1
 position = Vector2(16, 63)
 
+[node name="Ambience" type="CanvasModulate" parent="." unique_id=461487894]
+unique_name_in_owner = true
+
+[node name="Prophet" type="Sprite2D" parent="." unique_id=12535335]
+unique_name_in_owner = true
+texture_filter = 1
+centered = false
+
 [node name="AutoPlayTimer" type="Timer" parent="." unique_id=639291190]
 unique_name_in_owner = true
 

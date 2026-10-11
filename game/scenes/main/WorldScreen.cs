@@ -14,7 +14,7 @@ namespace TheogonyX.Scenes.Main;
 /// </summary>
 public sealed class WorldScreen
 {
-    private const int TileSize = 16;
+    internal const int TileSize = 16;
 
     // 仮のタイルの色（DB16 から選ぶ。docs/art-guide.md）。本番のタイル画像が来たら差し替える。
     private static readonly Dictionary<TileType, Color> PlaceholderColors = new()

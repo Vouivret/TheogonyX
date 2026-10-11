@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TheogonyX.Core;
@@ -32,6 +35,29 @@ public static class GameDataLoader
 
     public static TimeControlSettings ParseTimeControl(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").TimeControl;
 
+    public static AmbienceRules ParseAmbience(string rulesJson)
+    {
+        var ambience = Parse<RulesFile>(rulesJson, "rules.json").Ambience;
+        return new AmbienceRules(
+            ambience.CycleSeconds,
+            ambience.CycleColors.Select(ParseColor).ToList(),
+            ParseColor(ambience.ChaosColor),
+            ParseColor(ambience.DestroyedColor));
+    }
+
+    public static ProphetSettings ParseProphet(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").Prophet;
+
+    /// <param name="hex"><c>#RRGGBB</c> の形の色。</param>
+    private static LightColor ParseColor(string hex)
+    {
+        if (hex.Length != 7 || hex[0] != '#'
+            || !int.TryParse(hex.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb))
+        {
+            throw new InvalidDataException($"色の形が #RRGGBB ではない: file=rules.json value={hex}");
+        }
+        return new LightColor(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f);
+    }
+
     private static T Parse<T>(string json, string fileName)
     {
         try
@@ -51,9 +77,13 @@ public static class GameDataLoader
 
     private sealed record TerrainFile(int Columns, int Rows, IReadOnlyList<TerrainAnomaly> Anomalies);
 
+    private sealed record AmbienceFile(float CycleSeconds, IReadOnlyList<string> CycleColors, string ChaosColor, string DestroyedColor);
+
     private sealed record RulesFile(
         DogmaTypeThresholds DogmaTypeThresholds,
         WorldRules World,
         TerrainFile Terrain,
-        TimeControlSettings TimeControl);
+        TimeControlSettings TimeControl,
+        AmbienceFile Ambience,
+        ProphetSettings Prophet);
 }

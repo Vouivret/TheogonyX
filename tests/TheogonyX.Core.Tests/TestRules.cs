@@ -56,4 +56,19 @@ internal static class TestRules
 
     // docs/domain/time-control.md の「100年跳躍ボタン」。
     public const int JumpYears = 100;
+
+    // docs/domain/ambience.md の受け入れ条件の計算に使った色（0〜255 の成分を 255 で割る）。
+    public static readonly AmbienceRules Ambience = new(
+        CycleSeconds: 12f,
+        CycleColors:
+        [
+            Rgb(255, 255, 255), // 青空
+            Rgb(210, 125, 44), // 夕焼け
+            Rgb(48, 52, 109), // 夜
+            Rgb(222, 238, 214), // 朝
+        ],
+        ChaosColor: Rgb(208, 70, 72),
+        DestroyedColor: Rgb(68, 36, 52));
+
+    public static LightColor Rgb(float r, float g, float b) => new(r / 255f, g / 255f, b / 255f);
 }

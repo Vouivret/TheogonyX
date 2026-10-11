@@ -12,6 +12,7 @@ namespace TheogonyX.Scenes.Main;
 public partial class WorldCore : Node2D
 {
     private WorldScreen? _screen;
+    private AmbienceView? _ambience;
 
     public override void _Ready()
     {
@@ -20,9 +21,17 @@ public partial class WorldCore : Node2D
         var worldRules = GameDataLoader.ParseWorldRules(rulesJson);
         var (terrainRules, mapRows) = GameDataLoader.ParseTerrain(rulesJson);
         var timeSettings = GameDataLoader.ParseTimeControl(rulesJson);
+        var ambienceRules = GameDataLoader.ParseAmbience(rulesJson);
+        var prophetSettings = GameDataLoader.ParseProphet(rulesJson);
 
         var timeControl = new TimeControl(worldRules, CreateInitialDogmas(dreamRules), timeSettings.JumpYears);
         _screen = new WorldScreen(this, timeControl, terrainRules, mapRows, timeSettings);
+        _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings);
+    }
+
+    public override void _Process(double delta)
+    {
+        _ambience?.Process(delta);
     }
 
     // 初期の夢の改ざん。夢を改ざんする画面ができるまでの仮の仕組み（docs/domain/time-control.md）。

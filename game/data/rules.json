@@ -41,5 +41,15 @@
     "jumpYears": 100,
     "normalYearsPerSecond": 1.0,
     "fastYearsPerSecond": 10.0
+  },
+  "ambience": {
+    "cycleSeconds": 12.0,
+    "cycleColors": ["#FFFFFF", "#D27D2C", "#30346D", "#DEEED6"],
+    "chaosColor": "#D04648",
+    "destroyedColor": "#442434"
+  },
+  "prophet": {
+    "column": 8,
+    "frameSeconds": 0.5
   }
 }
