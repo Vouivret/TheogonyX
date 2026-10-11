@@ -169,6 +169,15 @@
   | `dogmaType` | ドグマの種別（`DogmaType`） |
   | `clientId` | コンパニオンの接続ごとの内部ID（IPアドレスではない） |
   | `durationMs` | 処理時間（ミリ秒） |
+  | `dreamNodes` | 夢ノードの並び（`記号ID:重み` をカンマでつなぐ。例: `SYM_TREE:0.5,SYM_RAIN:0.6`） |
+  | `intensity` | ドグマの強度（`Dogma.Intensity`） |
+  | `years` | 時代跳躍で指定した年数 |
+  | `forestAmount` | 森林量（`WorldState.ForestAmount`） |
+  | `waterAmount` | 水資源（`WorldState.WaterAmount`） |
+  | `temperature` | 気温（`WorldState.Temperature`） |
+  | `chaosLevel` | カオス度（`WorldState.ChaosLevel`） |
+  | `harmonyLevel` | 調和度（`WorldState.HarmonyLevel`） |
+  | `isDestroyed` | 星が崩壊しているか（`WorldState.IsDestroyed`） |
 
 - 例外を握りつぶさない。catch したら、記録するか、文脈を足して投げ直す。
 
