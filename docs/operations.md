@@ -11,6 +11,11 @@
 
 環境ごとに違う設定値（コンパニオンの待ち受けポートなど）は、コードに書かず設定ファイルで渡す。
 
+## コンパニオンとの通信
+- ポートは `game/data/companion.json`（HTTP 8080、WebSocket 8081）。WebSocket のポートを変えたら、`companion/js/protocol.js` の `WEBSOCKET_PORT` も同じ値にする。
+- 初めて起動したとき、Windows ファイアウォールの許可を求められる。「プライベート ネットワーク」だけを許可する。
+- 書き出した後に `companion/` をどこに置くかは未定（[plan](../plan/feat-m2-frame-stream.md)）。
+
 ## リリース
 1. `CHANGELOG.md` の `Unreleased` を確認し、Semantic Versioning でバージョン番号を決める。
    - セーブデータの互換性を壊す変更あり → メジャー

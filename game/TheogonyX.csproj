@@ -11,4 +11,8 @@
     <ProjectReference Include="..\src\TheogonyX.Core\TheogonyX.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+  </ItemGroup>
+
 </Project>

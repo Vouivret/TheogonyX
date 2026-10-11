@@ -32,4 +32,17 @@ public class FramePacerTests
         Assert.True(afterStall);
         Assert.False(next);
     }
+
+    [Theory]
+    [Trait("TS", "TS-frame-stream-012")]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    [InlineData(-0.1)]
+    public void Advance_経過時間が負か有限でない_例外になり以後も送れる(double delta)
+    {
+        var pacer = new FramePacer(FramesPerSecond);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => pacer.Advance(delta));
+        Assert.True(pacer.Advance(0.125));
+    }
 }

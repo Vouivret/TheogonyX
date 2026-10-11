@@ -18,7 +18,10 @@ public sealed class FramePacer
     /// <summary>経過時間を進め、このフレームで 1 コマ送るなら true を返す。</summary>
     public bool Advance(double deltaSeconds)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(deltaSeconds);
+        if (!double.IsFinite(deltaSeconds) || deltaSeconds < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(deltaSeconds), deltaSeconds, "0 以上の有限の値であること");
+        }
 
         _elapsedSeconds += deltaSeconds;
         if (_elapsedSeconds < _intervalSeconds)

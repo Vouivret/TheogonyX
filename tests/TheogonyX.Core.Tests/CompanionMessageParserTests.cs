@@ -10,10 +10,10 @@ public class CompanionMessageParserTests
     [InlineData("""{ "type": "STOP_STREAM", "version": 1 }""", CompanionMessageType.StopStream)]
     public void TryParse_表にあるメッセージ_種類が分かる(string text, CompanionMessageType expected)
     {
-        var ok = CompanionMessageParser.TryParse(text, out var type, out var reason);
+        var ok = CompanionMessageParser.TryParse(text, out var message, out var reason);
 
         Assert.True(ok);
-        Assert.Equal(expected, type);
+        Assert.Equal(new CompanionMessage(expected), message);
         Assert.Equal(string.Empty, reason);
     }
 
@@ -29,9 +29,50 @@ public class CompanionMessageParserTests
     [InlineData("""{ "type": "START_STREAM", "version": 2 }""", "unknown_type_or_version")]
     public void TryParse_読めないか知らないメッセージ_失敗して理由が分かる(string text, string expectedReason)
     {
+        var ok = CompanionMessageParser.TryParse(text, out var message, out var reason);
+
+        Assert.False(ok);
+        Assert.Null(message);
+        Assert.Equal(expectedReason, reason);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-companion-pairing-010")]
+    public void TryParse_PAIRとRESUME_トークンが取り出せる()
+    {
+        CompanionMessageParser.TryParse("""{ "type": "PAIR", "version": 1, "token": "q9V3oneTime" }""", out var pair, out _);
+        CompanionMessageParser.TryParse("""{ "type": "RESUME", "version": 1, "sessionToken": "Xk2pSession" }""", out var resume, out _);
+
+        Assert.Equal(new CompanionMessage(CompanionMessageType.Pair, "q9V3oneTime"), pair);
+        Assert.Equal(new CompanionMessage(CompanionMessageType.Resume, "Xk2pSession"), resume);
+    }
+
+    [Theory]
+    [Trait("TS", "TS-companion-pairing-010")]
+    [InlineData("""{ "type": "PAIR", "version": 1 }""")]
+    [InlineData("""{ "type": "PAIR", "version": 1, "token": "" }""")]
+    [InlineData("""{ "type": "PAIR", "version": 1, "token": 123 }""")]
+    [InlineData("""{ "type": "RESUME", "version": 1, "token": "Xk2pSession" }""")]
+    public void TryParse_トークンが無いか空か文字列でない_失敗する(string text)
+    {
         var ok = CompanionMessageParser.TryParse(text, out _, out var reason);
 
         Assert.False(ok);
-        Assert.Equal(expectedReason, reason);
+        Assert.Equal("invalid_token", reason);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-companion-pairing-010")]
+    public void TryParse_トークンが上限の128文字を超える_失敗する()
+    {
+        var atLimit = new string('a', 128);
+        var overLimit = new string('a', 129);
+
+        var okAtLimit = CompanionMessageParser.TryParse($$"""{ "type": "PAIR", "version": 1, "token": "{{atLimit}}" }""", out _, out _);
+        var okOverLimit = CompanionMessageParser.TryParse($$"""{ "type": "PAIR", "version": 1, "token": "{{overLimit}}" }""", out _, out var reason);
+
+        Assert.True(okAtLimit);
+        Assert.False(okOverLimit);
+        Assert.Equal("invalid_token", reason);
     }
 }

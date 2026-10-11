@@ -6,7 +6,7 @@ status: draft   # draft | approved | as-is
 
 - テスト仕様書: [docs/test/frame-stream.md](../test/frame-stream.md)
 - 関連ADR: [0003](../adr/0003-binary-frame-header.md)
-- 通信: [messages.md](../protocol/messages.md) の `START_STREAM`・`STOP_STREAM`・`FRAME`
+- 通信: [messages.md](../protocol/messages.md) の `START_STREAM`・`STOP_STREAM`・`ERROR`・`FRAME`
 - 画面デザイン: なし（コンパニオンの画面は、上部に星の映像、下部に夢のカードの欄）
 
 ## 目的
@@ -19,8 +19,8 @@ status: draft   # draft | approved | as-is
 
 - ホストは、世界の描画（HUD・ボタンを含まない 480×270px）を JPEG（品質 75%）にして、配信中のコンパニオンに 8 fps で送る。
 - 配信は接続ごとに、コンパニオンからの `START_STREAM` で始まり、`STOP_STREAM` か切断で終わる。
-- 同時に配信する接続は 2 つまで。
-- ペアリングを済ませていない接続の `START_STREAM` は受け付けない。
+- 同時に配信する接続は 2 つまで。上限を超えた `START_STREAM` には `ERROR`（`MAX_CONNECTIONS_REACHED`）を返し、その接続を閉じる。
+- ペアリング（[companion-pairing.md](companion-pairing.md)）を済ませていない接続の `START_STREAM` は受け付けない。
 - 送信待ちのデータが残っている接続には、そのコマを送らない（遅いスマホに古いコマをためない）。
 - 配信中の接続が無いときは、ホストは画面を取らない。
 - コンパニオンは、画面が表示されている間だけ配信を求める。
@@ -39,7 +39,7 @@ status: draft   # draft | approved | as-is
 | ID | Given（前提） | When（操作） | Then（結果） |
 | :--- | :--- | :--- | :--- |
 | AC-frame-stream-001 | ペアリング済みの接続 A が配信していない。ほかに配信中の接続は無い | A が `START_STREAM` を送る | A は配信中になる |
-| AC-frame-stream-002 | 接続 A・B が配信中 | 接続 C が `START_STREAM` を送る | C は配信中にならない。A・B は配信中のまま |
+| AC-frame-stream-002 | 接続 A・B が配信中 | 接続 C が `START_STREAM` を送る | C は配信中にならず、`ERROR`（`MAX_CONNECTIONS_REACHED`）を受け取って切断される。A・B は配信中のまま |
 | AC-frame-stream-003 | 接続 A・B が配信中 | A が `STOP_STREAM` を送り、その後 C が `START_STREAM` を送る | A は配信していない状態になり、C は配信中になる |
 | AC-frame-stream-004 | 接続 A・B が配信中 | A が切断し、その後 C が `START_STREAM` を送る | A の状態は消え、C は配信中になる |
 | AC-frame-stream-005 | 配信中の接続がある。8 fps（間隔 0.125 秒） | フレームの経過時間 0.1 秒、続けて 0.1 秒 | 1 回目は送らず、2 回目で 1 コマ送る |
@@ -59,5 +59,4 @@ status: draft   # draft | approved | as-is
 
 ## 未決
 
-- 3 台目の `START_STREAM` を断ったとき、コンパニオンに何かを返すか（返すならメッセージを [messages.md](../protocol/messages.md) に足す）。
-- ペアリングのメッセージの形と、再接続したときに QR コードを読み直す必要があるか（ワンタイムトークンのため）。
+なし。

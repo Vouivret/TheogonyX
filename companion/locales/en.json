@@ -1,0 +1,11 @@
+{
+  "TITLE": "TheogonyX Oracle",
+  "CARDS_TITLE": "Dream cards",
+  "CARDS_PLACEHOLDER": "Dream tampering is coming soon.",
+  "STATUS_SCAN_QR": "Scan the QR code on the PC screen.",
+  "STATUS_CONNECTING": "Connecting…",
+  "STATUS_PAIRED": "Connected.",
+  "STATUS_RECONNECTING": "Connection lost. Reconnecting…",
+  "ERROR_PAIRING_FAILED": "Could not connect. Scan the QR code on the PC screen again.",
+  "ERROR_MAX_CONNECTIONS_REACHED": "Up to 2 devices can watch at once. Close another device and try again."
+}

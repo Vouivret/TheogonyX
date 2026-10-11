@@ -47,6 +47,20 @@ public static class GameDataLoader
 
     public static ProphetSettings ParseProphet(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").Prophet;
 
+    public static CompanionSettings ParseCompanion(string companionJson)
+    {
+        var settings = Parse<CompanionSettings>(companionJson, "companion.json");
+        if (!IsPort(settings.HttpPort) || !IsPort(settings.WebSocketPort) || settings.HttpPort == settings.WebSocketPort
+            || settings.PairingTimeoutSeconds <= 0 || settings.MaxStreams <= 0 || settings.FramesPerSecond <= 0
+            || settings.JpegQualityPercent is < 1 or > 100)
+        {
+            throw new InvalidDataException($"コンパニオンの設定の値が範囲外: file=companion.json value={settings}");
+        }
+        return settings;
+    }
+
+    private static bool IsPort(int port) => port is >= 1 and <= ushort.MaxValue;
+
     /// <param name="hex"><c>#RRGGBB</c> の形の色。</param>
     private static LightColor ParseColor(string hex)
     {

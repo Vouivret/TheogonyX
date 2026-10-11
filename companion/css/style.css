@@ -1,0 +1,55 @@
+/* 色は docs/art-guide.md のパレット（DB16）から取る */
+:root {
+  --color-background: #140c1c;
+  --color-panel: #30346d;
+  --color-text: #deeed6;
+  --color-muted: #8595a1;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: system-ui, sans-serif;
+}
+
+.companion {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* 上部: 星の映像（16:9、横幅いっぱい） */
+.world-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--color-background);
+  image-rendering: pixelated;
+}
+
+.status {
+  margin: 0;
+  padding: 8px 16px;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+/* 下部: 夢のカードの改ざん（入れ替え）の欄 */
+.cards {
+  flex: 1;
+  margin: 0 16px 16px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--color-panel);
+}
+
+.cards-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.cards-placeholder {
+  margin: 0;
+  color: var(--color-muted);
+}

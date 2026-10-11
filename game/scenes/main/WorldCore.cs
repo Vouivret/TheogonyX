@@ -8,11 +8,15 @@ using TheogonyX.Data;
 
 namespace TheogonyX.Scenes.Main;
 
-/// <summary>メインシーンの根。ゲームデータを読み、初期のドグマを作り、画面（<see cref="WorldScreen"/>）を組み立てる。</summary>
+/// <summary>
+/// メインシーンの根。ゲームデータを読み、初期のドグマを作り、画面（<see cref="WorldScreen"/>）と
+/// コンパニオンとの通信（<see cref="CompanionHost"/>）を組み立てる。
+/// </summary>
 public partial class WorldCore : Node2D
 {
     private WorldScreen? _screen;
     private AmbienceView? _ambience;
+    private CompanionHost? _companion;
 
     public override void _Ready()
     {
@@ -27,12 +31,26 @@ public partial class WorldCore : Node2D
         var timeControl = new TimeControl(worldRules, CreateInitialDogmas(dreamRules), timeSettings.JumpYears);
         _screen = new WorldScreen(this, timeControl, terrainRules, mapRows, timeSettings);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings);
+
+        var companionSettings = GameDataLoader.ParseCompanion(ReadText("res://data/companion.json"));
+        _companion = new CompanionHost(this, companionSettings, CompanionDirectory());
     }
 
     public override void _Process(double delta)
     {
         _ambience?.Process(delta);
+        _companion?.Process(delta);
     }
+
+    public override void _ExitTree()
+    {
+        _companion?.Dispose();
+        _companion = null;
+    }
+
+    // エディタから実行したときの、リポジトリ直下の companion/。書き出した後の置き場所は未決（plan/feat-m2-frame-stream.md）。
+    private static string CompanionDirectory() =>
+        Path.GetFullPath(Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "companion"));
 
     // 初期の夢の改ざん。夢を改ざんする画面ができるまでの仮の仕組み（docs/domain/time-control.md）。
     private static List<Dogma> CreateInitialDogmas(DreamRules dreamRules)

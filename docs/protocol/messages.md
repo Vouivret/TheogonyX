@@ -1,22 +1,36 @@
 # ホストとコンパニオンのメッセージ
 
-通信の契約の原本。ルールは `.agent/rules/protocol.md` にある。C# の型（`src/TheogonyX.Core/Protocol/`）と1対1で対応させる。
+通信の契約の原本。ルールは `.agent/rules/protocol.md` にある。C# の型（`src/TheogonyX.Core/Protocol/`）とコンパニオンの定数（`companion/js/protocol.js`）を、この表と1対1で対応させる。
 
 - 方式: WebSocket。メッセージはテキストフレーム（JSON）で送る。画像だけはバイナリフレームで送る（下の「バイナリフレーム」。[ADR 0003](../adr/0003-binary-frame-header.md)）。
 - 共通の項目: すべてのメッセージに `type`（文字列）と `version`（整数）を持たせる。バイナリフレームでは、先頭のヘッダーに種別とバージョンを持たせる。
-- ペアリングを済ませていない接続からのメッセージは、コアに渡さずに捨てる。ペアリングは QR コードで渡すワンタイムトークンで行う（メッセージの形は未定）。
+- ペアリング: 接続して最初のメッセージは `PAIR` か `RESUME` でなければならない。ペアリングを済ませるまで、ほかのメッセージは受け付けない（[仕様書](../domain/companion-pairing.md)）。
+- トークン（`token`・`sessionToken`）の値はログに出さない。
 
 ## メッセージの一覧（テキストフレーム・JSON）
 | type | version | 向き | 項目と型 | 意味 |
 | :--- | :--- | :--- | :--- | :--- |
-| `START_STREAM` | 1 | コンパニオン → ホスト | なし | この接続への画面の配信（`FRAME`）を始めてほしい。配信中に受け取っても何もしない。すでに 2 台に配信しているときは配信しない（そのとき返すものは未定） |
+| `PAIR` | 1 | コンパニオン → ホスト | `token`: 文字列 | QR コードの URL にあったワンタイムトークンでペアリングする |
+| `RESUME` | 1 | コンパニオン → ホスト | `sessionToken`: 文字列 | 前に受け取った `sessionToken` で、切断の後にペアリングをやり直す |
+| `PAIRED` | 1 | ホスト → コンパニオン | `sessionToken`: 文字列 | ペアリングが済んだ。`RESUME` で使う `sessionToken` を渡す（`RESUME` のときは同じ値を返す） |
+| `ERROR` | 1 | ホスト → コンパニオン | `reason`: 文字列（下の表） | 受け付けられない。ホストは送った後に接続を閉じる |
+| `START_STREAM` | 1 | コンパニオン → ホスト | なし | この接続への画面の配信（`FRAME`）を始めてほしい。配信中に受け取っても何もしない |
 | `STOP_STREAM` | 1 | コンパニオン → ホスト | なし | この接続への画面の配信をやめてほしい。配信していないときに受け取っても何もしない |
 
 例:
 
 ```json
+{ "type": "PAIR", "version": 1, "token": "q9V3..." }
+{ "type": "PAIRED", "version": 1, "sessionToken": "Xk2p..." }
 { "type": "START_STREAM", "version": 1 }
+{ "type": "ERROR", "version": 1, "reason": "MAX_CONNECTIONS_REACHED" }
 ```
+
+### `ERROR` の `reason`
+| reason | いつ |
+| :--- | :--- |
+| `MAX_CONNECTIONS_REACHED` | すでに 2 台に配信しているときに `START_STREAM` を受け取った |
+| `PAIRING_FAILED` | `PAIR` の `token`、`RESUME` の `sessionToken` が合わない。または最初のメッセージが `PAIR`・`RESUME` でない |
 
 ## バイナリフレーム
 | 種別（1バイト目） | 名前 | version（2バイト目） | 向き | 3バイト目以降 | 意味 |
