@@ -18,6 +18,8 @@
 | 時代跳躍 | `SimulateTimeSkip` | 50〜300年を一度に進めること | Time skip | |
 | 世界の状態 | `WorldState` | 年・森林量・水資源・気温・カオス度など星の状態 | World state | |
 | カオス度 | `ChaosLevel` | 星の混迷・破滅の度合い | Chaos level | |
+| 調和度 | `HarmonyLevel` | 星の秩序・穏やかさの度合い | Harmony level | |
+| 衝撃度 | `Impact` | 夢ノードのペアが予言者に与える印象の強さ。ドグマにするペアの選択と強度に使う | Impact | 感情強度 |
 | 地層 | | 滅びた文明が遺跡として蓄積したもの | Strata | |
 | ホスト | | シミュレーションと描画を行う PC 側のゲーム | Host | サーバー（画面上） |
 | コンパニオン | | ホストに接続するモバイルの神託インターフェース | Companion | リモコン |
