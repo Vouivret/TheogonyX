@@ -1,6 +1,6 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://08qfujhuvlf3"]
 
-[ext_resource type="Script" path="res://scenes/main/WorldCore.cs" id="1"]
+[ext_resource type="Script" uid="uid://drgm5qfi6d3te" path="res://scenes/main/WorldCore.cs" id="1"]
 
-[node name="WorldCore" type="Node"]
+[node name="WorldCore" type="Node" unique_id=669599788]
 script = ExtResource("1")
