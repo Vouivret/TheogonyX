@@ -59,6 +59,9 @@ public sealed class CompanionHost : IDisposable
         _pairingQr.Visible = false;
         _hostAddressButton.Visible = false;
         _resetSessionsButton.Visible = false;
+        // Dispose で必ず外せるよう、最初につなぐ（使えないあいだはボタンを隠している）
+        _hostAddressButton.Pressed += SwitchHostAddress;
+        _resetSessionsButton.Pressed += ResetSessions;
 
         // 通信が使えなくても、PC だけでゲームは続けられるようにする
         if (!Directory.Exists(companionDirectory))
@@ -94,7 +97,6 @@ public sealed class CompanionHost : IDisposable
         }
         _isListening = true;
         _resetSessionsButton.Visible = true;
-        _resetSessionsButton.Pressed += ResetSessions;
 
         _hostAddresses = LanAddress.RankForQrCode(LocalAddresses());
         if (_hostAddresses.Count == 0)
@@ -105,7 +107,6 @@ public sealed class CompanionHost : IDisposable
         if (_hostAddresses.Count > 1)
         {
             _hostAddressButton.Visible = true;
-            _hostAddressButton.Pressed += SwitchHostAddress;
         }
         DrawPairingQr();
         GD.Print("event=companion_host_started");
