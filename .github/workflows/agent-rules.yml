@@ -1,0 +1,31 @@
+name: agent-rules
+
+on:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ツール用のルールファイルが原本と一致している
+        run: |
+          sh scripts/sync-agent-rules.sh
+          git diff --exit-code || { echo "::error::sh scripts/sync-agent-rules.sh を実行して、生成されたファイルをコミットしてください"; exit 1; }
+
+      - name: 初期設定の未記入（TODO(SETUP)）が残っていない
+        run: |
+          if grep -rn 'TODO(SETUP)[:]' --include='*.md' .; then
+            echo "::error::上の TODO(SETUP) を埋めてください（README の初期導入チェックリスト）"
+            exit 1
+          fi
+
+      - name: このPRで追加された TODO(AI_UNSURE) が残っていない
+        run: |
+          if git diff "origin/${{ github.base_ref }}...HEAD" -- . ':!.agent' ':!docs' ':!.github' | grep -n '^+.*TODO(AI_UNSURE)'; then
+            echo "::error::AIが仮置きした箇所です。人間が判断して解消してください"
+            exit 1
+          fi

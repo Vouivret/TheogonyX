@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.godot/**)",
+      "Read(./**/bin/**)",
+      "Read(./**/obj/**)",
+      "Read(./export/**)"
+    ]
+  },
+  "hooks": {
+    "UserPromptExpansion": [
+      {
+        "matcher": "code-review|ponytail-review",
+        "hooks": [
+          { "type": "command", "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/log-review.sh\"" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          { "type": "command", "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/log-review.sh\"" }
+        ]
+      }
+    ]
+  }
+}

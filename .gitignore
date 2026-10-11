@@ -1,0 +1,15 @@
+# Godot
+.godot/
+export/
+*.translation
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# OS
+.DS_Store
+Thumbs.db
