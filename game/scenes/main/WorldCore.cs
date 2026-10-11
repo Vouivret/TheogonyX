@@ -48,9 +48,15 @@ public partial class WorldCore : Node2D
         _companion = null;
     }
 
-    // エディタから実行したときの、リポジトリ直下の companion/。書き出した後の置き場所は未決（plan/feat-m2-frame-stream.md）。
-    private static string CompanionDirectory() =>
-        Path.GetFullPath(Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "companion"));
+    // 書き出した後は実行ファイル（.exe）の横の companion/、無ければエディタから実行したときのリポジトリ直下の companion/。
+    // AppDomain の BaseDirectory は、書き出した後は .exe の横の data_ フォルダを指すため使わない。
+    private static string CompanionDirectory()
+    {
+        var besideExecutable = Path.Combine(Path.GetDirectoryName(OS.GetExecutablePath()) ?? string.Empty, "companion");
+        return Directory.Exists(besideExecutable)
+            ? besideExecutable
+            : Path.GetFullPath(Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "companion"));
+    }
 
     // 初期の夢の改ざん。夢を改ざんする画面ができるまでの仮の仕組み（docs/domain/time-control.md）。
     private static List<Dogma> CreateInitialDogmas(DreamRules dreamRules)

@@ -11,6 +11,9 @@ public static class HostMessageWriter
     /// <summary><c>ERROR</c> の <c>reason</c>: ペアリングできない。</summary>
     public const string PairingFailed = "PAIRING_FAILED";
 
+    /// <summary><c>ERROR</c> の <c>reason</c>: 同じ <c>sessionToken</c> で新しい接続が来たので、この接続を切る。</summary>
+    public const string SessionReplaced = "SESSION_REPLACED";
+
     public static string Paired(string sessionToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionToken);

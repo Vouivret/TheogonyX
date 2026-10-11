@@ -10,7 +10,7 @@ public class CompanionConnectionTests
     private static PairingRegistry CreateRegistry()
     {
         var count = 0;
-        return new PairingRegistry(() => $"token-{++count}");
+        return new PairingRegistry(() => $"token-{++count}", maxSessions: 2);
     }
 
     private static CompanionMessage Pair(string token) => new(CompanionMessageType.Pair, token);
@@ -29,6 +29,7 @@ public class CompanionConnectionTests
         Assert.Equal(PairingOutcome.Paired, outcome);
         Assert.True(connection.IsPaired);
         Assert.Equal("token-2", sessionToken);
+        Assert.Equal("token-2", connection.SessionToken);
         Assert.Equal("token-3", registry.CurrentToken);
     }
 

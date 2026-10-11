@@ -51,7 +51,7 @@ public static class GameDataLoader
     {
         var settings = Parse<CompanionSettings>(companionJson, "companion.json");
         if (!IsPort(settings.HttpPort) || !IsPort(settings.WebSocketPort) || settings.HttpPort == settings.WebSocketPort
-            || settings.PairingTimeoutSeconds <= 0 || settings.MaxStreams <= 0 || settings.FramesPerSecond <= 0
+            || settings.PairingTimeoutSeconds <= 0 || settings.MaxUnpairedConnections <= 0 || settings.MaxStreams <= 0 || settings.FramesPerSecond <= 0
             || settings.JpegQualityPercent is < 1 or > 100)
         {
             throw new InvalidDataException($"コンパニオンの設定の値が範囲外: file=companion.json value={settings}");

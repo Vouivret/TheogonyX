@@ -2,6 +2,7 @@
   "httpPort": 8080,
   "webSocketPort": 8081,
   "pairingTimeoutSeconds": 60.0,
+  "maxUnpairedConnections": 5,
   "maxStreams": 2,
   "framesPerSecond": 8,
   "jpegQualityPercent": 75

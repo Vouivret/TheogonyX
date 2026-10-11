@@ -5,15 +5,18 @@
 [node name="WorldCore" type="Node2D" unique_id=669599788]
 script = ExtResource("1")
 
-[node name="WorldView" type="SubViewportContainer" parent="."]
+[node name="WorldView" type="SubViewportContainer" parent="." unique_id=222113630]
+texture_filter = 1
 offset_right = 480.0
 offset_bottom = 270.0
 mouse_filter = 2
-texture_filter = 1
 stretch = true
 
-[node name="WorldViewport" type="SubViewport" parent="WorldView"]
+[node name="WorldViewport" type="SubViewport" parent="WorldView" unique_id=183511841]
 unique_name_in_owner = true
+handle_input_locally = false
+size = Vector2i(480, 270)
+render_target_update_mode = 4
 
 [node name="Terrain" type="TileMapLayer" parent="WorldView/WorldViewport" unique_id=1465616334]
 unique_name_in_owner = true
@@ -33,7 +36,7 @@ unique_name_in_owner = true
 
 [node name="Hud" type="CanvasLayer" parent="." unique_id=341956898]
 
-[node name="PairingQr" type="TextureRect" parent="Hud"]
+[node name="PairingQr" type="TextureRect" parent="Hud" unique_id=507616185]
 unique_name_in_owner = true
 texture_filter = 1
 offset_left = 8.0
@@ -41,6 +44,11 @@ offset_top = 8.0
 offset_right = 53.0
 offset_bottom = 53.0
 mouse_filter = 2
+
+[node name="HostAddressButton" type="Button" parent="Hud"]
+unique_name_in_owner = true
+offset_left = 56.0
+offset_top = 8.0
 
 [node name="Panel" type="VBoxContainer" parent="Hud" unique_id=684590511]
 offset_left = 288.0
@@ -95,3 +103,8 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 text = "BUTTON_RESET"
+
+[node name="ResetSessionsButton" type="Button" parent="Hud/Panel/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BUTTON_RESET_SESSIONS"

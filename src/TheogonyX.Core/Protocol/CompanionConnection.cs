@@ -35,6 +35,9 @@ public sealed class CompanionConnection
 
     public bool IsPaired { get; private set; }
 
+    /// <summary>ペアリングで使っている <c>sessionToken</c>。未ペアリングなら空文字。</summary>
+    public string SessionToken { get; private set; } = string.Empty;
+
     /// <param name="sessionToken"><see cref="PairingOutcome.Paired"/> のとき、<c>PAIRED</c> で返す値。ほかは空文字。</param>
     public PairingOutcome Handle(CompanionMessage message, out string sessionToken)
     {
@@ -68,6 +71,7 @@ public sealed class CompanionConnection
         }
 
         IsPaired = true;
+        SessionToken = sessionToken;
         return PairingOutcome.Paired;
     }
 }

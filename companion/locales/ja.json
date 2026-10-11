@@ -7,5 +7,6 @@
   "STATUS_PAIRED": "接続しました。",
   "STATUS_RECONNECTING": "接続が切れました。つなぎ直しています…",
   "ERROR_PAIRING_FAILED": "接続できませんでした。PC の画面の QR コードを読み取り直してください。",
-  "ERROR_MAX_CONNECTIONS_REACHED": "同時に見られるのは 2 台までです。ほかの端末を閉じてから、もう一度開いてください。"
+  "ERROR_MAX_CONNECTIONS_REACHED": "同時に見られるのは 2 台までです。ほかの端末を閉じてから、もう一度開いてください。",
+  "ERROR_SESSION_REPLACED": "別の画面で開かれたため、こちらの接続を切りました。"
 }

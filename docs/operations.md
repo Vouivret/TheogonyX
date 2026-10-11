@@ -14,7 +14,7 @@
 ## コンパニオンとの通信
 - ポートは `game/data/companion.json`（HTTP 8080、WebSocket 8081）。WebSocket のポートを変えたら、`companion/js/protocol.js` の `WEBSOCKET_PORT` も同じ値にする。
 - 初めて起動したとき、Windows ファイアウォールの許可を求められる。「プライベート ネットワーク」だけを許可する。
-- 書き出した後に `companion/` をどこに置くかは未定（[plan](../plan/feat-m2-frame-stream.md)）。
+- 書き出した後は、実行ファイル（.exe）と同じフォルダに `companion/` を丸ごとコピーする。無いと、コンパニオンは使えない（ゲームは動く）。
 
 ## リリース
 1. `CHANGELOG.md` の `Unreleased` を確認し、Semantic Versioning でバージョン番号を決める。
@@ -26,7 +26,8 @@
 
 ## 書き出しと配布
 1. Godot のエクスポート（プリセット: 未定）で `export/` に書き出す。
-2. 
+2. リポジトリ直下の `companion/` を、書き出した実行ファイルと同じフォルダにコピーする。
+3. 
 
 ## ロールバック
 最後に手順を実際に試した日: YYYY-MM-DD

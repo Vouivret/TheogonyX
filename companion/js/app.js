@@ -124,6 +124,9 @@ function handleText(data) {
     showStatus("ERROR_PAIRING_FAILED");
   } else if (message.reason === protocol.ERROR_REASON.MAX_CONNECTIONS_REACHED) {
     showStatus("ERROR_MAX_CONNECTIONS_REACHED");
+  } else if (message.reason === protocol.ERROR_REASON.SESSION_REPLACED) {
+    // 同じ sessionToken で別の画面がつないだ。取り合いにならないよう、再接続しない
+    showStatus("ERROR_SESSION_REPLACED");
   } else {
     console.warn("event=message_rejected reason=unknown_error_reason");
   }

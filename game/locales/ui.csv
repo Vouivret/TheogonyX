@@ -18,3 +18,4 @@ BUTTON_PAUSE,一時停止,Pause
 BUTTON_SPEED_NORMAL,速さ: 通常,Speed: Normal
 BUTTON_SPEED_FAST,速さ: 高速,Speed: Fast
 BUTTON_RESET,世界再創生,Recreate World
+BUTTON_RESET_SESSIONS,全セッションリセット,Reset All Sessions

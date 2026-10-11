@@ -18,6 +18,7 @@ export const MESSAGE_TYPE = Object.freeze({
 export const ERROR_REASON = Object.freeze({
   MAX_CONNECTIONS_REACHED: "MAX_CONNECTIONS_REACHED",
   PAIRING_FAILED: "PAIRING_FAILED",
+  SESSION_REPLACED: "SESSION_REPLACED",
 });
 
 /** バイナリフレームの種別（1バイト目）とバージョン（2バイト目）。docs/adr/0003-binary-frame-header.md */

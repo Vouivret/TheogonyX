@@ -28,15 +28,32 @@ public class LanAddressTests
         Assert.Equal(expected, LanAddress.IsPrivate(IPAddress.Parse(address)));
     }
 
-    [Theory]
+    [Fact]
     [Trait("TS", "TS-companion-pairing-012")]
-    [InlineData(new[] { "127.0.0.1", "fe80::1", "192.168.1.20", "10.0.0.5" }, "192.168.1.20")]
-    [InlineData(new[] { "169.254.10.5", "10.0.0.5" }, "10.0.0.5")]
-    [InlineData(new[] { "127.0.0.1", "fd00::1", "169.254.10.5", "8.8.8.8" }, null)]
-    public void ChooseForQrCode_PCのアドレス_LANのIPv4を選ぶ(string[] addresses, string? expected)
+    public void RankForQrCode_PCのアドレス_ゲートウェイのある物理のLANを先に並べる()
     {
-        var chosen = LanAddress.ChooseForQrCode(addresses.Select(IPAddress.Parse));
+        (IPAddress, bool)[] addresses =
+        [
+            (IPAddress.Parse("172.20.48.1"), false), // WSL の仮想アダプター
+            (IPAddress.Parse("10.0.0.5"), true),
+            (IPAddress.Parse("127.0.0.1"), false),
+            (IPAddress.Parse("192.168.1.20"), true),
+            (IPAddress.Parse("169.254.10.5"), false),
+            (IPAddress.Parse("fd00::1"), true),
+            (IPAddress.Parse("192.168.56.1"), false), // VirtualBox の仮想アダプター
+        ];
 
-        Assert.Equal(expected, chosen?.ToString());
+        var ranked = LanAddress.RankForQrCode(addresses);
+
+        Assert.Equal(["192.168.1.20", "10.0.0.5", "192.168.56.1", "172.20.48.1"], ranked.Select(address => address.ToString()));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-companion-pairing-012")]
+    public void RankForQrCode_LANのIPv4が無い_空になる()
+    {
+        (IPAddress, bool)[] addresses = [(IPAddress.Parse("127.0.0.1"), false), (IPAddress.Parse("8.8.8.8"), true)];
+
+        Assert.Empty(LanAddress.RankForQrCode(addresses));
     }
 }

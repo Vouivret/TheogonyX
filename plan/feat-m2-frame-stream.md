@@ -23,7 +23,11 @@
 | 送信待ちのデータ（`WebSocketPeer.GetCurrentOutboundBufferedAmount`）が残っている接続には、そのコマを送らない | 回線の遅いスマホに古いコマがたまって遅れていくのを防ぐ | しない |
 | 配信中の接続が無ければ、画面の取得も JPEG 変換もしない | PC の負荷を、見ている人がいるときだけにする | しない |
 | ペアリングは、暗号用の乱数で作ったワンタイムトークンを QR コード（`http://<LAN の IP>:8080/?token=...`）で渡す。使ったらすぐに新しいトークンの QR コードに替える | 人間が決めた | しない |
-| ペアリングが済んだら `sessionToken` を発行し、コンパニオンは `sessionStorage` に置く。切断の後は `RESUME` で戻る。ホストを終了するまで使える | 人間が決めた。一時的な切断から QR コードを読み直さずに戻れる | しない |
+| ペアリングが済んだら `sessionToken` を発行し、コンパニオンは `sessionStorage` に置く。切断の後は `RESUME` で戻る。同時に有効なのは 2 個まで（超えたら一番古いものを無効にし、その接続を切る）。ホストの終了か「全セッションリセット」ですべて無効になる | 人間が決めた。一時的な切断から QR コードを読み直さずに戻れる | しない |
+| 同じ `sessionToken` の接続は後勝ち。古い接続には `ERROR`（`SESSION_REPLACED`）を送って切り、コンパニオンは再接続しない | 人間が決めた。何も送らずに切ると、古いタブが再接続して取り合いになる | しない |
+| 未ペアリングの接続は同時に 5 つまで。超えた接続はすぐに切る | 人間が決めた。不正な接続でのリソースの枯渇を防ぐ | しない |
+| QR コードの IP は、ゲートウェイのある物理の LAN を優先し、192.168 > 172.16〜31 > 10 の順で選ぶ。候補が 2 つ以上なら HUD のボタンで切り替えられる | 人間が決めた。仮想アダプターが選ばれたときに直せる | しない |
+| 書き出した後は、実行ファイルの横の `companion/` を読み、無ければリポジトリ直下の `companion/` を読む。場所は `OS.GetExecutablePath()` から求める | 人間が決めた。`AppDomain.CurrentDomain.BaseDirectory` は書き出した後に `data_` フォルダを指すため使わない | しない |
 | コンパニオンの HTML/JS は、ホストが `TcpListener` で作った GET だけの小さな HTTP サーバーでポート 8080 から配る。配るのは起動時に読んだ `companion/` の一覧だけ | `HttpListener` は LAN で待ち受けるのに管理者権限が要るため（人間が決めた） | しない |
 | WebSocket はポート 8081、ペアリングを待つのは 60 秒。ポート・待つ時間・配信の値は `game/data/companion.json` に置く | 人間が決めた。運用手順のとおり、待ち受けポートは設定ファイルで渡す | しない |
 | QR コードは NuGet の QRCoder 1.8.0（MIT）で PNG を作り、HUD の `%PairingQr` に表示する（1 モジュール = 1 ピクセル） | 人間が決めた。.NET にも Godot にも QR コードを作る機能が無い | しない |
@@ -80,7 +84,5 @@
 - [docs/test/companion-pairing.md](../docs/test/companion-pairing.md)（自動 9件、手動 1件）
 
 ## 未決
-- 書き出した後の `companion/` の置き場所。今はエディタから実行したときの、リポジトリ直下の `companion/` を読む（`WorldCore.CompanionDirectory`）。
-- PC に LAN のアドレスが複数あるとき、QR コードにどれを使うか。同じ `sessionToken` の接続が 2 つあるとき、古いほうを閉じるか。`sessionToken` の上限と取り消し（[仕様書](../docs/domain/companion-pairing.md) の未決）。
 - WebSocket のポートは `game/data/companion.json` と `companion/js/protocol.js` の 2 か所にある。片方だけ変えると、つながらなくなる。
 - `GetImage()` は GPU から画像を読み戻すため、PC 側が一瞬止まる可能性がある。手動テストでフレームレートが落ちたら、取り方を見直す。

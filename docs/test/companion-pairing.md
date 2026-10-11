@@ -20,7 +20,10 @@
 | TS-companion-pairing-009 | AC-companion-pairing-001, 003, 007 | スマホで QR コードを読んでつながり、切断から戻れる | ホストとコンパニオンが動く | 下の手順 | 下の手順のとおり | 手動 | — |
 | TS-companion-pairing-010 | AC-companion-pairing-002, 004 | `PAIR`・`RESUME` の読み取り（トークンが無い・空・文字列でない・128 文字を超えるものを捨てる） | — | 読み取る | 失敗し、理由が `invalid_token` | 自動 | `tests/TheogonyX.Core.Tests/CompanionMessageParserTests.cs` |
 | TS-companion-pairing-011 | — | HTTP の要求の読み取りと応答（GET だけ、クエリを除いたパスで一覧を引く、配る拡張子だけ、トークンを外に出さないヘッダー） | — | 読み取る・組み立てる | GET 以外は 405、形が違えば 400。パスはファイルパスに使わない | 自動 | `tests/TheogonyX.Core.Tests/CompanionHttpTests.cs` |
-| TS-companion-pairing-012 | AC-companion-pairing-007 | QR コードに使う PC のアドレスの選び方（先頭から、リンクローカルでないプライベートな IPv4。ループバック・IPv6・リンクローカルは使わない） | — | 選ぶ | 表のとおり | 自動 | `tests/TheogonyX.Core.Tests/LanAddressTests.cs` |
+| TS-companion-pairing-012 | AC-companion-pairing-007, 013 | QR コードに使う PC のアドレスの並べ方（ゲートウェイのあるものが先、次に 192.168・172.16〜31・10 の順。ループバック・IPv6・リンクローカルは使わない） | — | 並べる | 仕様書のとおり | 自動 | `tests/TheogonyX.Core.Tests/LanAddressTests.cs` |
+| TS-companion-pairing-013 | AC-companion-pairing-010 | `sessionToken` が 2 個あるときにペアリングすると、一番古いものが無効になる | 受け入れ条件のとおり | 3 台目がペアリングする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PairingRegistryTests.cs` |
+| TS-companion-pairing-014 | AC-companion-pairing-012 | 全セッションリセットで、すべての `sessionToken` が無効になる | 受け入れ条件のとおり | リセットする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PairingRegistryTests.cs` |
+| TS-companion-pairing-015 | AC-companion-pairing-009, 010, 011, 012, 013 | 接続の上限・後勝ち・古い `sessionToken` の接続を切る・リセット・IP の切り替えを、実機で確かめる | ホストとコンパニオンが動く | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順
 
@@ -29,6 +32,13 @@ WebSocket サーバー・HTTP 配信・コンパニオンができてから書�
 1. QR コードを読んでページを開くと、ペアリングが済み、アドレス欄に `token` が残っていない。PC の QR コードが別のものに替わる（AC-companion-pairing-001, 007）。
 2. Wi-Fi を一度切ってつなぎ直すと、QR コードを読み直さずに戻る（AC-companion-pairing-003）。
 3. ホストのログに、トークン・`sessionToken` の値が出ていない。
+
+### TS-companion-pairing-015
+1. スマホ A・B の順にペアリングし、スマホ C でもペアリングすると、A に「QR コードを読み取り直してください」が出て、B はそのまま見られる（AC-companion-pairing-010）。
+2. スマホ A のタブを複製して開くと、新しいタブがつながり、元のタブに「別の画面で開かれたため…」が出る。元のタブは再接続しない（AC-companion-pairing-011）。
+3. PC の「全セッションリセット」を押すと、つながっているスマホすべてに「QR コードを読み取り直してください」が出る（AC-companion-pairing-012）。
+4. PC に LAN の IPv4 が 2 つ以上あるとき、QR コードの横の IP のボタンを押すと IP が替わり、新しい QR コードで読める（AC-companion-pairing-013）。
+5. 未ペアリングの接続の上限（AC-companion-pairing-009）は、ブラウザの開発者ツールなどで WebSocket を 6 つ開いて確かめる。ホストのログに `reason=unpaired_limit_reached` が 1 回だけ出る。
 
 ## 対象外
 

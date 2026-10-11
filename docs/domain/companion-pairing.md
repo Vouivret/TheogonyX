@@ -18,12 +18,18 @@ status: approved   # draft | approved | as-is
 用語は [用語集](glossary.md) に合わせる。
 
 - ホストは起動時に、暗号用の乱数でワンタイムトークンを作り、`http://<LAN の IP>:8080/?token=<トークン>` を QR コードにして PC の画面に出す。
+- QR コードの IP は、リンクローカルでないプライベートな IPv4 のうち、デフォルトゲートウェイがあるネットワークのものを優先し、次に 192.168.x.x、172.16〜31.x.x、10.x.x.x の順で選ぶ。候補が 2 つ以上あれば、QR コードの横に IP のボタンを出し、押すと次の候補に切り替える（WSL・Docker などの仮想アダプターが選ばれたときに直せるようにする）。
 - ホストは、ポート 8080 からコンパニオンの HTML/JS を配る（`HttpListener` は LAN で待ち受けるのに管理者権限が要るため、`TcpListener` で応答する）。配るのは `companion/` の中の決まった拡張子のファイルだけで、要求のパスをファイルパスに使わない。
 - コンパニオンは URL の `token` を読み取ったら、すぐに URL から消し、WebSocket でつないで `PAIR` を送る。
 - トークンが合えば、ホストはその接続をペアリング済みにし、`sessionToken`（暗号用の乱数）を `PAIRED` で渡す。ワンタイムトークンは使用済みにし、すぐに新しいトークンを作って QR コードを替える。
-- コンパニオンは `sessionToken` を `sessionStorage` に置く。切断の後は `RESUME` で `sessionToken` を送り、合えばペアリング済みに戻る。`sessionToken` は、ホストを終了するまで使える。
+- コンパニオンは `sessionToken` を `sessionStorage` に置く。切断の後は `RESUME` で `sessionToken` を送り、合えばペアリング済みに戻る。
+- 同時に有効な `sessionToken` は 2 個まで（配信の上限に合わせる）。3 台目がペアリングしたら、一番古い `sessionToken` を無効にし、それを使っている接続を何も送らずに切る（その接続は `RESUME` に失敗し、QR コードの読み直しを案内される）。
+- `sessionToken` は、ホストを終了するか、PC の画面で「全セッションリセット」を押すと、すべて無効になる。リセットでは、ペアリング済みの接続をすべて切る。
+- 同じ `sessionToken` で新しい接続がペアリングしたら、後勝ちにする。古い接続には `ERROR`（`SESSION_REPLACED`）を送って切る。古い接続のコンパニオンは、取り合いにならないよう再接続しない。
 - トークンが合わない、または最初のメッセージが `PAIR`・`RESUME` でないときは、`ERROR`（`PAIRING_FAILED`）を返して接続を閉じる。
 - WebSocket はポート 8081 で待ち受ける。接続してから 60 秒たっても未ペアリングの接続は閉じる（何も返さない）。
+- 未ペアリングの接続は、同時に 5 つまで受け付ける。5 つあるときの新しい接続は、すぐに切る（ログの `reason=unpaired_limit_reached`）。
+- 閉じる合図を送ってから 5 秒たっても応えない接続は、相手に知らせずに切る。
 - 同じ LAN（IPv4 のプライベートアドレス・リンクローカル、IPv6 のリンクローカル・ユニークローカル、ループバック）以外からの接続は、すぐに閉じる。
 - トークンと `sessionToken` の値はログに出さない。
 
@@ -48,6 +54,11 @@ status: approved   # draft | approved | as-is
 | AC-companion-pairing-006 | ペアリング済みの接続 | `PAIR` を送る | 捨てられ、接続はそのまま。QR コードのトークンは替わらない |
 | AC-companion-pairing-007 | PC で QR コードが表示されている | スマホで QR コードを読み、ページを開く | ページが表示され、ペアリングが済み、アドレス欄から `token` が消えている |
 | AC-companion-pairing-008 | 同じ LAN に無い接続元 | 接続する | すぐに閉じられる |
+| AC-companion-pairing-009 | 未ペアリングの接続が 5 つある | 6 つ目が接続する | すぐに切られる |
+| AC-companion-pairing-010 | スマホ A・B がペアリング済み（A が先） | スマホ C が QR コードでペアリングする | C はペアリング済みになり、A の `sessionToken` は無効になって A の接続は切られる。B はそのまま |
+| AC-companion-pairing-011 | スマホ A が `sessionToken` でつながっている | 同じ `sessionToken` で別の接続が `RESUME` する | 新しい接続がペアリング済みになり、古い接続は `ERROR`（`SESSION_REPLACED`）を受け取って切られ、再接続しない |
+| AC-companion-pairing-012 | スマホ A・B がペアリング済み | PC の画面で「全セッションリセット」を押す | A・B の接続は切られ、どちらも `RESUME` できず、QR コードの読み直しを案内される |
+| AC-companion-pairing-013 | PC に LAN の IPv4 が 2 つ以上ある | QR コードの横の IP のボタンを押す | QR コードの URL の IP が次の候補に替わる |
 
 ## 対象外
 
@@ -57,6 +68,4 @@ status: approved   # draft | approved | as-is
 
 ## 未決
 
-- 発行した `sessionToken` は、ホストを終了するまで増え続け、取り消せない。数の上限や、取り消す手段を設けるか。
-- PC に LAN のアドレスが複数あるとき（仮想のネットワークアダプターなど）、QR コードにどれを使うか。今は、見つかった順で最初のプライベートな IPv4 を使う。
-- 同じ `sessionToken` の接続が 2 つあるとき（古い接続が切れたと気付く前に `RESUME` した場合など）、古いほうを閉じるか。
+なし。

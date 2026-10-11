@@ -17,6 +17,7 @@ namespace TheogonyX.Scenes.Main;
 /// <summary>
 /// コンパニオンとの通信（docs/domain/companion-pairing.md・frame-stream.md）。
 /// HTTP で HTML/JS を配り、WebSocket でペアリングと画面の配信を行い、ペアリング用の QR コードを HUD に出す。
+/// HUD には、QR コードの IP の切り替えボタン（候補が 2 つ以上のとき）と「全セッションリセット」のボタンも出す。
 /// <see cref="WorldCore"/> が作り、<c>_Process</c> から <see cref="Process"/> を呼ぶ。トークンの値はログに出さない。
 /// </summary>
 public sealed class CompanionHost : IDisposable
@@ -30,25 +31,34 @@ public sealed class CompanionHost : IDisposable
     private readonly CompanionSettings _settings;
     private readonly SubViewport _worldViewport;
     private readonly TextureRect _pairingQr;
-    private readonly PairingRegistry _registry = new(CreateToken);
+    private readonly Button _hostAddressButton;
+    private readonly Button _resetSessionsButton;
+    private readonly PairingRegistry _registry;
     private readonly StreamSessions _sessions;
     private readonly FramePacer _pacer;
     private readonly Dictionary<int, Client> _clients = [];
     private readonly TcpServer _webSocketServer = new();
     private CompanionHttpServer? _httpServer;
-    private readonly IPAddress? _hostAddress;
+    private readonly IReadOnlyList<IPAddress> _hostAddresses = [];
     private readonly bool _isListening;
+    private int _hostAddressIndex;
     private int _nextClientId = 1;
     private bool _captureFailureLogged;
+    private bool _unpairedLimitLogged;
 
     public CompanionHost(Node owner, CompanionSettings settings, string companionDirectory)
     {
         _settings = settings;
         _worldViewport = owner.GetNode<SubViewport>("%WorldViewport");
         _pairingQr = owner.GetNode<TextureRect>("%PairingQr");
+        _hostAddressButton = owner.GetNode<Button>("%HostAddressButton");
+        _resetSessionsButton = owner.GetNode<Button>("%ResetSessionsButton");
+        _registry = new PairingRegistry(CreateToken, settings.MaxStreams);
         _sessions = new StreamSessions(settings.MaxStreams);
         _pacer = new FramePacer(settings.FramesPerSecond);
         _pairingQr.Visible = false;
+        _hostAddressButton.Visible = false;
+        _resetSessionsButton.Visible = false;
 
         // 通信が使えなくても、PC だけでゲームは続けられるようにする
         if (!Directory.Exists(companionDirectory))
@@ -83,12 +93,19 @@ public sealed class CompanionHost : IDisposable
             return;
         }
         _isListening = true;
+        _resetSessionsButton.Visible = true;
+        _resetSessionsButton.Pressed += ResetSessions;
 
-        _hostAddress = LanAddress.ChooseForQrCode(LocalAddresses());
-        if (_hostAddress is null)
+        _hostAddresses = LanAddress.RankForQrCode(LocalAddresses());
+        if (_hostAddresses.Count == 0)
         {
             GD.PushWarning("event=lan_address_not_found");
             return;
+        }
+        if (_hostAddresses.Count > 1)
+        {
+            _hostAddressButton.Visible = true;
+            _hostAddressButton.Pressed += SwitchHostAddress;
         }
         DrawPairingQr();
         GD.Print("event=companion_host_started");
@@ -111,6 +128,8 @@ public sealed class CompanionHost : IDisposable
 
     public void Dispose()
     {
+        _hostAddressButton.Pressed -= SwitchHostAddress;
+        _resetSessionsButton.Pressed -= ResetSessions;
         foreach (var client in _clients.Values)
         {
             client.Peer.Close();
@@ -124,6 +143,19 @@ public sealed class CompanionHost : IDisposable
         while (_webSocketServer.IsConnectionAvailable())
         {
             var tcp = _webSocketServer.TakeConnection();
+            if (_clients.Values.Count(client => !client.Connection.IsPaired && !client.IsClosing) >= _settings.MaxUnpairedConnections)
+            {
+                // 新しい接続ごとに起こせるので、上限を下回るまでは 1 回だけ記録する
+                if (!_unpairedLimitLogged)
+                {
+                    GD.PushWarning("event=connection_rejected reason=unpaired_limit_reached");
+                    _unpairedLimitLogged = true;
+                }
+                tcp.DisconnectFromHost();
+                continue;
+            }
+            _unpairedLimitLogged = false;
+
             if (!IPAddress.TryParse(tcp.GetConnectedHost(), out var remote) || !LanAddress.IsPrivate(remote))
             {
                 GD.PushWarning("event=connection_rejected reason=not_private_address");
@@ -214,6 +246,7 @@ public sealed class CompanionHost : IDisposable
                 {
                     DrawPairingQr();
                 }
+                CloseOtherSessions(client);
                 break;
             case PairingOutcome.Rejected:
                 GD.PushWarning($"event=pairing_failed clientId={client.Id}");
@@ -305,6 +338,53 @@ public sealed class CompanionHost : IDisposable
         client.IsClosing = true;
     }
 
+    /// <summary>
+    /// ペアリングした後に、同じ <c>sessionToken</c> の古い接続（後勝ち）と、
+    /// 上限を超えて無効になった <c>sessionToken</c> の接続を切る。
+    /// </summary>
+    private void CloseOtherSessions(Client paired)
+    {
+        foreach (var other in _clients.Values)
+        {
+            if (other == paired || !other.Connection.IsPaired || other.IsClosing)
+            {
+                continue;
+            }
+
+            if (other.Connection.SessionToken == paired.Connection.SessionToken)
+            {
+                GD.Print($"event=session_replaced clientId={other.Id}");
+                Reject(other, HostMessageWriter.SessionReplaced);
+            }
+            else if (!_registry.TryResume(other.Connection.SessionToken))
+            {
+                // 何も送らずに切る。コンパニオンは RESUME し、PAIRING_FAILED で QR コードの読み直しを案内する
+                GD.Print($"event=session_revoked clientId={other.Id}");
+                Close(other);
+            }
+        }
+    }
+
+    /// <summary>「全セッションリセット」: すべての <c>sessionToken</c> を無効にし、ペアリング済みの接続を切る。</summary>
+    private void ResetSessions()
+    {
+        _registry.RevokeAll();
+        foreach (var client in _clients.Values)
+        {
+            if (client.Connection.IsPaired && !client.IsClosing)
+            {
+                Close(client);
+            }
+        }
+        GD.Print("event=sessions_reset");
+    }
+
+    private void SwitchHostAddress()
+    {
+        _hostAddressIndex = (_hostAddressIndex + 1) % _hostAddresses.Count;
+        DrawPairingQr();
+    }
+
     // 接続を保ったまま何度でも送れるため、同じ接続・同じ理由では 1 回だけ記録する（project.md 7章）
     private static void WarnMessageRejected(Client client, string reason)
     {
@@ -337,12 +417,14 @@ public sealed class CompanionHost : IDisposable
 
     private void DrawPairingQr()
     {
-        if (_hostAddress is null)
+        if (_hostAddresses.Count == 0)
         {
             return;
         }
 
-        var url = $"http://{_hostAddress}:{_settings.HttpPort}/?token={_registry.CurrentToken}";
+        var hostAddress = _hostAddresses[_hostAddressIndex];
+        _hostAddressButton.Text = hostAddress.ToString();
+        var url = $"http://{hostAddress}:{_settings.HttpPort}/?token={_registry.CurrentToken}";
         using var generator = new QRCodeGenerator();
         using var data = generator.CreateQrCode(url, QRCodeGenerator.ECCLevel.M);
         var png = new PngByteQRCode(data).GetGraphic(1);
@@ -362,11 +444,18 @@ public sealed class CompanionHost : IDisposable
     // 暗号用の乱数で作る、URL にそのまま入れられるトークン
     private static string CreateToken() => Base64Url.EncodeToString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
 
-    private static IEnumerable<IPAddress> LocalAddresses() =>
+    // PC のアドレスと、そのネットワークにデフォルトゲートウェイがあるか（仮想アダプターには無いことが多い）
+    private static IEnumerable<(IPAddress Address, bool HasGateway)> LocalAddresses() =>
         NetworkInterface.GetAllNetworkInterfaces()
-            .Where(network => network.OperationalStatus == OperationalStatus.Up)
-            .SelectMany(network => network.GetIPProperties().UnicastAddresses)
-            .Select(unicast => unicast.Address);
+            .Where(network => network.OperationalStatus == OperationalStatus.Up
+                && network.NetworkInterfaceType is not (NetworkInterfaceType.Loopback or NetworkInterfaceType.Tunnel))
+            .SelectMany(network =>
+            {
+                var properties = network.GetIPProperties();
+                var hasGateway = properties.GatewayAddresses.Any(gateway =>
+                    gateway.Address.AddressFamily == AddressFamily.InterNetwork && !gateway.Address.Equals(IPAddress.Any));
+                return properties.UnicastAddresses.Select(unicast => (unicast.Address, hasGateway));
+            });
 
     private sealed record Client(int Id, WebSocketPeer Peer, CompanionConnection Connection)
     {

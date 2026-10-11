@@ -40,14 +40,29 @@ public static class LanAddress
     }
 
     /// <summary>
-    /// QR コードの URL に使う PC のアドレスを選ぶ。並びの先頭から、リンクローカルでないプライベートな IPv4 を選ぶ。
-    /// どれも無ければ null。
+    /// QR コードの URL に使う PC のアドレスの候補を、使う順に並べる（docs/domain/companion-pairing.md）。
+    /// リンクローカルでないプライベートな IPv4 だけを残し、デフォルトゲートウェイがあるネットワークのものを先に、
+    /// 次に 192.168.x.x、172.16〜31.x.x、10.x.x.x の順にする。同じ順位なら渡された順。
     /// </summary>
-    public static IPAddress? ChooseForQrCode(IEnumerable<IPAddress> addresses)
+    /// <param name="addresses">PC のアドレスと、そのネットワークにデフォルトゲートウェイがあるか。</param>
+    public static IReadOnlyList<IPAddress> RankForQrCode(IEnumerable<(IPAddress Address, bool HasGateway)> addresses)
     {
         ArgumentNullException.ThrowIfNull(addresses);
-        return addresses.FirstOrDefault(address => address.AddressFamily == AddressFamily.InterNetwork
-            && !IPAddress.IsLoopback(address) && IsPrivate(address) && !IsIPv4LinkLocal(address.GetAddressBytes()));
+        return addresses
+            .Where(candidate => candidate.Address.AddressFamily == AddressFamily.InterNetwork
+                && !IPAddress.IsLoopback(candidate.Address)
+                && IsPrivate(candidate.Address)
+                && !IsIPv4LinkLocal(candidate.Address.GetAddressBytes()))
+            .OrderBy(candidate => candidate.HasGateway ? 0 : 1)
+            .ThenBy(candidate => candidate.Address.GetAddressBytes()[0] switch
+            {
+                192 => 0,
+                172 => 1,
+                _ => 2,
+            })
+            .Select(candidate => candidate.Address)
+            .Distinct()
+            .ToList();
     }
 
     private static bool IsIPv4LinkLocal(byte[] bytes) => bytes[0] == 169 && bytes[1] == 254;
