@@ -5,7 +5,7 @@
 
 ## 契約の原本
 - メッセージの一覧（種類・向き・項目・型・バージョン）は `docs/protocol/messages.md` に表で書き、これを原本とする。C# のメッセージ型は `src/TheogonyX.Core/Protocol/` に置き、表と1対1で対応させる。
-- コンパニオンの技術が決まったら、コンパニオン側の型を手書きせずに生成する方法をこの節に追記する。決まるまでは、コンパニオン側の型を書く作業を始める前に確認する。
+- コンパニオン（素の JavaScript。`js.md`）はビルドの工程を持たないため、型を生成しない。メッセージの `type`・`version`・項目、バイナリフレームの種別は `companion/js/protocol.js` の1か所に、定数と JSDoc の `@typedef` で書き、`docs/protocol/messages.md` の表と1対1で対応させる。表を変えたら、同じ変更で `protocol.js` も直す。
 - メッセージの追加・変更を含む作業は、`docs/protocol/messages.md` の変更 → C# の型 → ホストの実装 → コンパニオンの実装、の順で進める。
 
 ## 互換性
