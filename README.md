@@ -52,7 +52,7 @@ scripts/                    # 確認用のスクリプト
 ```
 
 ## ドキュメント
-開発の進め方と文書の一覧は [docs/DEV_HANDBOOK.md](docs/DEV_HANDBOOK.md) にある。全体の構成は [docs/architecture.md](docs/architecture.md)。
+開発の進め方と文書の一覧は [docs/DEV_HANDBOOK.md](docs/DEV_HANDBOOK.md) にある。全体の構成は [docs/architecture.md](docs/architecture.md)、これから作るものの順番は [docs/roadmap.md](docs/roadmap.md)。
 
 ## AIエージェントで開発する場合
 ルールは [.agent/rules/project.md](.agent/rules/project.md) にある。外部のAIサービスに渡してよい情報は [AI利用ポリシー](docs/AI_USAGE_POLICY.md) を確認すること。
