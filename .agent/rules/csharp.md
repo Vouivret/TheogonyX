@@ -4,7 +4,8 @@
 > 対象: `**/*.cs`（コア `src/TheogonyX.Core/`、Godot 側 `game/`、テスト `tests/`）。Godot 固有の書き方は `godot.md` にある。
 
 ## バージョンと設定
-- .NET のバージョンは、使う Godot（.NET 版）が対応するものに合わせ、`docs/nfr.md` の「対応環境」に書く。
+- Godot 4.7.2（.NET 版）、.NET 10（`<TargetFramework>net10.0</TargetFramework>`）。すべてのプロジェクトでそろえる。バージョンは `docs/nfr.md` の「対応環境」に合わせる。
+- C# 14 の新しい構文は、Godot エディタからのビルドで動くことを確かめるまで使わない。
 - すべてのプロジェクトで `<Nullable>enable</Nullable>` にする。null 許容の警告を `!` や `#nullable disable` で黙らせない。
 - フォーマットは `dotnet format` に従う（設定はリポジトリ直下の `.editorconfig`）。
 

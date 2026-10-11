@@ -1,7 +1,6 @@
 # Theogony X
 
 > **残りの初期導入**（済んだら行を消し、すべて済んだらこの囲みを削除する）
-> - [ ] Godot（.NET 版）と .NET SDK を入れ、バージョンを `docs/nfr.md` の「対応環境」と下の「前提」に書く。`.github/workflows/check.yml` の `dotnet-version` も合わせる
 > - [ ] `TheogonyX.sln`・`src/TheogonyX.Core/`・`tests/TheogonyX.Core.Tests/`・`game/` を作る（最初のマイルストーン。`PROMPT_FOR_CLAUDE.md`）
 > - [ ] コンパニオン（PWA）の技術を決め、言語のルールを `.agent/rules/` に足す
 > - [ ] 配布の前までに、`docs/operations.md` の空欄を埋める
@@ -11,8 +10,8 @@
 ## 前提
 | ツール | バージョン | 入手先 |
 | :--- | :--- | :--- |
-| Godot Engine（.NET 版） | 4.x（未確認） | https://godotengine.org/download |
-| .NET SDK | Godot が対応する LTS（未確認） | https://dotnet.microsoft.com/download |
+| Godot Engine（.NET 版） | 4.7.2 | https://godotengine.org/download |
+| .NET SDK | 10.0.x（`TargetFramework` は `net10.0`） | https://dotnet.microsoft.com/download |
 | Git for Windows（Git Bash） | 最新 | https://gitforwindows.org |
 
 Claude Code のフック（`.claude/hooks/`）と `scripts/` の実行には `sh` が必要（Windows では Git Bash）。
@@ -23,7 +22,9 @@ dotnet restore TheogonyX.sln
 ```
 
 ## 起動
-Godot エディタで `game/project.godot` を開き、F5 で実行する。
+Godot エディタ（`C:\Tools\Godot\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64.exe`）で `game/project.godot` を開き、F5 で実行する。
+
+Godot が作る `.csproj` は既定で `net8.0` になるので、`net10.0` に変える。C# 14 の新しい構文は、Godot のビルドで動くことを確かめるまで使わない。
 
 ## 確認
 ビルド・lint・テスト・テスト仕様書のIDの照合・ツール用のルールファイルの生成を、1つのコマンドで実行する。AIエージェントも、コードを変更したら必ずこのコマンドで確認する。

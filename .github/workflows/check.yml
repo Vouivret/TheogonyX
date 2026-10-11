@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # .NET のバージョンは docs/nfr.md の「対応環境」に合わせる
+      # .NET のバージョンは docs/nfr.md の「対応環境」に合わせる（.NET 10）
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
