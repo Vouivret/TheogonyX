@@ -1,2 +1,13 @@
+# テキストは Windows（core.autocrlf=true）でも LF にそろえる（.editorconfig の end_of_line=lf。CRLF だと dotnet format --verify-no-changes が失敗する）
+* text=auto eol=lf
+
 # シェルスクリプトは Windows でも LF のまま扱う（CRLF になると sh で動かない）
 *.sh text eol=lf
+
+# バイナリ
+*.png binary
+*.jpg binary
+*.ogg binary
+*.wav binary
+*.ttf binary
+*.otf binary

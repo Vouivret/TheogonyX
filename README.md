@@ -1,7 +1,6 @@
 # Theogony X
 
 > **残りの初期導入**（済んだら行を消し、すべて済んだらこの囲みを削除する）
-> - [ ] `TheogonyX.sln`・`src/TheogonyX.Core/`・`tests/TheogonyX.Core.Tests/`・`game/` を作る（最初のマイルストーン。`PROMPT_FOR_CLAUDE.md`）
 > - [ ] コンパニオン（PWA）の技術を決め、言語のルールを `.agent/rules/` に足す
 > - [ ] 配布の前までに、`docs/operations.md` の空欄を埋める
 

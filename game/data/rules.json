@@ -1,0 +1,30 @@
+{
+  "dogmaTypeThresholds": {
+    "tabooAtOrBelow": -0.3,
+    "worshipAtOrAbove": 0.3
+  },
+  "world": {
+    "initial": { "forestAmount": 100.0, "waterAmount": 100.0, "temperature": 15.0, "chaosLevel": 0.0, "harmonyLevel": 50.0 },
+    "min": { "forestAmount": 0.0, "waterAmount": 0.0, "temperature": -50.0, "chaosLevel": 0.0, "harmonyLevel": 0.0 },
+    "max": { "forestAmount": 100.0, "waterAmount": 100.0, "temperature": 80.0, "chaosLevel": 100.0, "harmonyLevel": 100.0 },
+    "dogmaEffects": [
+      { "symbolId": "SYM_TREE", "dogmaType": "Taboo", "perYear": { "forestAmount": 1.0, "waterAmount": -0.5 } },
+      { "symbolId": "SYM_TREE", "dogmaType": "Worship", "perYear": { "forestAmount": 0.5, "harmonyLevel": 0.2 } },
+      { "symbolId": "SYM_TREE", "dogmaType": "Destruction", "perYear": { "forestAmount": -2.0, "chaosLevel": 0.8 } },
+      { "symbolId": "SYM_RAIN", "dogmaType": "Taboo", "perYear": { "waterAmount": -1.0, "temperature": 0.1 } },
+      { "symbolId": "SYM_RAIN", "dogmaType": "Worship", "perYear": { "waterAmount": 0.5, "temperature": -0.05 } },
+      { "symbolId": "SYM_RAIN", "dogmaType": "Destruction", "perYear": { "waterAmount": -1.5, "chaosLevel": 0.5 } },
+      { "symbolId": "SYM_FIRE", "dogmaType": "Taboo", "perYear": { "temperature": -0.2 } },
+      { "symbolId": "SYM_FIRE", "dogmaType": "Destruction", "perYear": { "forestAmount": -1.5, "temperature": 0.3, "chaosLevel": 1.0 } },
+      { "symbolId": "SYM_BLOOD", "dogmaType": "Worship", "perYear": { "chaosLevel": 1.5, "harmonyLevel": -1.0 } },
+      { "symbolId": "SYM_BLOOD", "dogmaType": "Destruction", "perYear": { "chaosLevel": 1.5, "harmonyLevel": -1.0 } }
+    ],
+    "collapse": {
+      "chaosAtOrAbove": 100.0,
+      "barrenWaterAtOrBelow": 0.0,
+      "barrenForestAtOrBelow": 0.0,
+      "temperatureAtOrAbove": 70.0,
+      "temperatureAtOrBelow": -40.0
+    }
+  }
+}
