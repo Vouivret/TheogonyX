@@ -83,7 +83,8 @@
       "Scorched": -1.0
     },
     "dotSizePixels": 1,
-    "dotColor": "#D2AA99"
+    "dotColor": "#D2AA99",
+    "useGpu": true
   },
   "dream": {
     "nodeCount": 3,

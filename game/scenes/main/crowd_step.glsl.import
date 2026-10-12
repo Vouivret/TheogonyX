@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bgxj16up6nx6e"
+path="res://.godot/imported/crowd_step.glsl-efcf34ab4ec3e9ddd6bba36ef4fccb91.res"
+
+[deps]
+
+source_file="res://scenes/main/crowd_step.glsl"
+dest_files=["res://.godot/imported/crowd_step.glsl-efcf34ab4ec3e9ddd6bba36ef4fccb91.res"]
+
+[params]
+

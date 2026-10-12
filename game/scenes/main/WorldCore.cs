@@ -5,6 +5,7 @@ using Godot;
 using TheogonyX.Core;
 using TheogonyX.Core.Persistence;
 using TheogonyX.Data;
+using TheogonyX.Scenes.Bench;
 
 namespace TheogonyX.Scenes.Main;
 
@@ -31,6 +32,21 @@ public partial class WorldCore : Node2D
 
     public override void _Ready()
     {
+        // 群衆の計測・GPU 版の突き合わせ（plan/feat-m3-crowd-gpu.md）。ゲームは始めず、セーブも読み書きしない
+        var args = OS.GetCmdlineUserArgs();
+        Node? tool = Array.IndexOf(args, CrowdBench.CommandLineArg) >= 0 ? new CrowdBench()
+            : Array.IndexOf(args, CrowdCheck.CommandLineArg) >= 0 ? new CrowdCheck()
+            : null;
+        if (tool is not null)
+        {
+            foreach (var child in GetChildren())
+            {
+                child.QueueFree();
+            }
+            AddChild(tool);
+            return;
+        }
+
         var rulesJson = ReadText("res://data/rules.json");
         var dreamRules = GameDataLoader.ParseDreamRules(ReadText("res://data/symbols.json"), rulesJson);
         var worldRules = GameDataLoader.ParseWorldRules(rulesJson);
@@ -108,6 +124,8 @@ public partial class WorldCore : Node2D
     {
         _companion?.Dispose();
         _companion = null;
+        _crowd?.Dispose();
+        _crowd = null;
         Save();
     }
 
@@ -164,7 +182,7 @@ public partial class WorldCore : Node2D
             : Path.GetFullPath(Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "companion"));
     }
 
-    private static string ReadText(string path)
+    internal static string ReadText(string path)
     {
         var text = Godot.FileAccess.GetFileAsString(path);
         var error = Godot.FileAccess.GetOpenError();

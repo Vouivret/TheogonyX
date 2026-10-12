@@ -78,7 +78,7 @@ public static class GameDataLoader
             throw new InvalidDataException($"群衆の点の大きさは 1〜2 px: file=rules.json value={crowd.DotSizePixels}");
         }
         var color = ParseColor(crowd.DotColor);
-        return new CrowdLook(crowd.DotSizePixels, color);
+        return new CrowdLook(crowd.DotSizePixels, color, crowd.UseGpu);
     }
 
     public static ProphetSettings ParseProphet(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").Prophet;
@@ -161,7 +161,8 @@ public static class GameDataLoader
         float FastTimeScale,
         Dictionary<TileType, float>? TileForces,
         int DotSizePixels,
-        string DotColor);
+        string DotColor,
+        bool UseGpu);
 
     private sealed record DreamFile(int NodeCount, float MinWeight, float MaxWeight, int YearsBetweenDreams);
 

@@ -64,6 +64,21 @@ public sealed class Crowd
     public ReadOnlySpan<float> X => _x;
     public ReadOnlySpan<float> Y => _y;
 
+    // 以下は GPU 版（同じ計算を Compute Shader で行う）に今の状態を渡すためのもの。
+    public uint Seed => _seed;
+    public int Columns => (int)_width;
+    public int Rows => (int)_height;
+
+    /// <summary>散策で向きを選び直す間隔（歩数）。</summary>
+    public uint TurnSteps => _turnSteps;
+
+    /// <summary>散策の向き（ラジアン）。</summary>
+    public ReadOnlySpan<float> Heading => _heading;
+
+    /// <summary>狂乱で向かう点。</summary>
+    public ReadOnlySpan<float> TargetX => _targetX;
+    public ReadOnlySpan<float> TargetY => _targetY;
+
     /// <summary>星の状態から、群衆の状態を決める。</summary>
     public static CrowdMode ModeOf(WorldState world, CrowdRules rules)
     {

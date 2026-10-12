@@ -19,9 +19,9 @@
 | TS-crowd-006 | AC-crowd-008, AC-crowd-009 | 狂乱で聖地へ向かい、留まる | 狂乱 | 1 歩・十分な時間動かす | 範囲外の人は距離が縮む。最後は全員が範囲の中 | 自動 | `tests/TheogonyX.Core.Tests/CrowdTests.cs` |
 | TS-crowd-007 | AC-crowd-010 | 停止で動かない | 停止 | 動かす | 位置が変わらない | 自動 | `tests/TheogonyX.Core.Tests/CrowdTests.cs` |
 | TS-crowd-008 | AC-crowd-011 | 世界再創生で始めの配置に戻る | 動かした後・崩壊 | 世界再創生 | 始めの配置と同じ、状態は散策 | 自動 | `tests/TheogonyX.Core.Tests/CrowdTests.cs` |
-| TS-crowd-009 | AC-crowd-012 | GPU 版と CPU 版の一致 | 同じシード | 両方で同じ時間動かす | 位置の差が許容誤差の中 | 手動 | — （GPU 版を作る段階で決める） |
+| TS-crowd-009 | AC-crowd-021 | GPU 版と CPU 版の一致 | GPU が使える PC | 下の手順（`--crowd-check`） | 下の手順 | 手動 | `game/scenes/bench/CrowdCheck.cs` |
 | TS-crowd-010 | AC-crowd-013, AC-crowd-014 | 画面での見た目 | メインシーン | 下の手順 | 下の手順 | 手動 | — |
-| TS-crowd-011 | AC-crowd-015 | 10,000 人で 60fps | 計測用のシーン | 下の手順 | 下の手順 | 手動 | — （GPU 版を作る段階で決める） |
+| TS-crowd-011 | AC-crowd-015 | 10,000 人で 60fps | GPU が使える PC | 下の手順（`--crowd-bench`） | 下の手順 | 手動 | `game/scenes/bench/CrowdBench.cs` |
 
 ## 手動テストの手順
 
@@ -33,9 +33,22 @@
 5. 一時停止を押すと群衆が止まり、自動進行で動き出すことを確かめる。速さを高速にすると、群衆も速く動くことを確かめる。
 6. 星を崩壊させ、群衆がその場で止まることを確かめる。世界再創生で始めの配置に戻り、歩き出すことを確かめる。
 
+### TS-crowd-009
+GPU を使うので、CI（headless）では動かせない。GPU のある PC で、ウィンドウ付きの Godot で実行する。
+1. 次のコマンドを実行する（Godot のウィンドウが数秒開いて閉じる）。
+   ```bash
+   "/c/Tools/Godot/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable_mono_win64_console.exe" --path game -- --crowd-check
+   ```
+2. 区切りごとに `event=crowd_check phase=... maxDiff=... result=pass` が出て、終了コードが 0 であることを確かめる（1 は不合格、2 は GPU が使えなかった）。
+3. `crowd_step.glsl`・`GpuCrowd.cs`・`Crowd.cs` を変えたら、必ず実行する。
+
 ### TS-crowd-011
-1. 計測用のシーンで 10,000 人の群衆を動かす。
-2. Godot のモニター（Debugger > Monitors）でフレームレートを見て、60fps を保つことを確かめる。
+1. 次のコマンドを実行する（Godot のウィンドウが 30 秒ほど開いて閉じる）。
+   ```bash
+   "/c/Tools/Godot/Godot_v4.7.2-stable_mono_win64/Godot_v4.7.2-stable_mono_win64_console.exe" --path game -- --crowd-bench
+   ```
+2. CPU 版・GPU 版それぞれ 10,000・50,000・100,000 人の `event=crowd_bench ... fps=...` が出る。10,000 人の `fps` が 60 以上であることを確かめる（垂直同期を外して測るので、60 を大きく超えてよい）。
+3. 結果を `docs/test/results/` に記録する。
 
 ## 対象外
 

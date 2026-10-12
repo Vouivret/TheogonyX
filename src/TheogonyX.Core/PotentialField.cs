@@ -17,6 +17,10 @@ public sealed class PotentialField
     public int Columns { get; }
     public int Rows { get; }
 
+    /// <summary>マスごとの力。添字は 行 × 列数 + 列（GPU 版に渡す）。</summary>
+    public ReadOnlySpan<float> ForceX => _forceX;
+    public ReadOnlySpan<float> ForceY => _forceY;
+
     /// <summary>
     /// マスごとに、他の全マスの (力 − 全マスの力の平均) × そのマスへの向き ÷ (1 + 距離)² を足す。
     /// 平均を引くので、地表が一様なら力は 0 になる。
