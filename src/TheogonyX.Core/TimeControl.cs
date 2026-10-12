@@ -67,6 +67,17 @@ public sealed class TimeControl
         State = next;
     }
 
+    /// <summary>セーブから読み込んだ世界とドグマに置き換える。崩壊していれば崩壊、そうでなければ止まった状態にする。</summary>
+    public void Restore(WorldState world, IEnumerable<Dogma> dogmas)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(dogmas);
+        World = world;
+        _dogmas.Clear();
+        _dogmas.AddRange(dogmas);
+        State = world.IsDestroyed ? TimeControlState.Destroyed : TimeControlState.Stopped;
+    }
+
     private void Skip(TimeControlAction action, int years)
     {
         var next = NextState(action);

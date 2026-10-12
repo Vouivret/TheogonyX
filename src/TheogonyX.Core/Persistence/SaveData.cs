@@ -1,0 +1,17 @@
+namespace TheogonyX.Core.Persistence;
+
+/// <summary>セーブデータの中身（docs/domain/save-data.md）。時間の状態は持たない（読み込んだ後は止まった状態にする）。</summary>
+/// <param name="Seed">夢の乱数のシード。</param>
+/// <param name="DreamsGenerated">これまでに見た夢の数。乱数を同じところまで進め直すのに使う。</param>
+/// <param name="RequestId">依頼中の困りごとの ID。依頼なしなら null。</param>
+/// <param name="AnsweredYears">困りごとの ID ごとの、依頼が済んだ年（同じ困りごとを待つ年数の起点）。</param>
+public sealed record SaveData(
+    int Seed,
+    int DreamsGenerated,
+    WorldState World,
+    IReadOnlyList<Dogma> Dogmas,
+    ProphetDreamState DreamState,
+    IReadOnlyList<DreamNode> Dream,
+    string? RequestId,
+    IReadOnlyDictionary<string, int> AnsweredYears,
+    int LastOracleYear);

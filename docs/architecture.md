@@ -2,7 +2,7 @@
 
 システムの今の姿を書く。常に最新に書き換え、各項目から根拠のADRへリンクする。経緯はADRに任せ、ここには書かない。
 
-> 現在あるのは、コアループ（夢の解釈・時代跳躍）、地表の判定と時間の進め方（`TimeControl`）、それを描く Godot のメインシーン（`game/scenes/main/`。仮の単色タイル・HUD・操作ボタン・昼夜の環境光・予言者）、予言者の夢と依頼（コアの `ProphetDreams`、画面の `DreamView`。PC の画面とスマホから夢を改ざんして神託を下す）である。コンパニオンとの通信（`CompanionHost`。HTTP で HTML/JS を配り、WebSocket でペアリング・画面の配信・夢の状態の送信と改ざんの受け付けを行う）と、コンパニオンの画面（`companion/`。映像・依頼の吹き出し・夢のカードの欄）もある。セーブデータは、まだ無い（下の図では予定として描いている）。
+> 現在あるのは、コアループ（夢の解釈・時代跳躍）、地表の判定と時間の進め方（`TimeControl`）、それを描く Godot のメインシーン（`game/scenes/main/`。仮の単色タイル・HUD・操作ボタン・昼夜の環境光・予言者）、予言者の夢と依頼（コアの `ProphetDreams`、画面の `DreamView`。PC の画面とスマホから夢を改ざんして神託を下す）である。コンパニオンとの通信（`CompanionHost`。HTTP で HTML/JS を配り、WebSocket でペアリング・画面の配信・夢の状態の送信と改ざんの受け付けを行う）と、コンパニオンの画面（`companion/`。映像・依頼の吹き出し・夢のカードの欄）もある。セーブ・ロード（コアの `Persistence/` が形と検証、`SaveStore` が `user://save/world.json` の読み書き。[仕様書](domain/save-data.md)）もある。
 
 ## 全体構成
 
@@ -12,7 +12,7 @@ flowchart LR
         Game["game/<br>ノード・描画・入力・WebSocketサーバー"]
         Core["src/TheogonyX.Core<br>シミュレーション（Godot非依存）"]
         Data[("game/data<br>ゲームデータ定義")]
-        Save[("セーブデータ")]
+        Save[("セーブデータ<br>user://save/world.json")]
         Game --> Core
         Game --> Data
         Game --> Save
@@ -63,7 +63,7 @@ sequenceDiagram
 | `src/TheogonyX.Core/` | モデル・夢の解釈・ドグマ・時代跳躍・セーブ形式・通信メッセージの型。Godot に依存しない |
 | `tests/TheogonyX.Core.Tests/` | コアの自動テスト（xUnit） |
 | `game/` | Godot プロジェクト（`project.godot`）。シーン・描画・入力・ファイル入出力・WebSocket サーバー |
-| `game/data/` | ゲームデータ定義（`symbols.json`・`rules.json`）と、それをコアの定義（`DreamRules`・`WorldRules`・`TerrainRules`・`AmbienceRules` など）に変換する `GameDataLoader` |
+| `game/data/` | ゲームデータ定義（`symbols.json`・`rules.json`）と、設定（`companion.json`・`save.json`）と、それをコアの定義（`DreamRules`・`WorldRules`・`TerrainRules`・`AmbienceRules` など）に変換する `GameDataLoader` |
 | `game/scenes/` | シーンとそのスクリプト（シーンごとにディレクトリを分ける） |
 | `game/locales/` | 翻訳ファイル |
 | `companion/` | モバイルのコンパニオン（素の HTML/JS） |

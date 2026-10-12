@@ -55,6 +55,9 @@ public sealed class WorldScreen
     /// <summary>世界再創生の後。</summary>
     public event Action? WorldReset;
 
+    /// <summary>100 年跳躍の後。<see cref="TimeAdvanced"/> の後に呼ぶ。</summary>
+    public event Action? Jumped;
+
     /// <param name="owner">ノードを探し、Tween を作るためのシーンの根。</param>
     public WorldScreen(Node owner, TimeControl timeControl, TerrainRules terrainRules, int mapRows, TimeControlSettings timeSettings)
     {
@@ -97,6 +100,7 @@ public sealed class WorldScreen
         GD.Print(FormattableString.Invariant(
             $"event=time_skipped years={_timeSettings.JumpYears} year={world.Year} forestAmount={world.ForestAmount} waterAmount={world.WaterAmount} temperature={world.Temperature} chaosLevel={world.ChaosLevel} harmonyLevel={world.HarmonyLevel} isDestroyed={world.IsDestroyed}"));
         AfterTimeAdvanced();
+        Jumped?.Invoke();
     }
 
     private void OnAutoPlayTimeout()

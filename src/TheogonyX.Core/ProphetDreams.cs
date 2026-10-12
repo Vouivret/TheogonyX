@@ -84,6 +84,12 @@ public sealed class ProphetDreams
     /// <summary>今の依頼。依頼なしなら null。</summary>
     public ProphetRequestRule? ActiveRequest { get; private set; }
 
+    /// <summary>困りごとの ID ごとの、依頼が済んだ年。</summary>
+    public IReadOnlyDictionary<string, int> AnsweredYears => _answeredYears;
+
+    /// <summary>前の神託の年（起動・リセットからは、その年）。</summary>
+    public int LastOracleYear => _lastOracleYear;
+
     public bool CanTamper => CanDo(DreamTrigger.Tamper);
 
     public bool CanPronounce => CanDo(DreamTrigger.Pronounce);
@@ -182,6 +188,39 @@ public sealed class ProphetDreams
         State = DreamTransitions[(State, DreamTrigger.Reset)];
         _dream.Clear();
         _dream.AddRange(_createDream());
+    }
+
+    /// <summary>
+    /// セーブから読み込んだ夢と依頼に置き換える。状態遷移ではなく、保存した時点に戻す。
+    /// 値の検証は読み込む側（<c>SaveDataSerializer</c>）で済ませておく。
+    /// </summary>
+    public void Restore(
+        ProphetDreamState state,
+        IEnumerable<DreamNode> dream,
+        string? requestId,
+        IReadOnlyDictionary<string, int> answeredYears,
+        int lastOracleYear)
+    {
+        ArgumentNullException.ThrowIfNull(dream);
+        ArgumentNullException.ThrowIfNull(answeredYears);
+        ProphetRequestRule? request = null;
+        if (requestId is not null)
+        {
+            request = _rules.Requests.FirstOrDefault(rule => rule.Id == requestId)
+                ?? throw new ArgumentException($"定義に無い困りごと: requestId={requestId}", nameof(requestId));
+        }
+
+        State = state;
+        _dream.Clear();
+        _dream.AddRange(dream);
+        ActiveRequest = request;
+        _answeredYears.Clear();
+        foreach (var (id, year) in answeredYears)
+        {
+            _answeredYears[id] = year;
+        }
+        _lastOracleYear = lastOracleYear;
+        _pausedForDream = false;
     }
 
     private bool StartDream()

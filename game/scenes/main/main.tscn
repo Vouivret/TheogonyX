@@ -59,6 +59,15 @@ offset_right = 280.0
 offset_bottom = 90.0
 autowrap_mode = 3
 
+[node name="SaveNotice" type="Label" parent="Hud" unique_id=2023725111]
+unique_name_in_owner = true
+visible = false
+offset_left = 16.0
+offset_top = 184.0
+offset_right = 280.0
+offset_bottom = 206.0
+autowrap_mode = 3
+
 [node name="DreamPanel" type="VBoxContainer" parent="Hud" unique_id=745983899]
 offset_left = 16.0
 offset_top = 209.0

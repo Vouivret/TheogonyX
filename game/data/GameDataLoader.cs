@@ -68,6 +68,16 @@ public static class GameDataLoader
         return settings;
     }
 
+    public static SaveSettings ParseSave(string saveJson)
+    {
+        var settings = Parse<SaveSettings>(saveJson, "save.json");
+        if (!double.IsFinite(settings.AutoSaveIntervalSeconds) || settings.AutoSaveIntervalSeconds <= 0)
+        {
+            throw new InvalidDataException($"セーブの設定の値が範囲外: file=save.json value={settings}");
+        }
+        return settings;
+    }
+
     private static bool IsPort(int port) => port is >= 1 and <= ushort.MaxValue;
 
     /// <param name="hex"><c>#RRGGBB</c> の形の色。</param>
