@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Godot;
 using TheogonyX.Core;
@@ -22,6 +23,7 @@ public partial class WorldCore : Node2D
     private Func<string>? _writeSave;
     private SaveSettings? _saveSettings;
     private double _secondsSinceSave;
+    private TimeControl? _timeControl;
 
     // 読めなかったことを HUD に出しておく秒数
     private const double SaveNoticeSeconds = 10.0;
@@ -45,18 +47,25 @@ public partial class WorldCore : Node2D
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
         var dreamSource = new DreamSource(seed, dreamRules, prophetDreamRules);
         var timeControl = new TimeControl(worldRules, timeSettings.JumpYears);
+        _timeControl = timeControl;
+        var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
+        {
+            [AutoPlaySpeed.Normal] = 1.0 / timeSettings.NormalYearsPerSecond,
+            [AutoPlaySpeed.Fast] = 1.0 / timeSettings.FastYearsPerSecond,
+            [AutoPlaySpeed.RealTime] = timeSettings.RealTimeSecondsPerYear,
+        });
         var prophet = new ProphetDreams(timeControl, dreamRules, prophetDreamRules, dreamSource.Next);
         if (saved is not null)
         {
-            SaveGame.Apply(saved, timeControl, prophet, dreamSource);
+            SaveGame.Apply(saved, timeControl, prophet, dreamSource, clock);
             GD.Print($"event=game_loaded seed={seed} year={timeControl.World.Year}");
         }
         else
         {
             GD.Print($"event=game_started seed={seed}");
         }
-        _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, dreamSource));
-        _screen = new WorldScreen(this, timeControl, terrainRules, mapRows, timeSettings);
+        _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, dreamSource, clock));
+        _screen = new WorldScreen(this, timeControl, clock, terrainRules, mapRows, timeSettings);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings);
         _dreams = new DreamView(this, prophet, timeControl, dreamRules);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;
@@ -66,7 +75,6 @@ public partial class WorldCore : Node2D
         _dreams.OraclePronounced += Save;
         _screen.Jumped += Save;
         _screen.WorldReset += Save;
-        _screen.TimeAdvanced += AutoSave;
         if (loadFailed)
         {
             ShowSaveNotice();
@@ -78,7 +86,13 @@ public partial class WorldCore : Node2D
 
     public override void _Process(double delta)
     {
+        _screen?.Process(delta);
         _secondsSinceSave += delta;
+        // 自動進行中は一定の間隔で保存する（現実同期では年が進むのに 24 時間かかるので、年が進むのを待たない）
+        if (_timeControl?.State == TimeControlState.AutoPlaying && _secondsSinceSave >= _saveSettings!.AutoSaveIntervalSeconds)
+        {
+            Save();
+        }
         _ambience?.Process(delta);
         _companion?.Process(delta);
     }
@@ -122,15 +136,6 @@ public partial class WorldCore : Node2D
         if (OS.IsDebugBuild())
         {
             GD.Print("event=game_saved");
-        }
-    }
-
-    // 自動進行中は、前の保存から間隔がたった後の、次の 1 年が進んだときに保存する
-    private void AutoSave()
-    {
-        if (_secondsSinceSave >= _saveSettings!.AutoSaveIntervalSeconds)
-        {
-            Save();
         }
     }
 

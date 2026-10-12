@@ -31,9 +31,6 @@ unique_name_in_owner = true
 texture_filter = 1
 centered = false
 
-[node name="AutoPlayTimer" type="Timer" parent="." unique_id=639291190]
-unique_name_in_owner = true
-
 [node name="Hud" type="CanvasLayer" parent="." unique_id=341956898]
 
 [node name="PairingQr" type="TextureRect" parent="Hud" unique_id=507616185]
@@ -104,6 +101,11 @@ offset_bottom = 254.0
 
 [node name="YearLabel" type="Label" parent="Hud/Panel" unique_id=1466526891]
 unique_name_in_owner = true
+layout_mode = 2
+
+[node name="NextYearLabel" type="Label" parent="Hud/Panel" unique_id=547968912]
+unique_name_in_owner = true
+visible = false
 layout_mode = 2
 
 [node name="ChaosLabel" type="Label" parent="Hud/Panel" unique_id=1040149012]

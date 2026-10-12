@@ -9,34 +9,41 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 1, "seed": 42, "dreamsGenerated": 2,
+          "saveVersion": 2, "seed": 42, "dreamsGenerated": 2,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
           "dream": { "state": "TAMPERED", "nodes": [{ "symbolId": "SYM_TREE", "weight": 0.5 }, { "symbolId": "SYM_BLOOD", "weight": 0.6 }, { "symbolId": "SYM_FIRE", "weight": 0.4 }] },
           "request": "THIRST",
           "answeredYears": { "FAMINE": 250 },
-          "lastOracleYear": 250
+          "lastOracleYear": 250,
+          "autoPlay": { "speed": "REAL_TIME", "elapsedSeconds": 3600 }
         }
         """;
 
-    private sealed record Game(TimeControl Time, ProphetDreams Prophet, DreamSource Dreams);
+    private sealed record Game(TimeControl Time, ProphetDreams Prophet, DreamSource Dreams, AutoPlayClock Clock);
 
     private static Game CreateGame()
     {
         var time = new TimeControl(TestRules.World, TestRules.JumpYears);
         var dreams = new DreamSource(Seed, TestRules.Dream, TestRules.ProphetDreams);
         var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, dreams.Next);
-        return new Game(time, prophet, dreams);
+        var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
+        {
+            [AutoPlaySpeed.Normal] = 1.0,
+            [AutoPlaySpeed.Fast] = 0.1,
+            [AutoPlaySpeed.RealTime] = 86400.0,
+        });
+        return new Game(time, prophet, dreams, clock);
     }
 
     // 書き出して読み戻し、新しく作ったゲームに当てはめる
     private static Game RoundTrip(Game game)
     {
-        var json = SaveDataSerializer.Write(SaveGame.Capture(game.Time, game.Prophet, game.Dreams));
+        var json = SaveDataSerializer.Write(SaveGame.Capture(game.Time, game.Prophet, game.Dreams, game.Clock));
         Assert.True(SaveDataSerializer.TryParse(json, TestRules.Dream, TestRules.ProphetDreams, out var data, out var reason), reason);
         var loaded = CreateGame();
-        SaveGame.Apply(data!, loaded.Time, loaded.Prophet, loaded.Dreams);
+        SaveGame.Apply(data!, loaded.Time, loaded.Prophet, loaded.Dreams, loaded.Clock);
         return loaded;
     }
 
@@ -138,6 +145,23 @@ public class SaveDataTests
     }
 
     [Fact]
+    [Trait("TS", "TS-save-data-006")]
+    public void RoundTrip_現実同期で進み3600秒_速さと進みが戻り止まっている()
+    {
+        var game = CreateGame();
+        game.Clock.CycleSpeed();
+        game.Clock.CycleSpeed();
+        game.Clock.Tick(3600.0);
+        game.Time.StartAutoPlay();
+
+        var loaded = RoundTrip(game);
+
+        Assert.Equal(AutoPlaySpeed.RealTime, loaded.Clock.Speed);
+        Assert.Equal(3600.0, loaded.Clock.ElapsedSeconds);
+        Assert.Equal(TimeControlState.Stopped, loaded.Time.State);
+    }
+
+    [Fact]
     [Trait("TS", "TS-save-data-004")]
     public void TryParse_正しいセーブ_読める()
     {
@@ -151,8 +175,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 1", "\"saveVersion\": 2", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 1, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 2", "\"saveVersion\": 1", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 2, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": -1", "invalid_dreams_generated")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": 1000001", "invalid_dreams_generated")]
@@ -171,6 +195,10 @@ public class SaveDataTests
     [InlineData("\"FAMINE\": 250", "\"FAMINE\": 400", "invalid_year")]
     [InlineData("\"lastOracleYear\": 250", "\"lastOracleYear\": 313", "invalid_year")]
     [InlineData("\"lastOracleYear\": 250", "\"lastOracle\": 250", "invalid_field")]
+    [InlineData("\"speed\": \"REAL_TIME\"", "\"speed\": \"SLOW\"", "unknown_speed")]
+    [InlineData("\"elapsedSeconds\": 3600", "\"elapsedSeconds\": -1", "invalid_number")]
+    [InlineData("\"elapsedSeconds\": 3600", "\"elapsedSeconds\": 1e999", "invalid_number")]
+    [InlineData("\"elapsedSeconds\": 3600", "\"elapsed\": 3600", "invalid_field")]
     public void TryParse_壊れたセーブ_失敗して理由が分かる(string original, string replacement, string expectedReason)
     {
         Assert.Contains(original, ValidSave);

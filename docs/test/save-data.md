@@ -13,6 +13,7 @@
 | TS-save-data-002 | AC-save-data-004 | 読み込んだ後は止まっている | 自動進行中 | 書き出して読み戻す | 止まっている | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-save-data-003 | AC-save-data-005 | 読み込んだ後も、同じシードからの夢の続きになる | 受け入れ条件のとおり | 書き出して読み戻し、夢を見る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-save-data-004 | AC-save-data-006 | 壊れたセーブを読まない | 受け入れ条件の各入力 | 読む | 失敗し、理由が分かる | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
+| TS-save-data-006 | AC-save-data-010, 011 | 自動進行の速さとその年の進みの読み戻しと、古い形・不正な値を読まないこと | 受け入れ条件のとおり | 書き出して読み戻す・読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-save-data-005 | AC-save-data-007, 008, 009 | 起動時の続き・壊れたセーブ・強制終了 | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順

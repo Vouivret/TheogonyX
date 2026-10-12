@@ -5,6 +5,8 @@ namespace TheogonyX.Core.Persistence;
 /// <param name="DreamsGenerated">これまでに見た夢の数。乱数を同じところまで進め直すのに使う。</param>
 /// <param name="RequestId">依頼中の困りごとの ID。依頼なしなら null。</param>
 /// <param name="AnsweredYears">困りごとの ID ごとの、依頼が済んだ年（同じ困りごとを待つ年数の起点）。</param>
+/// <param name="Speed">自動進行の速さ。</param>
+/// <param name="ElapsedSeconds">自動進行の、その年の進み（秒）。</param>
 public sealed record SaveData(
     int Seed,
     int DreamsGenerated,
@@ -14,4 +16,6 @@ public sealed record SaveData(
     IReadOnlyList<DreamNode> Dream,
     string? RequestId,
     IReadOnlyDictionary<string, int> AnsweredYears,
-    int LastOracleYear);
+    int LastOracleYear,
+    AutoPlaySpeed Speed,
+    double ElapsedSeconds);

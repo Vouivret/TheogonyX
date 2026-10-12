@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 1;
+    public const int SaveVersion = 2;
 
     /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
     public const int MaxDreamsGenerated = 1_000_000;
@@ -19,6 +19,13 @@ public static class SaveDataSerializer
         [ProphetDreamState.None] = "NONE",
         [ProphetDreamState.Untampered] = "UNTAMPERED",
         [ProphetDreamState.Tampered] = "TAMPERED",
+    };
+
+    private static readonly Dictionary<AutoPlaySpeed, string> SpeedNames = new()
+    {
+        [AutoPlaySpeed.Normal] = "NORMAL",
+        [AutoPlaySpeed.Fast] = "FAST",
+        [AutoPlaySpeed.RealTime] = "REAL_TIME",
     };
 
     public static string Write(SaveData data)
@@ -54,6 +61,7 @@ public static class SaveDataSerializer
             request = data.RequestId,
             answeredYears = data.AnsweredYears,
             lastOracleYear = data.LastOracleYear,
+            autoPlay = new { speed = SpeedNames[data.Speed], elapsedSeconds = data.ElapsedSeconds },
         });
     }
 
@@ -171,7 +179,21 @@ public static class SaveDataSerializer
         }
         var lastOracleYear = ReadYearUpTo(Property(root, "lastOracleYear", JsonValueKind.Number), world.Year);
 
-        return new SaveData(seed, dreamsGenerated, world, dogmas, dreamState.Key, dream, requestId, answeredYears, lastOracleYear);
+        var autoPlayElement = Property(root, "autoPlay", JsonValueKind.Object);
+        var speedName = ReadString(autoPlayElement, "speed");
+        var speed = SpeedNames.FirstOrDefault(pair => pair.Value == speedName);
+        if (speed.Value is null)
+        {
+            throw new InvalidSaveDataException("unknown_speed");
+        }
+        var elapsedSeconds = ReadDouble(autoPlayElement, "elapsedSeconds");
+        if (elapsedSeconds < 0)
+        {
+            throw new InvalidSaveDataException("invalid_number");
+        }
+
+        return new SaveData(
+            seed, dreamsGenerated, world, dogmas, dreamState.Key, dream, requestId, answeredYears, lastOracleYear, speed.Key, elapsedSeconds);
     }
 
     private static Dogma ReadDogma(JsonElement element, HashSet<string> symbolIds)
@@ -246,6 +268,15 @@ public static class SaveDataSerializer
     {
         // JSON の数値は NaN・無限を書けないが、float に収まらない大きさは無限になる
         if (!Property(parent, name, JsonValueKind.Number).TryGetSingle(out var value) || !float.IsFinite(value))
+        {
+            throw new InvalidSaveDataException("invalid_number");
+        }
+        return value;
+    }
+
+    private static double ReadDouble(JsonElement parent, string name)
+    {
+        if (!Property(parent, name, JsonValueKind.Number).TryGetDouble(out var value) || !double.IsFinite(value))
         {
             throw new InvalidSaveDataException("invalid_number");
         }

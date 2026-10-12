@@ -11,6 +11,7 @@ namespace TheogonyX.Scenes.Main;
 /// <summary>
 /// 星の地表と HUD を描き、時間の進め方のボタンをコアの <see cref="TimeControl"/> につなぐ
 /// （docs/domain/planet-display.md、docs/domain/time-control.md）。
+/// 自動進行は、<see cref="WorldCore"/> が毎フレーム呼ぶ <see cref="Process"/> で <see cref="AutoPlayClock"/> を進めて行う。
 /// </summary>
 public sealed class WorldScreen
 {
@@ -33,10 +34,11 @@ public sealed class WorldScreen
     private readonly TerrainRules _terrainRules;
     private readonly int _mapRows;
     private readonly TimeControlSettings _timeSettings;
+    private readonly AutoPlayClock _clock;
 
     private readonly TileMapLayer _terrain;
-    private readonly Timer _autoPlayTimer;
     private readonly Label _yearLabel;
+    private readonly Label _nextYearLabel;
     private readonly Label _chaosLabel;
     private readonly Label _harmonyLabel;
     private readonly Label _dogmaList;
@@ -46,8 +48,10 @@ public sealed class WorldScreen
     private readonly Button _speedButton;
     private readonly Button _resetButton;
 
-    private bool _fast;
     private Tween? _resetBlink;
+
+    // 次の年までの残りとして表示している秒数。同じなら書き換えない。
+    private int _shownRemainingSeconds = -1;
 
     /// <summary>100 年跳躍の後と、自動進行の 1 年ごと。</summary>
     public event Action? TimeAdvanced;
@@ -59,8 +63,10 @@ public sealed class WorldScreen
     public event Action? Jumped;
 
     /// <param name="owner">ノードを探し、Tween を作るためのシーンの根。</param>
-    public WorldScreen(Node owner, TimeControl timeControl, TerrainRules terrainRules, int mapRows, TimeControlSettings timeSettings)
+    public WorldScreen(
+        Node owner, TimeControl timeControl, AutoPlayClock clock, TerrainRules terrainRules, int mapRows, TimeControlSettings timeSettings)
     {
+        _clock = clock;
         _owner = owner;
         _timeControl = timeControl;
         _terrainRules = terrainRules;
@@ -68,8 +74,8 @@ public sealed class WorldScreen
         _timeSettings = timeSettings;
 
         _terrain = owner.GetNode<TileMapLayer>("%Terrain");
-        _autoPlayTimer = owner.GetNode<Timer>("%AutoPlayTimer");
         _yearLabel = owner.GetNode<Label>("%YearLabel");
+        _nextYearLabel = owner.GetNode<Label>("%NextYearLabel");
         _chaosLabel = owner.GetNode<Label>("%ChaosLabel");
         _harmonyLabel = owner.GetNode<Label>("%HarmonyLabel");
         _dogmaList = owner.GetNode<Label>("%DogmaList");
@@ -87,10 +93,20 @@ public sealed class WorldScreen
         _pauseButton.Pressed += OnPausePressed;
         _speedButton.Pressed += OnSpeedPressed;
         _resetButton.Pressed += OnResetPressed;
-        _autoPlayTimer.Timeout += OnAutoPlayTimeout;
 
-        ApplySpeed();
+        DrawSpeed();
         Refresh();
+    }
+
+    /// <summary>毎フレーム呼ぶ。自動進行中なら時計を進め、1 年たったら 1 年進める。</summary>
+    public void Process(double delta)
+    {
+        if (_timeControl.State == TimeControlState.AutoPlaying && _clock.Tick(delta))
+        {
+            _timeControl.AdvanceOneYear();
+            AfterTimeAdvanced();
+        }
+        DrawNextYear();
     }
 
     private void OnJumpPressed()
@@ -101,17 +117,6 @@ public sealed class WorldScreen
             $"event=time_skipped years={_timeSettings.JumpYears} year={world.Year} forestAmount={world.ForestAmount} waterAmount={world.WaterAmount} temperature={world.Temperature} chaosLevel={world.ChaosLevel} harmonyLevel={world.HarmonyLevel} isDestroyed={world.IsDestroyed}"));
         AfterTimeAdvanced();
         Jumped?.Invoke();
-    }
-
-    private void OnAutoPlayTimeout()
-    {
-        if (!_timeControl.CanDo(TimeControlAction.AdvanceOneYear))
-        {
-            _autoPlayTimer.Stop();
-            return;
-        }
-        _timeControl.AdvanceOneYear();
-        AfterTimeAdvanced();
     }
 
     private void AfterTimeAdvanced()
@@ -138,28 +143,48 @@ public sealed class WorldScreen
 
     private void OnSpeedPressed()
     {
-        _fast = !_fast;
-        ApplySpeed();
+        _clock.CycleSpeed();
+        DrawSpeed();
     }
 
     private void OnResetPressed()
     {
         _timeControl.Reset();
+        _clock.Reset();
         GD.Print("event=world_reset year=0");
         WorldReset?.Invoke();
         Refresh();
     }
 
-    private void ApplySpeed()
+    private void DrawSpeed()
     {
-        var yearsPerSecond = _fast ? _timeSettings.FastYearsPerSecond : _timeSettings.NormalYearsPerSecond;
-        _autoPlayTimer.WaitTime = 1.0 / yearsPerSecond;
-        if (!_autoPlayTimer.IsStopped())
+        _speedButton.Text = Tr(_clock.Speed switch
         {
-            // 待っている途中の間隔を捨て、新しい速さですぐ数え直す。
-            _autoPlayTimer.Start();
+            AutoPlaySpeed.Fast => "BUTTON_SPEED_FAST",
+            AutoPlaySpeed.RealTime => "BUTTON_SPEED_REAL_TIME",
+            _ => "BUTTON_SPEED_NORMAL",
+        });
+    }
+
+    // 現実同期で自動進行しているときだけ、次の年までの残り時間を hh:mm:ss で出す
+    private void DrawNextYear()
+    {
+        var visible = _clock.Speed == AutoPlaySpeed.RealTime && _timeControl.State == TimeControlState.AutoPlaying;
+        _nextYearLabel.Visible = visible;
+        if (!visible)
+        {
+            _shownRemainingSeconds = -1;
+            return;
         }
-        _speedButton.Text = Tr(_fast ? "BUTTON_SPEED_FAST" : "BUTTON_SPEED_NORMAL");
+
+        var seconds = (int)_clock.RemainingSeconds;
+        if (seconds == _shownRemainingSeconds)
+        {
+            return;
+        }
+        _shownRemainingSeconds = seconds;
+        var remaining = FormattableString.Invariant($"{seconds / 3600:00}:{seconds / 60 % 60:00}:{seconds % 60:00}");
+        _nextYearLabel.Text = string.Format(CultureInfo.CurrentCulture, Tr("HUD_NEXT_YEAR"), remaining);
     }
 
     /// <summary>地表・HUD・ボタンを描き直す（ドグマが増えたときなど）。</summary>
@@ -168,15 +193,6 @@ public sealed class WorldScreen
         DrawTerrain();
         DrawHud();
         UpdateButtons();
-
-        if (_timeControl.State != TimeControlState.AutoPlaying)
-        {
-            _autoPlayTimer.Stop();
-        }
-        else if (_autoPlayTimer.IsStopped())
-        {
-            _autoPlayTimer.Start();
-        }
     }
 
     private void DrawTerrain()
