@@ -54,9 +54,8 @@ public sealed class AmbienceView
         _idleTexture = LoadOrPlaceholder(IdleTexturePath, CreatePlaceholderIdle);
         _fallenTexture = LoadOrPlaceholder(FallenTexturePath, CreatePlaceholderFallen);
 
-        // 足元を地表の一番上の行の上端に合わせる（centered = false なので左上が原点）。
-        var frameHeight = _idleTexture.GetHeight();
-        _prophet.Position = terrain.Position + new Vector2((prophetSettings.Column - 1) * WorldScreen.TileSize, -frameHeight);
+        // 足元を地表の一番上の行の上端に合わせる。原点は足元（Y ソートで足元の高さを比べるため。ShowTexture で Offset を合わせる）。
+        _prophet.Position = terrain.Position + new Vector2((prophetSettings.Column - 1) * WorldScreen.TileSize, 0);
 
         (_flame, _campfireLight) = CreateCampfire(_prophet.GetParent(), terrain.Position, campfireSettings);
 
@@ -97,24 +96,26 @@ public sealed class AmbienceView
         }
     }
 
-    // 薪は昼も置いておき、炎と明かりは灯っている間だけ出す。足元は予言者と同じく地表の上端に合わせる。
+    // 薪は昼も置いておき、炎と明かりは灯っている間だけ出す。足元は予言者と同じく地表の上端に合わせ、原点を足元にする。
     private static (Sprite2D Flame, PointLight2D Light) CreateCampfire(Node parent, Vector2 terrainPosition, CampfireSettings settings)
     {
         var size = WorldScreen.TileSize;
-        var topLeft = terrainPosition + new Vector2((settings.Column - 1) * size, -size);
+        var foot = terrainPosition + new Vector2((settings.Column - 1) * size, 0);
 
         var wood = new Sprite2D
         {
             Name = "CampfireWood",
             Centered = false,
-            Position = topLeft,
+            Offset = new Vector2(0, -size),
+            Position = foot,
             Texture = ImageTexture.CreateFromImage(CreatePlaceholderWood()),
         };
         var flame = new Sprite2D
         {
             Name = "CampfireFlame",
             Centered = false,
-            Position = topLeft,
+            Offset = new Vector2(0, -size),
+            Position = foot,
             Texture = ImageTexture.CreateFromImage(CreatePlaceholderFlame()),
         };
 
@@ -124,7 +125,7 @@ public sealed class AmbienceView
         var light = new PointLight2D
         {
             Name = "CampfireLight",
-            Position = topLeft + new Vector2(size / 2f, size - 4),
+            Position = foot + new Vector2(size / 2f, -4),
             Color = new Color(settings.Color.R, settings.Color.G, settings.Color.B),
             Texture = new GradientTexture2D
             {
@@ -153,6 +154,7 @@ public sealed class AmbienceView
         _prophet.Texture = texture;
         // 横一列のスプライトシート。1 コマは縦の高さと同じ幅の正方形（docs/art-guide.md）。
         _prophet.Hframes = Mathf.Max(1, texture.GetWidth() / texture.GetHeight());
+        _prophet.Offset = new Vector2(0, -texture.GetHeight());
         _prophet.Frame = 0;
     }
 
