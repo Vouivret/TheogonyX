@@ -14,7 +14,7 @@ public sealed class CameraView
     private readonly Camera2D _camera;
     private readonly Vector2 _viewSize;
 
-    // 動かせる範囲（世界の px）。今は、ズームする前の画面と同じ広さ
+    // 動かせる範囲（世界の px）。起動したときの倍率で画面に映る広さ
     private readonly Rect2 _bounds;
 
     private double _zoom;
@@ -32,7 +32,7 @@ public sealed class CameraView
         _settings = settings;
         var viewport = owner.GetNode<SubViewport>("%WorldViewport");
         _viewSize = viewport.Size;
-        _bounds = new Rect2(Vector2.Zero, _viewSize);
+        _bounds = new Rect2(Vector2.Zero, _viewSize / (float)settings.StartZoom);
         _zoom = settings.StartZoom;
         _targetZoom = settings.StartZoom;
         _centerX = _bounds.GetCenter().X;

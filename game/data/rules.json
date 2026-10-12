@@ -28,8 +28,8 @@
     }
   },
   "terrain": {
-    "columns": 16,
-    "rows": 9,
+    "columns": 32,
+    "rows": 18,
     "anomalies": [
       { "tileType": "Glacier", "metric": "Temperature", "comparison": "AtOrBelow", "threshold": 0.0, "zeroColumnValue": 0.0, "fullColumnValue": -50.0 },
       { "tileType": "Scorched", "metric": "Temperature", "comparison": "AtOrAbove", "threshold": 50.0, "zeroColumnValue": 50.0, "fullColumnValue": 80.0 },
@@ -38,12 +38,18 @@
     ],
     "lake": {
       "cells": [
-        { "column": 11, "row": 4 }, { "column": 12, "row": 4 },
-        { "column": 11, "row": 3 }, { "column": 12, "row": 3 },
-        { "column": 11, "row": 5 }, { "column": 12, "row": 5 },
-        { "column": 10, "row": 4 }, { "column": 13, "row": 4 },
-        { "column": 10, "row": 3 }, { "column": 13, "row": 3 },
-        { "column": 10, "row": 5 }, { "column": 13, "row": 5 }
+        { "column": 22, "row": 8 }, { "column": 23, "row": 8 }, { "column": 22, "row": 9 }, { "column": 23, "row": 9 },
+        { "column": 24, "row": 8 }, { "column": 25, "row": 8 }, { "column": 24, "row": 9 }, { "column": 25, "row": 9 },
+        { "column": 22, "row": 6 }, { "column": 23, "row": 6 }, { "column": 22, "row": 7 }, { "column": 23, "row": 7 },
+        { "column": 24, "row": 6 }, { "column": 25, "row": 6 }, { "column": 24, "row": 7 }, { "column": 25, "row": 7 },
+        { "column": 22, "row": 10 }, { "column": 23, "row": 10 }, { "column": 22, "row": 11 }, { "column": 23, "row": 11 },
+        { "column": 24, "row": 10 }, { "column": 25, "row": 10 }, { "column": 24, "row": 11 }, { "column": 25, "row": 11 },
+        { "column": 20, "row": 8 }, { "column": 21, "row": 8 }, { "column": 20, "row": 9 }, { "column": 21, "row": 9 },
+        { "column": 26, "row": 8 }, { "column": 27, "row": 8 }, { "column": 26, "row": 9 }, { "column": 27, "row": 9 },
+        { "column": 20, "row": 6 }, { "column": 21, "row": 6 }, { "column": 20, "row": 7 }, { "column": 21, "row": 7 },
+        { "column": 26, "row": 6 }, { "column": 27, "row": 6 }, { "column": 26, "row": 7 }, { "column": 27, "row": 7 },
+        { "column": 20, "row": 10 }, { "column": 21, "row": 10 }, { "column": 20, "row": 11 }, { "column": 21, "row": 11 },
+        { "column": 26, "row": 10 }, { "column": 27, "row": 10 }, { "column": 26, "row": 11 }, { "column": 27, "row": 11 }
       ]
     }
   },
@@ -60,11 +66,11 @@
     "destroyedColor": "#442434"
   },
   "prophet": {
-    "column": 8,
+    "column": 16,
     "frameSeconds": 0.5
   },
   "campfire": {
-    "column": 6,
+    "column": 12,
     "color": "#D27D2C",
     "energy": 1.2,
     "radiusTiles": 3.0,
@@ -73,7 +79,7 @@
   },
   "camera": {
     "zoomSteps": [0.25, 0.5, 0.75, 1.0, 2.0, 3.0, 4.0],
-    "startZoom": 1.0,
+    "startZoom": 0.5,
     "zoomSmoothing": 12.0
   },
   "crowd": {
