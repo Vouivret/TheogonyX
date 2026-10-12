@@ -64,6 +64,27 @@
     "column": 8,
     "frameSeconds": 0.5
   },
+  "crowd": {
+    "todo": "TODO(AI_UNSURE): count と frenzyChaosAtOrAbove 以外は仮置き（速さ・間隔・範囲はタイルの単位、力の強さ、高速のときの倍率、点の大きさと色）。実際に見て決める",
+    "count": 10000,
+    "walkSpeed": 0.5,
+    "turnIntervalSeconds": 2.0,
+    "frenzySpeed": 2.0,
+    "holySiteRadius": 1.5,
+    "frenzyChaosAtOrAbove": 50.0,
+    "fieldScale": 0.5,
+    "fastTimeScale": 3.0,
+    "tileForces": {
+      "Water": 1.0,
+      "Jungle": 0.6,
+      "Grassland": 0.4,
+      "Desert": -0.6,
+      "Glacier": -0.6,
+      "Scorched": -1.0
+    },
+    "dotSizePixels": 1,
+    "dotColor": "#D2AA99"
+  },
   "dream": {
     "nodeCount": 3,
     "minWeight": 0.3,

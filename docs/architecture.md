@@ -2,7 +2,7 @@
 
 システムの今の姿を書く。常に最新に書き換え、各項目から根拠のADRへリンクする。経緯はADRに任せ、ここには書かない。
 
-> 現在あるのは、コアループ（夢の解釈・時代跳躍）、地表の判定と時間の進め方（`TimeControl`）、それを描く Godot のメインシーン（`game/scenes/main/`。仮の単色タイル・HUD・操作ボタン・昼夜の環境光・予言者）、予言者の夢と依頼（コアの `ProphetDreams`、画面の `DreamView`。PC の画面とスマホから夢を改ざんして神託を下す）である。コンパニオンとの通信（`CompanionHost`。HTTP で HTML/JS を配り、WebSocket でペアリング・画面の配信・夢の状態の送信と改ざんの受け付けを行う）と、コンパニオンの画面（`companion/`。映像・依頼の吹き出し・夢のカードの欄）もある。セーブ・ロード（コアの `Persistence/` が形と検証、`SaveStore` が `user://save/world.json` の読み書き。[仕様書](domain/save-data.md)）もある。
+> 現在あるのは、コアループ（夢の解釈・時代跳躍）、地表の判定と時間の進め方（`TimeControl`）、それを描く Godot のメインシーン（`game/scenes/main/`。仮の単色タイル・HUD・操作ボタン・昼夜の環境光・予言者）、予言者の夢と依頼（コアの `ProphetDreams`、画面の `DreamView`。PC の画面とスマホから夢を改ざんして神託を下す）である。コンパニオンとの通信（`CompanionHost`。HTTP で HTML/JS を配り、WebSocket でペアリング・画面の配信・夢の状態の送信と改ざんの受け付けを行う）と、コンパニオンの画面（`companion/`。映像・依頼の吹き出し・夢のカードの欄）もある。セーブ・ロード（コアの `Persistence/` が形と検証、`SaveStore` が `user://save/world.json` の読み書き。[仕様書](domain/save-data.md)）もある。群衆（コアの `Crowd`・`PotentialField` が CPU で計算し、`CrowdView` が `MultiMeshInstance2D` で点を描く。見た目だけ。乱数は [ADR 0004](adr/0004-crowd-counter-based-hash-random.md)。[仕様書](domain/crowd.md)）もある。
 
 ## 全体構成
 

@@ -52,6 +52,35 @@ public static class GameDataLoader
             ParseColor(ambience.DestroyedColor));
     }
 
+    public static CrowdRules ParseCrowd(string rulesJson)
+    {
+        var crowd = Parse<RulesFile>(rulesJson, "rules.json").Crowd
+            ?? throw new InvalidDataException("群衆の定義が無い: file=rules.json key=crowd");
+        float[] positives = [crowd.WalkSpeed, crowd.TurnIntervalSeconds, crowd.FrenzySpeed, crowd.HolySiteRadius, crowd.FastTimeScale];
+        if (crowd.Count <= 0 || positives.Any(value => !float.IsFinite(value) || value <= 0)
+            || !float.IsFinite(crowd.FrenzyChaosAtOrAbove) || !float.IsFinite(crowd.FieldScale)
+            || crowd.TileForces is null || Enum.GetValues<TileType>().Any(tileType => !crowd.TileForces.ContainsKey(tileType))
+            || crowd.TileForces.Values.Any(force => !float.IsFinite(force)))
+        {
+            throw new InvalidDataException($"群衆の定義の値が範囲外か、タイル種別の力が足りない: file=rules.json value={crowd}");
+        }
+        return new CrowdRules(
+            crowd.Count, crowd.WalkSpeed, crowd.TurnIntervalSeconds, crowd.FrenzySpeed, crowd.HolySiteRadius,
+            crowd.FrenzyChaosAtOrAbove, crowd.FieldScale, crowd.FastTimeScale, crowd.TileForces);
+    }
+
+    public static CrowdLook ParseCrowdLook(string rulesJson)
+    {
+        var crowd = Parse<RulesFile>(rulesJson, "rules.json").Crowd
+            ?? throw new InvalidDataException("群衆の定義が無い: file=rules.json key=crowd");
+        if (crowd.DotSizePixels is < 1 or > 2)
+        {
+            throw new InvalidDataException($"群衆の点の大きさは 1〜2 px: file=rules.json value={crowd.DotSizePixels}");
+        }
+        var color = ParseColor(crowd.DotColor);
+        return new CrowdLook(crowd.DotSizePixels, color);
+    }
+
     public static ProphetSettings ParseProphet(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").Prophet;
 
     public static ProphetDreamRules ParseProphetDreams(string rulesJson)
@@ -121,6 +150,19 @@ public static class GameDataLoader
 
     private sealed record AmbienceFile(float CycleSeconds, IReadOnlyList<string> CycleColors, string ChaosColor, string DestroyedColor);
 
+    private sealed record CrowdFile(
+        int Count,
+        float WalkSpeed,
+        float TurnIntervalSeconds,
+        float FrenzySpeed,
+        float HolySiteRadius,
+        float FrenzyChaosAtOrAbove,
+        float FieldScale,
+        float FastTimeScale,
+        Dictionary<TileType, float>? TileForces,
+        int DotSizePixels,
+        string DotColor);
+
     private sealed record DreamFile(int NodeCount, float MinWeight, float MaxWeight, int YearsBetweenDreams);
 
     private sealed record ProphetRequestsFile(int CooldownYears, IReadOnlyList<ProphetRequestRule> Requests);
@@ -132,6 +174,7 @@ public static class GameDataLoader
         TimeControlSettings TimeControl,
         AmbienceFile Ambience,
         ProphetSettings Prophet,
+        CrowdFile? Crowd,
         DreamFile Dream,
         ProphetRequestsFile ProphetRequests);
 }

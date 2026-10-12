@@ -61,6 +61,26 @@ internal static class TestRules
             new(10, 4), new(13, 4), new(10, 3), new(13, 3), new(10, 5), new(13, 5),
         ]);
 
+    // docs/domain/crowd.md の人数（10,000）・狂乱の閾値（カオス度 50）と、game/data/rules.json の仮の値。
+    public static readonly CrowdRules Crowd = new(
+        Count: 10_000,
+        WalkSpeed: 0.5f,
+        TurnIntervalSeconds: 2f,
+        FrenzySpeed: 2f,
+        HolySiteRadius: 1.5f,
+        FrenzyChaosAtOrAbove: 50f,
+        FieldScale: 0.5f,
+        FastTimeScale: 3f,
+        TileForces: new Dictionary<TileType, float>
+        {
+            [TileType.Water] = 1.0f,
+            [TileType.Jungle] = 0.6f,
+            [TileType.Grassland] = 0.4f,
+            [TileType.Desert] = -0.6f,
+            [TileType.Glacier] = -0.6f,
+            [TileType.Scorched] = -1.0f,
+        });
+
     private static TerrainAnomaly[] Anomalies =>
         [
             new TerrainAnomaly(TileType.Glacier, WorldMetric.Temperature, ThresholdComparison.AtOrBelow, Threshold: 0f, ZeroColumnValue: 0f, FullColumnValue: -50f),

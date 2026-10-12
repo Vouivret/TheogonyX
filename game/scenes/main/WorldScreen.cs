@@ -62,6 +62,9 @@ public sealed class WorldScreen
     /// <summary>100 年跳躍の後。<see cref="TimeAdvanced"/> の後に呼ぶ。</summary>
     public event Action? Jumped;
 
+    /// <summary>地表を描き直した（マスごとのタイル種別。添字は [列, 行]）。</summary>
+    public event Action<TileType[,]>? TerrainDrawn;
+
     /// <param name="owner">ノードを探し、Tween を作るためのシーンの根。</param>
     public WorldScreen(
         Node owner, TimeControl timeControl, AutoPlayClock clock, TerrainRules terrainRules, TimeControlSettings timeSettings)
@@ -204,6 +207,7 @@ public sealed class WorldScreen
                 _terrain.SetCell(new Vector2I(x, y), 0, new Vector2I((int)tiles[x, y], 0));
             }
         }
+        TerrainDrawn?.Invoke(tiles);
     }
 
     private void DrawHud()

@@ -23,6 +23,9 @@ unique_name_in_owner = true
 texture_filter = 1
 position = Vector2(16, 63)
 
+[node name="Crowd" type="MultiMeshInstance2D" parent="WorldView/WorldViewport"]
+unique_name_in_owner = true
+
 [node name="Ambience" type="CanvasModulate" parent="WorldView/WorldViewport" unique_id=461487894]
 unique_name_in_owner = true
 
