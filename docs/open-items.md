@@ -2,12 +2,13 @@
 
 決まっていないこと、人間の手作業が要ることの一覧。解消したら行を消し、決まった内容は該当する仕様書・ルールに書く。
 
-最終更新: 2026-10-12（M2 を閉じ、AI 連携の仕様を下書きとして足した後）
+最終更新: 2026-10-12（M3 を閉じた後）
 
 ## 人間の手作業
 
 | 項目 | 内容 | 関連 |
 | :--- | :--- | :--- |
+| 手動テスト TS-crowd-010・TS-planet-display-012 | 群衆の動き（散策・水場と緑地に集まる・群れ・一時停止と高速・狂乱・崩壊と世界再創生）と、湖の見た目（縮む・凍る）。2026-10-12 に画面を見て「全体的にこれでよい」とした。手順どおりに確かめたら `docs/test/results/` に記録する | [docs/test/crowd.md](test/crowd.md)・[planet-display](test/planet-display.md) |
 | 手動テスト TS-ambience-006 | 昼夜の色・予言者の位置とアニメーション・崩壊とリセットの見た目を確かめ、`docs/test/results/` に記録する。地表・予言者・環境光を `SubViewport` の下に移したので、見た目が変わっていないことも確かめる | [docs/test/ambience.md](test/ambience.md) |
 | 崩壊の見た目の確認 | TS-time-control-009 の手順 5 と TS-ambience-006 の手順 5。夢の改ざんで崩壊を起こせるようになったので、確認できる | [実施記録](test/results/2026-10-11-feat-m1-screen.md) |
 | 手動テスト TS-prophet-request-006 | 依頼の吹き出し（予言者の右）が出て、画面に収まり、神託で消えること。TS-dream-tampering-008 は合格（[実施記録](test/results/2026-10-12-feat-m2-dream-tampering.md)） | [dream-tampering](test/dream-tampering.md)・[prophet-request](test/prophet-request.md) |
@@ -24,15 +25,18 @@
 | :--- | :--- | :--- |
 | 予言者の絵の出典 | 生成 AI のツール名と、利用規約で商用利用・ゲームへの組み込みが認められているか。分かったら [credits.md](credits.md) に書く | 配布する前 |
 | 英語の文言 | `game/locales/ui.csv` の `en` の列は仮の訳。`companion/locales/en.json` は 2026-10-12 に確定した訳を当てたが、`TITLE`・`CARDS_*`・`STATUS_SCAN_QR`・`STATUS_RECONNECTING`・`ERROR_SESSION_REPLACED` はまだ仮の訳 | 英語版を出す前 |
+| 群衆の仕様書の承認 | [crowd.md](domain/crowd.md) は `draft` のまま。湖を足した [planet-display.md](domain/planet-display.md) も `draft` | 次に群衆・地表を変える前 |
+| 推奨スペックの PC | [nfr.md](nfr.md) の性能の目標は「例」のまま。群衆の計測（10,000 人で GPU 版 約 1,000 fps、開発者の PC）を目安に、目標と推奨スペックを決める | 配布する前 |
 | 用語集への追加 | タイル種別・自動進行・世界再創生・環境光・昼夜の周期、ペアリング・ワンタイムトークン・`sessionToken`・画面の配信、神託・依頼（祈り）・困りごとを [用語集](domain/glossary.md) に足すか | 急がない |
 | 画面の配信の仕様書の承認 | [frame-stream.md](domain/frame-stream.md) は `draft` のまま | 次に配信を変える前 |
 | 夢の改ざん・依頼の仕様書の承認 | [dream-tampering.md](domain/dream-tampering.md)・[prophet-request.md](domain/prophet-request.md) は `draft` のまま（スマホでの操作も足した）。M2 は 2026-10-12 に閉じたので、人間が承認する | 次に夢・依頼を変える前 |
-| AI 連携の仕様の未決 | [ai-presentation.md](domain/ai-presentation.md) の「未決」（予言者の狂気の指標、イベントの ID、周回の終わり、創世図鑑、既定の絵と 32px のタイル、画像生成のライセンス、AI クライアントの置き場所、セーブの形など） | M3 の後に着手する前 |
+| AI 連携の仕様の未決 | [ai-presentation.md](domain/ai-presentation.md) の「未決」（予言者の狂気の指標、イベントの ID、周回の終わり、創世図鑑、既定の絵と 32px のタイル、画像生成のライセンス、AI クライアントの置き場所、セーブの形など） | AI 連携（M4 の構想）に着手する前 |
 
 ## 急がないもの
 
 | 項目 | 内容 |
 | :--- | :--- |
+| GPU 版の突き合わせ | CI（headless）では GPU が使えないので、`-- --crowd-check` は手元の PC でしか動かせない。`crowd_step.glsl`・`GpuCrowd.cs`・`Crowd.cs`・`PotentialField.cs`・`FlockGrid.cs` を変えたら手元で実行する（[TS-crowd-009](test/crowd.md)） |
 | CI の警告 | GitHub Actions の Node 20 の actions と、`ubuntu-latest` の移行に関する警告 |
 | 空の背景 | 地表の外の灰色の部分には環境光がかからない（画面の地の色のため）。空の背景を置くか |
 | WebSocket のポートの二重管理 | `game/data/companion.json` と `companion/js/protocol.js` の 2 か所にある。ホストからページに渡すなどして 1 か所にするか |

@@ -37,7 +37,6 @@
       { "tileType": "Jungle", "metric": "ForestAmount", "comparison": "AtOrAbove", "threshold": 70.0, "zeroColumnValue": 70.0, "fullColumnValue": 100.0 }
     ],
     "lake": {
-      "todo": "TODO(AI_UNSURE): 湖の場所と大きさは仮置き。左から 11〜14 列目 × 上から 4〜6 行目の 12 マスを、中央から外へ広がる順に並べた。column・row は 0 から数える",
       "cells": [
         { "column": 11, "row": 4 }, { "column": 12, "row": 4 },
         { "column": 11, "row": 3 }, { "column": 12, "row": 3 },
@@ -65,7 +64,6 @@
     "frameSeconds": 0.5
   },
   "crowd": {
-    "todo": "TODO(AI_UNSURE): count と frenzyChaosAtOrAbove 以外は仮置き（速さ・間隔・範囲はタイルの単位、力の強さ、高速のときの倍率、点の大きさと色）。実際に見て決める",
     "count": 10000,
     "walkSpeed": 0.5,
     "turnIntervalSeconds": 2.0,
@@ -75,7 +73,6 @@
     "fieldScale": 0.5,
     "fastTimeScale": 3.0,
     "flock": {
-      "todo": "TODO(AI_UNSURE): 群れの動きは試し（2026-10-12）。値はすべて仮置き。enabled を false にすると群れの動きを使わない",
       "enabled": true,
       "cellSize": 0.5,
       "alignWeight": 0.6,
