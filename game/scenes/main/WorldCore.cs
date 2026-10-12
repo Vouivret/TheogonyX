@@ -44,7 +44,7 @@ public partial class WorldCore : Node2D
         _dreams.OraclePronounced += _screen.Refresh;
 
         var companionSettings = GameDataLoader.ParseCompanion(ReadText("res://data/companion.json"));
-        _companion = new CompanionHost(this, companionSettings, CompanionDirectory());
+        _companion = new CompanionHost(this, companionSettings, CompanionDirectory(), _dreams);
     }
 
     public override void _Process(double delta)

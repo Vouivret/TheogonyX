@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using Godot;
 using TheogonyX.Core;
+using TheogonyX.Core.Protocol;
 
 namespace TheogonyX.Scenes.Main;
 
@@ -12,11 +13,13 @@ namespace TheogonyX.Scenes.Main;
 /// （docs/domain/dream-tampering.md、prophet-request.md）。
 /// 地表の下の帯の 1 段目に今の状態の案内、2 段目に夢のコマと「神託を下す」を出す。
 /// コマを選んでいるあいだは、2 段目を手札と「やめる」に替える。
+/// スマホ（<see cref="CompanionHost"/>）からの改ざん・神託も、ここを通す。
 /// </summary>
 public sealed class DreamView
 {
     private readonly ProphetDreams _prophet;
     private readonly TimeControl _timeControl;
+    private readonly DreamRules _dreamRules;
     private readonly Label _dreamGuide;
     private readonly HBoxContainer _dreamRow;
     private readonly HBoxContainer _dreamNodes;
@@ -35,6 +38,7 @@ public sealed class DreamView
     {
         _prophet = prophet;
         _timeControl = timeControl;
+        _dreamRules = dreamRules;
         _dreamGuide = owner.GetNode<Label>("%DreamGuide");
         _dreamRow = owner.GetNode<HBoxContainer>("%DreamRow");
         _dreamNodes = owner.GetNode<HBoxContainer>("%DreamNodes");
@@ -53,7 +57,7 @@ public sealed class DreamView
         var cancel = new Button { Text = Tr("BUTTON_CANCEL") };
         cancel.Pressed += () => OnNodePressed(_selectedIndex);
         _dreamCards.AddChild(cancel);
-        _oracleButton.Pressed += OnOraclePressed;
+        _oracleButton.Pressed += () => TryPronounce();
 
         LogDream("dream_created");
         Redraw();
@@ -61,6 +65,12 @@ public sealed class DreamView
 
     /// <summary>神託を下したとき。HUD のドグマの一覧と、時間のボタンを描き直すのに使う。</summary>
     public event Action? OraclePronounced;
+
+    /// <summary>描き直したとき。夢・依頼・できる操作が変わったかもしれない。</summary>
+    public event Action? Changed;
+
+    /// <summary>スマホに送る、今の夢と依頼（<c>DREAM_STATE</c>）。</summary>
+    public string StateMessage() => HostMessageWriter.DreamState(_prophet, _dreamRules.Symbols, _timeControl.World.IsDestroyed);
 
     /// <summary>100 年跳躍の後と、自動進行の 1 年ごとに呼ぶ。</summary>
     public void OnTimeAdvanced()
@@ -104,21 +114,43 @@ public sealed class DreamView
 
     private void OnCardChosen(string symbolId)
     {
-        if (_selectedIndex < 0 || !_prophet.CanTamper)
+        if (_selectedIndex >= 0)
         {
-            return;
+            TryTamper(_selectedIndex, symbolId);
         }
-        _prophet.Tamper(_selectedIndex, symbolId);
+    }
+
+    /// <summary>夢の <paramref name="index"/> 番目を改ざんする。スマホから届いた値も受ける。</summary>
+    /// <returns>改ざんできなかったときの理由（ログの <c>reason</c>）。できたら null。</returns>
+    public string? TryTamper(int index, string symbolId)
+    {
+        if (!_prophet.CanTamper)
+        {
+            return "cannot_tamper";
+        }
+        if (index < 0 || index >= _prophet.Dream.Count)
+        {
+            return "invalid_dream_index";
+        }
+        if (!_dreamRules.Symbols.Any(symbol => symbol.Id == symbolId))
+        {
+            return "unknown_symbol";
+        }
+
+        _prophet.Tamper(index, symbolId);
         _selectedIndex = -1;
         LogDream("dream_tampered");
         Redraw();
+        return null;
     }
 
-    private void OnOraclePressed()
+    /// <summary>神託を下す。スマホからも呼ぶ。</summary>
+    /// <returns>下せたか。</returns>
+    public bool TryPronounce()
     {
         if (!_prophet.CanPronounce)
         {
-            return;
+            return false;
         }
 
         var year = _timeControl.World.Year;
@@ -139,6 +171,7 @@ public sealed class DreamView
         _selectedIndex = -1;
         Redraw();
         OraclePronounced?.Invoke();
+        return true;
     }
 
     private void Redraw()
@@ -187,6 +220,8 @@ public sealed class DreamView
         {
             _requestBubble.Visible = false;
         }
+
+        Changed?.Invoke();
     }
 
     // 今の状態の案内の文言のキー

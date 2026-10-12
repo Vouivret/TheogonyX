@@ -16,6 +16,7 @@
 | TS-prophet-request-005 | AC-prophet-request-009, 010 | 崩壊中は出ず、世界再創生で依頼と待つ年数が消える | 受け入れ条件のとおり | 年を進める・リセットする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
 | TS-prophet-request-007 | AC-prophet-request-012 | 夢があるときに依頼が出ても、自動進行が止まる | 受け入れ条件のとおり | 年を進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
 | TS-prophet-request-006 | AC-prophet-request-011 | PC の画面の吹き出し | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 手動 | — |
+| TS-prophet-request-008 | AC-prophet-request-013 | スマホの吹き出し | ホストとコンパニオンが動き、ペアリングしている | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順
 
@@ -23,6 +24,11 @@
 1. メインシーンを実行し、水資源が 30 以下になるまで進める（夢の改ざんで、雨→血 などの水資源を減らすドグマを作る）。
 2. 予言者の上に「恵みの雨をお恵みください」の吹き出しが出ることを確かめる。
 3. 「神託を下す」を押し、吹き出しが消えることを確かめる。
+
+### TS-prophet-request-008
+1. TS-prophet-request-006 の手順 1 のとおり、依頼が出るまで進める。
+2. スマホの映像の上にも、PC と同じ吹き出しが出ることを確かめる。
+3. スマホで「神託を下す」を押し、PC とスマホの両方で吹き出しが消えることを確かめる。
 
 ## 対象外
 

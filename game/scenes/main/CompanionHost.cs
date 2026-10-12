@@ -17,6 +17,7 @@ namespace TheogonyX.Scenes.Main;
 /// <summary>
 /// コンパニオンとの通信（docs/domain/companion-pairing.md・frame-stream.md）。
 /// HTTP で HTML/JS を配り、WebSocket でペアリングと画面の配信を行い、ペアリング用の QR コードを HUD に出す。
+/// ペアリングした接続には夢と依頼の状態を送り、スマホからの改ざん・神託を <see cref="DreamView"/> に渡す（dream-tampering.md）。
 /// HUD には、QR コードの IP の切り替えボタン（候補が 2 つ以上のとき）と「全セッションリセット」のボタンも出す。
 /// <see cref="WorldCore"/> が作り、<c>_Process</c> から <see cref="Process"/> を呼ぶ。トークンの値はログに出さない。
 /// </summary>
@@ -36,6 +37,7 @@ public sealed class CompanionHost : IDisposable
     private readonly PairingRegistry _registry;
     private readonly StreamSessions _sessions;
     private readonly FramePacer _pacer;
+    private readonly DreamView _dreams;
     private readonly Dictionary<int, Client> _clients = [];
     private readonly TcpServer _webSocketServer = new();
     private CompanionHttpServer? _httpServer;
@@ -46,9 +48,13 @@ public sealed class CompanionHost : IDisposable
     private bool _captureFailureLogged;
     private bool _unpairedLimitLogged;
 
-    public CompanionHost(Node owner, CompanionSettings settings, string companionDirectory)
+    // 最後に送った DREAM_STATE。同じ内容は送らない。ペアリングした接続が無ければ null。
+    private string? _lastDreamState;
+
+    public CompanionHost(Node owner, CompanionSettings settings, string companionDirectory, DreamView dreams)
     {
         _settings = settings;
+        _dreams = dreams;
         _worldViewport = owner.GetNode<SubViewport>("%WorldViewport");
         _pairingQr = owner.GetNode<TextureRect>("%PairingQr");
         _hostAddressButton = owner.GetNode<Button>("%HostAddressButton");
@@ -62,6 +68,7 @@ public sealed class CompanionHost : IDisposable
         // Dispose で必ず外せるよう、最初につなぐ（使えないあいだはボタンを隠している）
         _hostAddressButton.Pressed += SwitchHostAddress;
         _resetSessionsButton.Pressed += ResetSessions;
+        _dreams.Changed += SendDreamState;
 
         // 通信が使えなくても、PC だけでゲームは続けられるようにする
         if (!Directory.Exists(companionDirectory))
@@ -131,6 +138,7 @@ public sealed class CompanionHost : IDisposable
     {
         _hostAddressButton.Pressed -= SwitchHostAddress;
         _resetSessionsButton.Pressed -= ResetSessions;
+        _dreams.Changed -= SendDreamState;
         foreach (var client in _clients.Values)
         {
             client.Peer.Close();
@@ -243,6 +251,9 @@ public sealed class CompanionHost : IDisposable
             case PairingOutcome.Paired:
                 client.Peer.SendText(HostMessageWriter.Paired(sessionToken));
                 GD.Print($"event=companion_paired clientId={client.Id}");
+                // ほかのペアリングした接続には、変わるたびに送っているので、同じ内容を持っている
+                _lastDreamState = _dreams.StateMessage();
+                SendText(client, _lastDreamState);
                 if (message.Type == CompanionMessageType.Pair)
                 {
                     DrawPairingQr();
@@ -256,9 +267,59 @@ public sealed class CompanionHost : IDisposable
             case PairingOutcome.Ignored:
                 WarnMessageRejected(client, "already_paired");
                 break;
+            case PairingOutcome.Accepted when message.Type is CompanionMessageType.Tamper:
+                RejectDreamOperation(client, _dreams.TryTamper(message.Index, message.SymbolId));
+                break;
+            case PairingOutcome.Accepted when message.Type is CompanionMessageType.Pronounce:
+                RejectDreamOperation(client, _dreams.TryPronounce() ? null : "cannot_pronounce");
+                break;
             case PairingOutcome.Accepted:
                 HandleStreamMessage(client, message.Type);
                 break;
+        }
+    }
+
+    // PC かほかのスマホが先に操作したなど、今はできない操作は捨て、その接続に今の状態を送り直す
+    private void RejectDreamOperation(Client client, string? reason)
+    {
+        if (reason is null)
+        {
+            return;
+        }
+        WarnMessageRejected(client, reason);
+        SendText(client, _dreams.StateMessage());
+    }
+
+    /// <summary>夢と依頼の状態が前に送ったものと変わっていたら、ペアリングしたすべての接続に送る。</summary>
+    private void SendDreamState()
+    {
+        var paired = _clients.Values.Where(client => client.Connection.IsPaired && !client.IsClosing).ToList();
+        if (paired.Count == 0)
+        {
+            _lastDreamState = null;
+            return;
+        }
+
+        var message = _dreams.StateMessage();
+        if (message == _lastDreamState)
+        {
+            return;
+        }
+        _lastDreamState = message;
+        foreach (var client in paired)
+        {
+            SendText(client, message);
+        }
+    }
+
+    // 送れなかった接続は壊れているので、閉じる
+    private void SendText(Client client, string text)
+    {
+        var error = client.Peer.SendText(text);
+        if (error != Error.Ok)
+        {
+            GD.PushWarning($"event=message_send_failed clientId={client.Id} reason={error}");
+            Close(client);
         }
     }
 

@@ -12,11 +12,20 @@
     <main class="companion">
       <section class="world">
         <canvas id="world-canvas" class="world-canvas" width="480" height="270"></canvas>
+        <p id="request-bubble" class="request-bubble" hidden></p>
         <p id="status" class="status" role="status"></p>
       </section>
       <section class="cards" aria-labelledby="cards-title">
         <h2 id="cards-title" class="cards-title" data-i18n="CARDS_TITLE"></h2>
-        <p class="cards-placeholder" data-i18n="CARDS_PLACEHOLDER"></p>
+        <p id="dream-guide" class="dream-guide"></p>
+        <div id="dream-row" class="dream-row">
+          <div id="dream-nodes" class="dream-buttons"></div>
+          <button id="oracle-button" class="oracle-button" type="button" data-i18n="BUTTON_ORACLE"></button>
+        </div>
+        <div id="dream-cards" class="dream-row" hidden>
+          <div id="card-buttons" class="dream-buttons"></div>
+          <button id="cancel-button" type="button" data-i18n="BUTTON_CANCEL"></button>
+        </div>
       </section>
     </main>
   </body>

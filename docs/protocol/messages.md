@@ -16,6 +16,9 @@
 | `ERROR` | 1 | ホスト → コンパニオン | `reason`: 文字列（下の表） | 受け付けられない。ホストは送った後に接続を閉じる |
 | `START_STREAM` | 1 | コンパニオン → ホスト | なし | この接続への画面の配信（`FRAME`）を始めてほしい。配信中に受け取っても何もしない |
 | `STOP_STREAM` | 1 | コンパニオン → ホスト | なし | この接続への画面の配信をやめてほしい。配信していないときに受け取っても何もしない |
+| `DREAM_STATE` | 1 | ホスト → コンパニオン | `state`: `"NONE"`・`"UNTAMPERED"`・`"TAMPERED"` のどれか、`nodes`: `{symbolId: 文字列, weight: 数}` の配列（夢なしなら空）、`cards`: 記号 ID の配列、`canTamper`: 真偽、`canPronounce`: 真偽、`isDestroyed`: 真偽、`request`: `{requestType: 文字列, symbolId: 文字列}` か `null` | 予言者の夢と依頼の今の状態（下の「夢の状態」） |
+| `TAMPER` | 1 | コンパニオン → ホスト | `index`: 0 以上の整数、`symbolId`: 1〜64 文字の文字列 | 夢の `index` 番目（0 から）を `symbolId` のカードと入れ替える |
+| `PRONOUNCE` | 1 | コンパニオン → ホスト | なし | 神託を下す |
 
 例:
 
@@ -24,7 +27,20 @@
 { "type": "PAIRED", "version": 1, "sessionToken": "Xk2p..." }
 { "type": "START_STREAM", "version": 1 }
 { "type": "ERROR", "version": 1, "reason": "MAX_CONNECTIONS_REACHED" }
+{ "type": "DREAM_STATE", "version": 1, "state": "UNTAMPERED",
+  "nodes": [{ "symbolId": "SYM_TREE", "weight": 0.5 }, { "symbolId": "SYM_RAIN", "weight": 0.6 }, { "symbolId": "SYM_FIRE", "weight": 0.4 }],
+  "cards": ["SYM_TREE", "SYM_RAIN", "SYM_BLOOD", "SYM_FIRE"],
+  "canTamper": true, "canPronounce": true, "isDestroyed": false,
+  "request": { "requestType": "THIRST", "symbolId": "SYM_RAIN" } }
+{ "type": "TAMPER", "version": 1, "index": 1, "symbolId": "SYM_BLOOD" }
+{ "type": "PRONOUNCE", "version": 1 }
 ```
+
+### 夢の状態
+- ホストは `DREAM_STATE` を、ペアリングが済んだとき（`PAIRED` の次）と、内容が前に送ったものと変わったときに、ペアリングしたすべての接続に送る。配信（`FRAME`）をしているかどうかには関わらない。毎回、状態を丸ごと送る。
+- PC とスマホは、同じ夢を同時に操作できる。先に届いた操作が勝つ。今はできない `TAMPER`・`PRONOUNCE`（夢なし・改ざん済み・崩壊）、夢の範囲外の `index`、`cards` に無い `symbolId` は、ホストが捨てて `Warn` で記録し、その接続に今の `DREAM_STATE` を送り直す。`ERROR` は送らず、接続も切らない。
+- コンパニオンは、夢のコマを選んでいる途中の状態を自分だけで持ち、カードを選んだときに `TAMPER` を送る。
+- `requestType` は困りごとの ID（`THIRST`・`FAMINE`・`HEAT`・`COLD`・`CHAOS`）。記号と困りごとの名前は、コンパニオンの文言に持つ。
 
 ### `ERROR` の `reason`
 | reason | いつ |
