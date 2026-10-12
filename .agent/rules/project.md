@@ -181,6 +181,15 @@
   | `isDestroyed` | 星が崩壊しているか（`WorldState.IsDestroyed`） |
   | `reason` | 失敗・拒否の理由（英小文字のスネークケース。例: `unknown_type_or_version`） |
   | `requestType` | 予言者の依頼の困りごとの ID（例: `THIRST`。`ProphetRequestRule.Id`） |
+  | `backend` | 群衆の計算の方式（`cpu` / `gpu`） |
+  | `count` | 群衆の人数 |
+  | `steps` | 群衆の通算の歩数（`Crowd.Steps`） |
+  | `phase` | 群衆の GPU 版と CPU 版の突き合わせの区切りの名前（例: `wander_initial`） |
+  | `maxDiff` | GPU 版と CPU 版の位置の差の最大値（タイルの単位） |
+  | `result` | 確認の合否（`pass` / `fail`） |
+  | `stepMs` | 群衆の 1 歩の計算時間（ミリ秒。GPU 版は読み戻しを含む） |
+  | `drawMs` | 群衆の位置を描画のバッファに書き込む時間（ミリ秒） |
+  | `fps` | 1 秒あたりのフレーム数 |
 
 - 例外を握りつぶさない。catch したら、記録するか、文脈を足して投げ直す。
 
