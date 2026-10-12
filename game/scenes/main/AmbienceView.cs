@@ -5,7 +5,7 @@ using TheogonyX.Data;
 
 namespace TheogonyX.Scenes.Main;
 
-/// <summary>昼夜の環境光と予言者を描く（docs/domain/ambience.md）。</summary>
+/// <summary>昼夜の環境光と予言者（docs/domain/ambience.md）、焚き火（docs/domain/visual-effects.md）を描く。</summary>
 public sealed class AmbienceView
 {
     private const string IdleTexturePath = "res://assets/sprites/prophet_idle.png";
@@ -15,6 +15,12 @@ public sealed class AmbienceView
     private static readonly Color PlaceholderRobe = Color.FromHtml("#597dce");
     private static readonly Color PlaceholderSkin = Color.FromHtml("#d2aa99");
     private static readonly Color PlaceholderEye = Color.FromHtml("#140c1c");
+    private static readonly Color PlaceholderWood = Color.FromHtml("#854c30");
+    private static readonly Color PlaceholderFlameOuter = Color.FromHtml("#d27d2c");
+    private static readonly Color PlaceholderFlameInner = Color.FromHtml("#dad45e");
+
+    // 明かりのテクスチャの一辺（px）。届く半径に合わせて TextureScale で拡大する。
+    private const int LightTextureSize = 64;
 
     private readonly TimeControl _timeControl;
     private readonly AmbienceRules _rules;
@@ -23,17 +29,24 @@ public sealed class AmbienceView
     private readonly Sprite2D _prophet;
     private readonly Texture2D _idleTexture;
     private readonly Texture2D _fallenTexture;
+    private readonly CampfireSettings _campfireSettings;
+    private readonly Sprite2D _flame;
+    private readonly PointLight2D _campfireLight;
+    // 揺らぎは描画だけの演出なので、乱数ではなく決まった形のノイズを時間で引く（.agent/rules/project.md の 3 章）
+    private readonly FastNoiseLite _flicker = new() { NoiseType = FastNoiseLite.NoiseTypeEnum.Perlin };
 
     // 昼夜の周期と待機アニメーションの経過秒。崩壊している間は数えない。
     private double _cycleSeconds;
     private double _animationSeconds;
+    private double _flickerSeconds;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public AmbienceView(Node owner, TimeControl timeControl, AmbienceRules rules, ProphetSettings prophetSettings)
+    public AmbienceView(Node owner, TimeControl timeControl, AmbienceRules rules, ProphetSettings prophetSettings, CampfireSettings campfireSettings)
     {
         _timeControl = timeControl;
         _rules = rules;
         _prophetSettings = prophetSettings;
+        _campfireSettings = campfireSettings;
         _ambience = owner.GetNode<CanvasModulate>("%Ambience");
         _prophet = owner.GetNode<Sprite2D>("%Prophet");
         var terrain = owner.GetNode<TileMapLayer>("%Terrain");
@@ -44,6 +57,8 @@ public sealed class AmbienceView
         // 足元を地表の一番上の行の上端に合わせる（centered = false なので左上が原点）。
         var frameHeight = _idleTexture.GetHeight();
         _prophet.Position = terrain.Position + new Vector2((prophetSettings.Column - 1) * WorldScreen.TileSize, -frameHeight);
+
+        (_flame, _campfireLight) = CreateCampfire(_prophet.GetParent(), terrain.Position, campfireSettings);
 
         Process(0);
     }
@@ -57,9 +72,17 @@ public sealed class AmbienceView
             _cycleSeconds += delta;
             _animationSeconds += delta;
         }
+        _flickerSeconds += delta;
 
         var light = AmbientLight.Compute(_cycleSeconds, world, _rules);
         _ambience.Color = new Color(light.R, light.G, light.B);
+
+        var brightness = CampfireLight.Brightness(_cycleSeconds, world, _rules);
+        var flicker = 1f + (_campfireSettings.FlickerAmount * _flicker.GetNoise1D((float)(_flickerSeconds * _campfireSettings.FlickerSpeed)));
+        _campfireLight.Energy = _campfireSettings.Energy * brightness * flicker;
+        _campfireLight.Visible = brightness > 0f;
+        _flame.Visible = brightness > 0f;
+        _flame.Modulate = new Color(1f, 1f, 1f, brightness);
 
         if (world.IsDestroyed)
         {
@@ -72,6 +95,53 @@ public sealed class AmbienceView
             var frame = (long)(_animationSeconds / _prophetSettings.FrameSeconds) % _prophet.Hframes;
             _prophet.Frame = (int)frame;
         }
+    }
+
+    // 薪は昼も置いておき、炎と明かりは灯っている間だけ出す。足元は予言者と同じく地表の上端に合わせる。
+    private static (Sprite2D Flame, PointLight2D Light) CreateCampfire(Node parent, Vector2 terrainPosition, CampfireSettings settings)
+    {
+        var size = WorldScreen.TileSize;
+        var topLeft = terrainPosition + new Vector2((settings.Column - 1) * size, -size);
+
+        var wood = new Sprite2D
+        {
+            Name = "CampfireWood",
+            Centered = false,
+            Position = topLeft,
+            Texture = ImageTexture.CreateFromImage(CreatePlaceholderWood()),
+        };
+        var flame = new Sprite2D
+        {
+            Name = "CampfireFlame",
+            Centered = false,
+            Position = topLeft,
+            Texture = ImageTexture.CreateFromImage(CreatePlaceholderFlame()),
+        };
+
+        var gradient = new Gradient();
+        gradient.SetColor(0, Colors.White);
+        gradient.SetColor(1, new Color(1f, 1f, 1f, 0f));
+        var light = new PointLight2D
+        {
+            Name = "CampfireLight",
+            Position = topLeft + new Vector2(size / 2f, size - 4),
+            Color = new Color(settings.Color.R, settings.Color.G, settings.Color.B),
+            Texture = new GradientTexture2D
+            {
+                Gradient = gradient,
+                Width = LightTextureSize,
+                Height = LightTextureSize,
+                Fill = GradientTexture2D.FillEnum.Radial,
+                FillFrom = new Vector2(0.5f, 0.5f),
+                FillTo = new Vector2(1f, 0.5f),
+            },
+            TextureScale = settings.RadiusTiles * size * 2f / LightTextureSize,
+        };
+
+        parent.AddChild(wood);
+        parent.AddChild(flame);
+        parent.AddChild(light);
+        return (flame, light);
     }
 
     private void ShowTexture(Texture2D texture)
@@ -107,6 +177,27 @@ public sealed class AmbienceView
                 image.SetPixel(left + 8, 3, PlaceholderEye);
             }
         }
+        return image;
+    }
+
+    // 仮の薪: 交差した 2 本の丸太。
+    private static Image CreatePlaceholderWood()
+    {
+        var size = WorldScreen.TileSize;
+        var image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+        image.FillRect(new Rect2I(3, 14, 10, 2), PlaceholderWood);
+        image.FillRect(new Rect2I(5, 13, 6, 1), PlaceholderWood);
+        return image;
+    }
+
+    // 仮の炎: 外側が橙、内側が黄。
+    private static Image CreatePlaceholderFlame()
+    {
+        var size = WorldScreen.TileSize;
+        var image = Image.CreateEmpty(size, size, false, Image.Format.Rgba8);
+        image.FillRect(new Rect2I(6, 7, 4, 6), PlaceholderFlameOuter);
+        image.FillRect(new Rect2I(7, 5, 2, 2), PlaceholderFlameOuter);
+        image.FillRect(new Rect2I(7, 9, 2, 4), PlaceholderFlameInner);
         return image;
     }
 

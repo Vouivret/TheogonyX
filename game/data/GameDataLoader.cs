@@ -86,6 +86,22 @@ public static class GameDataLoader
 
     public static ProphetSettings ParseProphet(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").Prophet;
 
+    public static CampfireSettings ParseCampfire(string rulesJson)
+    {
+        var rules = Parse<RulesFile>(rulesJson, "rules.json");
+        var campfire = rules.Campfire ?? throw new InvalidDataException("焚き火の定義が無い: file=rules.json key=campfire");
+        if (campfire.Column < 1 || campfire.Column > rules.Terrain.Columns
+            || !float.IsFinite(campfire.Energy) || campfire.Energy <= 0
+            || !float.IsFinite(campfire.RadiusTiles) || campfire.RadiusTiles <= 0
+            || !float.IsFinite(campfire.FlickerAmount) || campfire.FlickerAmount is < 0 or > 1
+            || !float.IsFinite(campfire.FlickerSpeed) || campfire.FlickerSpeed < 0)
+        {
+            throw new InvalidDataException($"焚き火の定義の値が範囲外: file=rules.json value={campfire}");
+        }
+        return new CampfireSettings(
+            campfire.Column, ParseColor(campfire.Color), campfire.Energy, campfire.RadiusTiles, campfire.FlickerAmount, campfire.FlickerSpeed);
+    }
+
     public static ProphetDreamRules ParseProphetDreams(string rulesJson)
     {
         var rules = Parse<RulesFile>(rulesJson, "rules.json");
@@ -153,6 +169,8 @@ public static class GameDataLoader
 
     private sealed record AmbienceFile(float CycleSeconds, IReadOnlyList<string> CycleColors, string ChaosColor, string DestroyedColor);
 
+    private sealed record CampfireFile(int Column, string Color, float Energy, float RadiusTiles, float FlickerAmount, float FlickerSpeed);
+
     private sealed record CrowdFile(
         int Count,
         float WalkSpeed,
@@ -179,6 +197,7 @@ public static class GameDataLoader
         TimeControlSettings TimeControl,
         AmbienceFile Ambience,
         ProphetSettings Prophet,
+        CampfireFile? Campfire,
         CrowdFile? Crowd,
         DreamFile Dream,
         ProphetRequestsFile ProphetRequests);

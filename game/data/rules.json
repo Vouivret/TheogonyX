@@ -63,6 +63,14 @@
     "column": 8,
     "frameSeconds": 0.5
   },
+  "campfire": {
+    "column": 6,
+    "color": "#D27D2C",
+    "energy": 1.2,
+    "radiusTiles": 3.0,
+    "flickerAmount": 0.2,
+    "flickerSpeed": 4.0
+  },
   "crowd": {
     "count": 10000,
     "walkSpeed": 0.5,
