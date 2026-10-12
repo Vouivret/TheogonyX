@@ -12,7 +12,7 @@
 | 感情の極性 | `EmotionalPolarity` | 記号が呼び起こす感情。-1.0（恐怖）〜 +1.0（歓喜） | Emotional polarity | |
 | 概念カード | | プレイヤーが持ち、夢ノードとスワップできるカード | Concept card | |
 | 改ざん | | 夢ノードを概念カードとスワップすること | Tampering | 編集、書き換え（画面上） |
-| 問解 | | 人間からの神への問い合わせ。記号カードで返答する | Inquiry | |
+| 問解 | | 人間からの神への問い合わせ。記号カードで返答する。構想（[ロードマップ](../roadmap.md)の M4）で、今は予言者の依頼（祈り）が担う | Inquiry | |
 | ドグマ | `Dogma` | 夢から抽出された因果に基づく教義 | Dogma | 教え、ルール |
 | ドグマの種別 | `DogmaType` | 禁忌（`Taboo`）・崇拝（`Worship`）・破壊（`Destruction`） | Dogma type | |
 | 時代跳躍 | `SimulateTimeSkip` | 50〜300年を一度に進めること | Time skip | |

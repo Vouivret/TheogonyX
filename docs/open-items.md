@@ -2,7 +2,7 @@
 
 決まっていないこと、人間の手作業が要ることの一覧。解消したら行を消し、決まった内容は該当する仕様書・ルールに書く。
 
-最終更新: 2026-10-12（M2 の画面の配信とペアリングの手動テストの後）
+最終更新: 2026-10-12（M2 を閉じ、AI 連携の仕様を下書きとして足した後）
 
 ## 人間の手作業
 
@@ -26,7 +26,8 @@
 | 英語の文言 | `game/locales/ui.csv` の `en` の列は仮の訳。`companion/locales/en.json` は 2026-10-12 に確定した訳を当てたが、`TITLE`・`CARDS_*`・`STATUS_SCAN_QR`・`STATUS_RECONNECTING`・`ERROR_SESSION_REPLACED` はまだ仮の訳 | 英語版を出す前 |
 | 用語集への追加 | タイル種別・自動進行・世界再創生・環境光・昼夜の周期、ペアリング・ワンタイムトークン・`sessionToken`・画面の配信、神託・依頼（祈り）・困りごとを [用語集](domain/glossary.md) に足すか | 急がない |
 | 画面の配信の仕様書の承認 | [frame-stream.md](domain/frame-stream.md) は `draft` のまま | 次に配信を変える前 |
-| 夢の改ざん・依頼の仕様書の承認 | [dream-tampering.md](domain/dream-tampering.md)・[prophet-request.md](domain/prophet-request.md) は `draft` のまま（スマホでの操作も足した） | M2 を閉じる前 |
+| 夢の改ざん・依頼の仕様書の承認 | [dream-tampering.md](domain/dream-tampering.md)・[prophet-request.md](domain/prophet-request.md) は `draft` のまま（スマホでの操作も足した）。M2 は 2026-10-12 に閉じたので、人間が承認する | 次に夢・依頼を変える前 |
+| AI 連携の仕様の未決 | [ai-presentation.md](domain/ai-presentation.md) の「未決」（予言者の狂気の指標、イベントの ID、周回の終わり、創世図鑑、既定の絵と 32px のタイル、画像生成のライセンス、AI クライアントの置き場所、セーブの形など） | M3 の後に着手する前 |
 
 ## 急がないもの
 
