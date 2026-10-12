@@ -80,7 +80,7 @@ status: draft   # draft | approved | as-is
 
 ## 対象外
 
-- 焚き火の明かり（`PointLight2D`）と夜空の星: ロードマップ M1 にあるが、今回の確定仕様に入っていない。
+- 焚き火の明かり（`PointLight2D`）と夜空の星: ロードマップ M1 にあるが、今回の確定仕様に入っていない。M4 の [画面の効果](visual-effects.md) で扱う。
 - 予言者が歩く・複数いる: M3（大量 NPC）で扱う。
 
 ## 未決
