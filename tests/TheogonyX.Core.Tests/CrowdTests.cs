@@ -256,4 +256,49 @@ public class CrowdTests
     {
         Assert.Equal(expected, Crowd.TimeScaleOf(state, speed, TestRules.Crowd));
     }
+
+    private static readonly CrowdRules FlockingRules = TestRules.Crowd with
+    {
+        Flock = new FlockRules(Enabled: true, CellSize: 0.5f, AlignWeight: 0.6f, CrowdWeight: 0.4f, TargetNeighbors: 150f),
+    };
+
+    [Fact]
+    [Trait("TS", "TS-crowd-014")]
+    public void Step_群れの動きで60秒_全員が地表の中にいる()
+    {
+        var crowd = new Crowd(42, FlockingRules, Columns, Rows, HolySiteX);
+
+        Run(crowd, CrowdMode.Wander, Field(Uniform(TileType.Grassland)), 60 * StepsPerSecond);
+
+        AssertInsideGround(crowd);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-crowd-014")]
+    public void Step_群れの動きで同じシード_位置が同じ()
+    {
+        var first = new Crowd(42, FlockingRules, Columns, Rows, HolySiteX);
+        var second = new Crowd(42, FlockingRules, Columns, Rows, HolySiteX);
+        var field = Field(Uniform(TileType.Grassland));
+
+        Run(first, CrowdMode.Wander, field, 300);
+        Run(second, CrowdMode.Wander, field, 300);
+
+        Assert.Equal(first.X.ToArray(), second.X.ToArray());
+        Assert.Equal(first.Y.ToArray(), second.Y.ToArray());
+    }
+
+    [Fact]
+    [Trait("TS", "TS-crowd-014")]
+    public void Step_群れの動き_使わないときと動きが変わる()
+    {
+        var flocking = new Crowd(42, FlockingRules, Columns, Rows, HolySiteX);
+        var plain = Create();
+        var field = Field(Uniform(TileType.Grassland));
+
+        Run(flocking, CrowdMode.Wander, field, 60);
+        Run(plain, CrowdMode.Wander, field, 60);
+
+        Assert.NotEqual(plain.X.ToArray(), flocking.X.ToArray());
+    }
 }

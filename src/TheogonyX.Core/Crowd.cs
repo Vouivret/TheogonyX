@@ -26,6 +26,7 @@ public sealed class Crowd
     private readonly float[] _heading;
     private readonly float[] _targetX;
     private readonly float[] _targetY;
+    private readonly FlockGrid? _flock;
 
     /// <param name="holySiteX">聖地の左右の位置（タイルの単位）。上下は地表の上端（y = 0）。</param>
     public Crowd(int seed, CrowdRules rules, int columns, int rows, float holySiteX)
@@ -39,6 +40,7 @@ public sealed class Crowd
         _width = columns;
         _height = rows;
         _turnSteps = (uint)Math.Max(1, (int)MathF.Round(rules.TurnIntervalSeconds / StepSeconds));
+        _flock = rules.Flock.Enabled ? new FlockGrid(columns, rows, rules.Flock.CellSize) : null;
         _x = new float[rules.Count];
         _y = new float[rules.Count];
         _heading = new float[rules.Count];
@@ -78,6 +80,9 @@ public sealed class Crowd
     /// <summary>狂乱で向かう点。</summary>
     public ReadOnlySpan<float> TargetX => _targetX;
     public ReadOnlySpan<float> TargetY => _targetY;
+
+    /// <summary>群れの集計のマス。群れの動きを使わないなら null。</summary>
+    public FlockGrid? Flock => _flock;
 
     /// <summary>星の状態から、群衆の状態を決める。</summary>
     public static CrowdMode ModeOf(WorldState world, CrowdRules rules)
@@ -138,6 +143,8 @@ public sealed class Crowd
 
     private void Wander(PotentialField field)
     {
+        // 群れの集計は、この歩を始めたときの位置と向きで行う（GPU 版も全員の集計を終えてから動かす）
+        _flock?.Accumulate(_x, _y, _heading);
         for (var i = 0; i < _x.Length; i++)
         {
             // 全員が同時に向きを変えないよう、人ごとに時期をずらす
@@ -146,8 +153,9 @@ public sealed class Crowd
                 _heading[i] = Random01(i, Steps) * MathF.Tau;
             }
             var (forceX, forceY) = field.At(_x[i], _y[i]);
-            var x = _x[i] + (MathF.Cos(_heading[i]) * _rules.WalkSpeed + forceX * _rules.FieldScale) * StepSeconds;
-            var y = _y[i] + (MathF.Sin(_heading[i]) * _rules.WalkSpeed + forceY * _rules.FieldScale) * StepSeconds;
+            var (flockX, flockY) = FlockVelocity(i);
+            var x = _x[i] + (MathF.Cos(_heading[i]) * _rules.WalkSpeed + forceX * _rules.FieldScale + flockX) * StepSeconds;
+            var y = _y[i] + (MathF.Sin(_heading[i]) * _rules.WalkSpeed + forceY * _rules.FieldScale + flockY) * StepSeconds;
 
             // 地表の端を越えたら、位置を折り返して向きを反転する
             if (x < 0f || x > _width)
@@ -163,6 +171,38 @@ public sealed class Crowd
             _x[i] = Math.Clamp(x, 0f, _width);
             _y[i] = Math.Clamp(y, 0f, _height);
         }
+    }
+
+    /// <summary>
+    /// 群れの動きの速さ（タイル/秒）。周り（3 × 3 のマス）の平均の向きに寄せ、周りの人数が目標より少なければ重心に近づき、
+    /// 多ければ離れる。集計は向きを選び直す前の向きで行う。
+    /// </summary>
+    private (float X, float Y) FlockVelocity(int i)
+    {
+        if (_flock is null)
+        {
+            return (0f, 0f);
+        }
+        var (column, row) = _flock.CellOf(_x[i], _y[i]);
+        var (count, centerX, centerY, directionX, directionY) = _flock.Neighborhood(column, row);
+        if (count <= 1)
+        {
+            return (0f, 0f);
+        }
+        var flock = _rules.Flock;
+        var velocityX = directionX * _rules.WalkSpeed * flock.AlignWeight;
+        var velocityY = directionY * _rules.WalkSpeed * flock.AlignWeight;
+        var toCenterX = centerX - _x[i];
+        var toCenterY = centerY - _y[i];
+        var distance = MathF.Sqrt(toCenterX * toCenterX + toCenterY * toCenterY);
+        if (distance > 1e-6f)
+        {
+            var crowding = Math.Clamp(1f - count / flock.TargetNeighbors, -1f, 1f);
+            var speed = crowding * _rules.WalkSpeed * flock.CrowdWeight / distance;
+            velocityX += toCenterX * speed;
+            velocityY += toCenterY * speed;
+        }
+        return (velocityX, velocityY);
     }
 
     private void Frenzy()

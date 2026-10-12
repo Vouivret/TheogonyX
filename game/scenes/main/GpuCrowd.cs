@@ -22,7 +22,15 @@ public sealed class GpuCrowd : IDisposable
     private const int TargetYBinding = 4;
     private const int ForceXBinding = 5;
     private const int ForceYBinding = 6;
-    private const int BindingCount = 7;
+    private const int FlockBinding = 7;
+    private const int BindingCount = 8;
+
+    // crowd_step.glsl の mode
+    private const uint FlockClearMode = 2;
+    private const uint FlockAccumulateMode = 3;
+
+    // 群れの集計のマスごとの整数の数（人数・x の和・y の和・向き x の和・向き y の和）
+    private const int FlockValuesPerCell = 5;
 
     private readonly RenderingDevice _device;
     private readonly CrowdRules _rules;
@@ -33,6 +41,8 @@ public sealed class GpuCrowd : IDisposable
     private readonly Rid _pipeline;
     private readonly Rid[] _buffers = new Rid[BindingCount];
     private readonly Rid _uniformSet;
+    private readonly uint _gridColumns;
+    private readonly uint _gridRows;
     private uint _seed;
     private uint _turnSteps;
 
@@ -45,13 +55,22 @@ public sealed class GpuCrowd : IDisposable
         _columns = (uint)crowd.Columns;
         _rows = (uint)crowd.Rows;
         _pipeline = device.ComputePipelineCreate(shader);
+        // 群れの動きを使わないときも、binding を埋めるために 1 マス分のバッファを作る
+        _gridColumns = (uint)(crowd.Flock?.GridColumns ?? 1);
+        _gridRows = (uint)(crowd.Flock?.GridRows ?? 1);
 
         var cells = (int)(_columns * _rows);
         var uniforms = new Godot.Collections.Array<RDUniform>();
         for (var binding = 0; binding < BindingCount; binding++)
         {
-            var floats = binding is ForceXBinding or ForceYBinding ? cells : _count;
-            _buffers[binding] = device.StorageBufferCreate((uint)(floats * sizeof(float)));
+            var values = binding switch
+            {
+                ForceXBinding or ForceYBinding => cells,
+                FlockBinding => (int)(_gridColumns * _gridRows) * FlockValuesPerCell,
+                _ => _count,
+            };
+            // float も int も 4 バイト
+            _buffers[binding] = device.StorageBufferCreate((uint)(values * sizeof(float)));
             var uniform = new RDUniform { UniformType = RenderingDevice.UniformType.StorageBuffer, Binding = binding };
             uniform.AddId(_buffers[binding]);
             uniforms.Add(uniform);
@@ -122,31 +141,21 @@ public sealed class GpuCrowd : IDisposable
         {
             return;
         }
-        var groups = ((uint)_count + GroupSize - 1) / GroupSize;
+        var crowdGroups = Groups((uint)_count);
+        var flockGroups = Groups(_gridColumns * _gridRows);
+        var flocking = mode == CrowdMode.Wander && _rules.Flock.Enabled;
         var list = _device.ComputeListBegin();
         _device.ComputeListBindComputePipeline(list, _pipeline);
         _device.ComputeListBindUniformSet(list, _uniformSet, 0);
         for (var i = 0; i < steps; i++)
         {
-            var constants = new PushConstants
+            if (flocking)
             {
-                Count = (uint)_count,
-                Seed = _seed,
-                Step = Steps,
-                Mode = (uint)mode,
-                TurnSteps = _turnSteps,
-                Columns = _columns,
-                Rows = _rows,
-                StepSeconds = Crowd.StepSeconds,
-                WalkSpeed = _rules.WalkSpeed,
-                FieldScale = _rules.FieldScale,
-                FrenzySpeed = _rules.FrenzySpeed,
-            };
-            var bytes = MemoryMarshal.AsBytes(new ReadOnlySpan<PushConstants>(in constants));
-            _device.ComputeListSetPushConstant(list, bytes, (uint)bytes.Length);
-            _device.ComputeListDispatch(list, groups, 1, 1);
-            // 次の歩は前の歩の結果を読むので、間で待つ
-            _device.ComputeListAddBarrier(list);
+                // 全員の集計を終えてから動かす（Crowd.Wander と同じ順）
+                Dispatch(list, FlockClearMode, flockGroups);
+                Dispatch(list, FlockAccumulateMode, crowdGroups);
+            }
+            Dispatch(list, (uint)mode, crowdGroups);
             Steps++;
         }
         _device.ComputeListEnd();
@@ -174,13 +183,46 @@ public sealed class GpuCrowd : IDisposable
         _device.Free();
     }
 
+    private static uint Groups(uint invocations) => (invocations + GroupSize - 1) / GroupSize;
+
+    /// <summary>今の歩数で 1 回の dispatch を積み、次の dispatch が結果を読めるよう間で待つ。</summary>
+    private void Dispatch(long list, uint mode, uint groups)
+    {
+        var flock = _rules.Flock;
+        var constants = new PushConstants
+        {
+            Count = (uint)_count,
+            Seed = _seed,
+            Step = Steps,
+            Mode = mode,
+            TurnSteps = _turnSteps,
+            Columns = _columns,
+            Rows = _rows,
+            StepSeconds = Crowd.StepSeconds,
+            WalkSpeed = _rules.WalkSpeed,
+            FieldScale = _rules.FieldScale,
+            FrenzySpeed = _rules.FrenzySpeed,
+            FlockEnabled = flock.Enabled ? 1u : 0u,
+            GridColumns = _gridColumns,
+            GridRows = _gridRows,
+            CellSize = flock.CellSize,
+            AlignWeight = flock.AlignWeight,
+            CrowdWeight = flock.CrowdWeight,
+            TargetNeighbors = flock.TargetNeighbors,
+        };
+        var bytes = MemoryMarshal.AsBytes(new ReadOnlySpan<PushConstants>(in constants));
+        _device.ComputeListSetPushConstant(list, bytes, (uint)bytes.Length);
+        _device.ComputeListDispatch(list, groups, 1, 1);
+        _device.ComputeListAddBarrier(list);
+    }
+
     private void Update(int binding, ReadOnlySpan<float> values)
     {
         var bytes = MemoryMarshal.AsBytes(values);
         _device.BufferUpdate(_buffers[binding], 0, (uint)bytes.Length, bytes);
     }
 
-    // crowd_step.glsl の Params と同じ並び（48 バイト）
+    // crowd_step.glsl の Params と同じ並び（80 バイト）
     [StructLayout(LayoutKind.Sequential)]
     private struct PushConstants
     {
@@ -195,6 +237,14 @@ public sealed class GpuCrowd : IDisposable
         public float WalkSpeed;
         public float FieldScale;
         public float FrenzySpeed;
-        public float Padding;
+        public uint FlockEnabled;
+        public uint GridColumns;
+        public uint GridRows;
+        public float CellSize;
+        public float AlignWeight;
+        public float CrowdWeight;
+        public float TargetNeighbors;
+        public float Padding0;
+        public float Padding1;
     }
 }

@@ -70,12 +70,30 @@ public sealed class PotentialField
         return new PotentialField(columns, rows, forceX, forceY);
     }
 
-    /// <summary>位置（タイルの単位）のあるマスの力。地表の外は端のマスの力。</summary>
+    /// <summary>
+    /// 位置（タイルの単位）の力。周りの 4 マスの中心の力を、位置に応じて混ぜる（双線形補間）。
+    /// マスの中でどこでも同じ力にすると、向きが逆のマスの境目に人が溜まって線に見えるため。端のマスの中心より外は、端の力。
+    /// </summary>
     public (float X, float Y) At(float x, float y)
     {
-        var column = Math.Clamp((int)x, 0, Columns - 1);
-        var row = Math.Clamp((int)y, 0, Rows - 1);
-        var i = row * Columns + column;
-        return (_forceX[i], _forceY[i]);
+        var gridX = Math.Clamp(x - 0.5f, 0f, Columns - 1f);
+        var gridY = Math.Clamp(y - 0.5f, 0f, Rows - 1f);
+        var column0 = (int)gridX;
+        var row0 = (int)gridY;
+        var column1 = Math.Min(column0 + 1, Columns - 1);
+        var row1 = Math.Min(row0 + 1, Rows - 1);
+        var tx = gridX - column0;
+        var ty = gridY - row0;
+        return (
+            Blend(_forceX, row0 * Columns + column0, row0 * Columns + column1, row1 * Columns + column0, row1 * Columns + column1, tx, ty),
+            Blend(_forceY, row0 * Columns + column0, row0 * Columns + column1, row1 * Columns + column0, row1 * Columns + column1, tx, ty));
+    }
+
+    // crowd_step.glsl の blend と同じ式・同じ順で計算する
+    private static float Blend(float[] values, int topLeft, int topRight, int bottomLeft, int bottomRight, float tx, float ty)
+    {
+        var top = values[topLeft] + (values[topRight] - values[topLeft]) * tx;
+        var bottom = values[bottomLeft] + (values[bottomRight] - values[bottomLeft]) * tx;
+        return top + (bottom - top) * ty;
     }
 }

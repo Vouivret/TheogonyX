@@ -9,6 +9,7 @@ namespace TheogonyX.Core;
 /// <param name="FrenzyChaosAtOrAbove">狂乱になるカオス度。</param>
 /// <param name="FieldScale">ポテンシャルフィールドの力を速さ（タイル/秒）にする倍率。</param>
 /// <param name="FastTimeScale">自動進行が高速のとき、群衆の時間を何倍で進めるか。</param>
+/// <param name="Flock">群れの動き（散策のときだけ）。</param>
 /// <param name="TileForces">タイル種別ごとの力。正は引き寄せ、負は遠ざける。</param>
 public sealed record CrowdRules(
     int Count,
@@ -19,4 +20,5 @@ public sealed record CrowdRules(
     float FrenzyChaosAtOrAbove,
     float FieldScale,
     float FastTimeScale,
+    FlockRules Flock,
     IReadOnlyDictionary<TileType, float> TileForces);

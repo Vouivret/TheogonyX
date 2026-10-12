@@ -9,8 +9,9 @@ namespace TheogonyX.Scenes.Bench;
 
 /// <summary>
 /// 群衆の GPU 版と CPU 版の突き合わせ（TS-crowd-009、plan/feat-m3-crowd-gpu.md）。
-/// CPU 版を状態の移り変わりに沿って動かし、8 歩ごとに CPU 版の状態を GPU に送り直して同じ 8 歩を進め、位置の差を比べる。
-/// 送り直すのは、浮動小数点の小さな差が地表の端やマスの境目での分岐を変え、長く動かすと差が広がる（計算の誤りではない）ため。
+/// CPU 版を状態の移り変わりに沿って動かし、1 歩ごとに CPU 版の状態を GPU に送り直して同じ 1 歩を進め、位置の差を比べる。
+/// 送り直すのは、浮動小数点の小さな差が地表の端・マス・群れの集計のマスの境目での分岐を変え、歩を重ねると差が広がる（計算の誤りではない）ため。
+/// 群れの動きでは 1 歩の中で 3 回の dispatch（集計を 0 にする・集計する・動かす）を待ち合わせながら行うので、待ち合わせも 1 歩で確かめられる。
 /// 区切りごとに差の最大値をログに出す。すべて許容誤差に収まれば終了コード 0、収まらなければ 1、GPU が使えなければ 2 で終わる。
 /// 起動: Godot のコマンドに <c>-- --crowd-check</c> を付ける（<see cref="WorldCore"/> がゲームの代わりにこのノードを置く）。
 /// </summary>
@@ -18,12 +19,12 @@ public partial class CrowdCheck : Node
 {
     public const string CommandLineArg = "--crowd-check";
 
-    // 許容誤差（タイルの単位）。同じ状態から 8 歩なら、差は浮動小数点の誤差（2026-10-12 の計測で 1e-5 未満）に収まる。
+    // 許容誤差（タイルの単位）。同じ状態から 1 歩なら、差は浮動小数点の誤差（2026-10-12 の計測で 1e-5 未満）に収まる。
     // 1 px（1/16 タイル）より十分小さくし、式の小さな誤りも見逃さない
     private const float Tolerance = 1e-3f;
     private const int Seed = 12345;
-    // ゲームと同じく、1 回に最大 8 歩ずつ GPU に投げる
-    private const int StepsPerBatch = 8;
+    // 1 歩ごとに送り直す（8 歩まとめると、群れの集計のマスの境目で分岐が変わり 0.01 タイルほどずれた。2026-10-12）
+    private const int StepsPerBatch = 1;
 
     public override void _Ready()
     {

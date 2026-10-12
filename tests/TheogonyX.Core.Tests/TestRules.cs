@@ -71,6 +71,7 @@ internal static class TestRules
         FrenzyChaosAtOrAbove: 50f,
         FieldScale: 0.5f,
         FastTimeScale: 3f,
+        Flock: new FlockRules(Enabled: false, CellSize: 0.5f, AlignWeight: 0.5f, CrowdWeight: 0.5f, TargetNeighbors: 20f),
         TileForces: new Dictionary<TileType, float>
         {
             [TileType.Water] = 1.0f,

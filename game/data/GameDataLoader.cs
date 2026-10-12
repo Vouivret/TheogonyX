@@ -59,6 +59,9 @@ public static class GameDataLoader
         float[] positives = [crowd.WalkSpeed, crowd.TurnIntervalSeconds, crowd.FrenzySpeed, crowd.HolySiteRadius, crowd.FastTimeScale];
         if (crowd.Count <= 0 || positives.Any(value => !float.IsFinite(value) || value <= 0)
             || !float.IsFinite(crowd.FrenzyChaosAtOrAbove) || !float.IsFinite(crowd.FieldScale)
+            || crowd.Flock is null || !float.IsFinite(crowd.Flock.CellSize) || crowd.Flock.CellSize <= 0
+            || !float.IsFinite(crowd.Flock.AlignWeight) || !float.IsFinite(crowd.Flock.CrowdWeight)
+            || !float.IsFinite(crowd.Flock.TargetNeighbors) || crowd.Flock.TargetNeighbors <= 0
             || crowd.TileForces is null || Enum.GetValues<TileType>().Any(tileType => !crowd.TileForces.ContainsKey(tileType))
             || crowd.TileForces.Values.Any(force => !float.IsFinite(force)))
         {
@@ -66,7 +69,7 @@ public static class GameDataLoader
         }
         return new CrowdRules(
             crowd.Count, crowd.WalkSpeed, crowd.TurnIntervalSeconds, crowd.FrenzySpeed, crowd.HolySiteRadius,
-            crowd.FrenzyChaosAtOrAbove, crowd.FieldScale, crowd.FastTimeScale, crowd.TileForces);
+            crowd.FrenzyChaosAtOrAbove, crowd.FieldScale, crowd.FastTimeScale, crowd.Flock!, crowd.TileForces);
     }
 
     public static CrowdLook ParseCrowdLook(string rulesJson)
@@ -159,6 +162,7 @@ public static class GameDataLoader
         float FrenzyChaosAtOrAbove,
         float FieldScale,
         float FastTimeScale,
+        FlockRules? Flock,
         Dictionary<TileType, float>? TileForces,
         int DotSizePixels,
         string DotColor,

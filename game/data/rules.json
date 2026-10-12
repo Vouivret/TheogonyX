@@ -74,6 +74,14 @@
     "frenzyChaosAtOrAbove": 50.0,
     "fieldScale": 0.5,
     "fastTimeScale": 3.0,
+    "flock": {
+      "todo": "TODO(AI_UNSURE): 群れの動きは試し（2026-10-12）。値はすべて仮置き。enabled を false にすると群れの動きを使わない",
+      "enabled": true,
+      "cellSize": 0.5,
+      "alignWeight": 0.6,
+      "crowdWeight": 0.4,
+      "targetNeighbors": 150.0
+    },
     "tileForces": {
       "Water": 1.0,
       "Jungle": 0.6,
