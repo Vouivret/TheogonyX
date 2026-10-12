@@ -11,7 +11,7 @@
 | 手動テスト TS-ambience-006 | 昼夜の色・予言者の位置とアニメーション・崩壊とリセットの見た目を確かめ、`docs/test/results/` に記録する。地表・予言者・環境光を `SubViewport` の下に移したので、見た目が変わっていないことも確かめる | [docs/test/ambience.md](test/ambience.md) |
 | 崩壊の見た目の確認 | TS-time-control-009 の手順 5 と TS-ambience-006 の手順 5。夢の改ざんで崩壊を起こせるようになったので、確認できる | [実施記録](test/results/2026-10-11-feat-m1-screen.md) |
 | 手動テスト TS-prophet-request-006 | 依頼の吹き出し（予言者の右）が出て、画面に収まり、神託で消えること。TS-dream-tampering-008 は合格（[実施記録](test/results/2026-10-12-feat-m2-dream-tampering.md)） | [dream-tampering](test/dream-tampering.md)・[prophet-request](test/prophet-request.md) |
-| 手動テスト TS-time-control-011 の残り | 一時停止と再開、閉じて起動した後の続き、速さのボタンが 3 段で回ること（TS-time-control-009 の手順 3）。残り時間が減ることは確認済み（[実施記録](test/results/2026-10-12-feat-m2-real-time-sync.md)） | [plan](../plan/feat-m2-real-time-sync.md) |
+| 手動テスト TS-time-control-011 の残り | 通常・高速で残り時間が出ないこと（手順 4）と、速さのボタンが 3 段で回ること（TS-time-control-009 の手順 3）。手順 1〜3 は確認済み（[実施記録](test/results/2026-10-12-feat-m2-real-time-sync.md)） | [plan](../plan/feat-m2-real-time-sync.md) |
 | 手動テスト TS-save-data-005 の残り | 自動進行中に閉じても止まって始まる・強制終了・壊れたセーブ。続きから始まることは確認済み（[実施記録](test/results/2026-10-12-feat-m2-save-load.md)） | [plan](../plan/feat-m2-save-load.md) |
 | 手動テスト TS-dream-tampering-012・TS-prophet-request-008 | スマホからの改ざん・神託、PC との同時の操作、スマホの依頼の吹き出し、切断したら押せなくなること。ブラウザで偽のホストを使った表示と送信は確認済み。実機と Godot では未確認 | [plan](../plan/feat-m2-companion-dream.md) |
 | 手動テスト TS-companion-pairing-015 | 接続の上限・後勝ち・古い `sessionToken` の接続を切る・全セッションリセット・IP の切り替え | [docs/test/companion-pairing.md](test/companion-pairing.md) |
