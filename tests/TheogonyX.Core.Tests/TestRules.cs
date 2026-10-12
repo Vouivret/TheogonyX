@@ -45,14 +45,29 @@ internal static class TestRules
 
     // docs/domain/planet-display.md の「タイル種別の判定」と列数の式。
     public static readonly TerrainRules Terrain = new(
-        Columns: 16,
-        Anomalies:
+        columns: 16,
+        rows: 9,
+        anomalies: Anomalies,
+        lakeCells: []);
+
+    // 湖のある地表。湖は左から 11〜14 列目 × 上から 4〜6 行目の 12 マス（planet-display.md の受け入れ条件の前提）。
+    public static readonly TerrainRules TerrainWithLake = new(
+        columns: 16,
+        rows: 9,
+        anomalies: Anomalies,
+        lakeCells:
+        [
+            new(11, 4), new(12, 4), new(11, 3), new(12, 3), new(11, 5), new(12, 5),
+            new(10, 4), new(13, 4), new(10, 3), new(13, 3), new(10, 5), new(13, 5),
+        ]);
+
+    private static TerrainAnomaly[] Anomalies =>
         [
             new TerrainAnomaly(TileType.Glacier, WorldMetric.Temperature, ThresholdComparison.AtOrBelow, Threshold: 0f, ZeroColumnValue: 0f, FullColumnValue: -50f),
             new TerrainAnomaly(TileType.Scorched, WorldMetric.Temperature, ThresholdComparison.AtOrAbove, Threshold: 50f, ZeroColumnValue: 50f, FullColumnValue: 80f),
             new TerrainAnomaly(TileType.Desert, WorldMetric.WaterAmount, ThresholdComparison.AtOrBelow, Threshold: 20f, ZeroColumnValue: 100f, FullColumnValue: 0f),
             new TerrainAnomaly(TileType.Jungle, WorldMetric.ForestAmount, ThresholdComparison.AtOrAbove, Threshold: 70f, ZeroColumnValue: 70f, FullColumnValue: 100f),
-        ]);
+        ];
 
     // docs/domain/dream-tampering.md と prophet-request.md のルールの値。
     public static readonly ProphetDreamRules ProphetDreams = new(

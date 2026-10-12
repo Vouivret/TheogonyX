@@ -35,7 +35,18 @@
       { "tileType": "Scorched", "metric": "Temperature", "comparison": "AtOrAbove", "threshold": 50.0, "zeroColumnValue": 50.0, "fullColumnValue": 80.0 },
       { "tileType": "Desert", "metric": "WaterAmount", "comparison": "AtOrBelow", "threshold": 20.0, "zeroColumnValue": 100.0, "fullColumnValue": 0.0 },
       { "tileType": "Jungle", "metric": "ForestAmount", "comparison": "AtOrAbove", "threshold": 70.0, "zeroColumnValue": 70.0, "fullColumnValue": 100.0 }
-    ]
+    ],
+    "lake": {
+      "todo": "TODO(AI_UNSURE): 湖の場所と大きさは仮置き。左から 11〜14 列目 × 上から 4〜6 行目の 12 マスを、中央から外へ広がる順に並べた。column・row は 0 から数える",
+      "cells": [
+        { "column": 11, "row": 4 }, { "column": 12, "row": 4 },
+        { "column": 11, "row": 3 }, { "column": 12, "row": 3 },
+        { "column": 11, "row": 5 }, { "column": 12, "row": 5 },
+        { "column": 10, "row": 4 }, { "column": 13, "row": 4 },
+        { "column": 10, "row": 3 }, { "column": 13, "row": 3 },
+        { "column": 10, "row": 5 }, { "column": 13, "row": 5 }
+      ]
+    }
   },
   "timeControl": {
     "jumpYears": 100,

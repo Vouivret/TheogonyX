@@ -8,4 +8,5 @@ public enum TileType
     Desert,
     Scorched,
     Glacier,
+    Water,
 }

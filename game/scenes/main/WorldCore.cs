@@ -33,7 +33,7 @@ public partial class WorldCore : Node2D
         var rulesJson = ReadText("res://data/rules.json");
         var dreamRules = GameDataLoader.ParseDreamRules(ReadText("res://data/symbols.json"), rulesJson);
         var worldRules = GameDataLoader.ParseWorldRules(rulesJson);
-        var (terrainRules, mapRows) = GameDataLoader.ParseTerrain(rulesJson);
+        var terrainRules = GameDataLoader.ParseTerrain(rulesJson);
         var timeSettings = GameDataLoader.ParseTimeControl(rulesJson);
         var ambienceRules = GameDataLoader.ParseAmbience(rulesJson);
         var prophetSettings = GameDataLoader.ParseProphet(rulesJson);
@@ -65,7 +65,7 @@ public partial class WorldCore : Node2D
             GD.Print($"event=game_started seed={seed}");
         }
         _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, dreamSource, clock));
-        _screen = new WorldScreen(this, timeControl, clock, terrainRules, mapRows, timeSettings);
+        _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings);
         _dreams = new DreamView(this, prophet, timeControl, dreamRules);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;

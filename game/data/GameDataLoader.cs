@@ -26,11 +26,18 @@ public static class GameDataLoader
 
     public static WorldRules ParseWorldRules(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").World;
 
-    /// <returns>判定の定義と、描画するマップの行数。</returns>
-    public static (TerrainRules Rules, int Rows) ParseTerrain(string rulesJson)
+    public static TerrainRules ParseTerrain(string rulesJson)
     {
         var terrain = Parse<RulesFile>(rulesJson, "rules.json").Terrain;
-        return (new TerrainRules(terrain.Columns, terrain.Anomalies), terrain.Rows);
+        try
+        {
+            return new TerrainRules(terrain.Columns, terrain.Rows, terrain.Anomalies,
+                terrain.Lake?.Cells ?? throw new InvalidDataException("湖の定義が無い: file=rules.json key=terrain.lake.cells"));
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("地表の定義の値が範囲外: file=rules.json", ex);
+        }
     }
 
     public static TimeControlSettings ParseTimeControl(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").TimeControl;
@@ -108,7 +115,9 @@ public static class GameDataLoader
 
     private sealed record DogmaTypeThresholds(float TabooAtOrBelow, float WorshipAtOrAbove);
 
-    private sealed record TerrainFile(int Columns, int Rows, IReadOnlyList<TerrainAnomaly> Anomalies);
+    private sealed record LakeFile(IReadOnlyList<TerrainCell> Cells);
+
+    private sealed record TerrainFile(int Columns, int Rows, IReadOnlyList<TerrainAnomaly> Anomalies, LakeFile Lake);
 
     private sealed record AmbienceFile(float CycleSeconds, IReadOnlyList<string> CycleColors, string ChaosColor, string DestroyedColor);
 

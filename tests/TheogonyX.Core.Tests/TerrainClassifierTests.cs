@@ -89,4 +89,70 @@ public class TerrainClassifierTests
     {
         Assert.Equal(new TerrainLayout(TileType.Jungle, expectedColumns), Classify(15.0f, forest, 100.0f));
     }
+
+    private static readonly TerrainCell[] LakeCells =
+    [
+        new(11, 4), new(12, 4), new(11, 3), new(12, 3), new(11, 5), new(12, 5),
+        new(10, 4), new(13, 4), new(10, 3), new(13, 3), new(10, 5), new(13, 5),
+    ];
+
+    private static TileType[,] ClassifyTiles(float temperature, float forestAmount, float waterAmount) =>
+        TerrainClassifier.ClassifyTiles(
+            new WorldState { Temperature = temperature, ForestAmount = forestAmount, WaterAmount = waterAmount },
+            TestRules.TerrainWithLake);
+
+    /// <summary>左から <paramref name="columns"/> 列が <paramref name="tileType"/>、残りは草地で、<paramref name="waterCells"/> が水場の地表。</summary>
+    private static TileType[,] Expected(TileType tileType, int columns, IEnumerable<TerrainCell> waterCells)
+    {
+        var tiles = new TileType[16, 9];
+        for (var column = 0; column < 16; column++)
+        {
+            for (var row = 0; row < 9; row++)
+            {
+                tiles[column, row] = column < columns ? tileType : TileType.Grassland;
+            }
+        }
+        foreach (var cell in waterCells)
+        {
+            tiles[cell.Column, cell.Row] = TileType.Water;
+        }
+        return tiles;
+    }
+
+    public static TheoryData<float, float, float, TileType[,]> LakeCases => new()
+    {
+        { 15.0f, 50.0f, 100.0f, Expected(TileType.Grassland, 0, LakeCells) }, // AC-planet-display-021
+        { 15.0f, 50.0f, 50.0f, Expected(TileType.Grassland, 0, LakeCells[..6]) }, // AC-planet-display-022
+        { 15.0f, 50.0f, 0.0f, Expected(TileType.Desert, 16, []) }, // AC-planet-display-023
+        { 15.0f, 50.0f, 12.5f, Expected(TileType.Desert, 14, LakeCells[..2]) }, // AC-planet-display-024
+        { -50.0f, 50.0f, 100.0f, Expected(TileType.Glacier, 16, []) }, // AC-planet-display-025
+        { 80.0f, 50.0f, 100.0f, Expected(TileType.Scorched, 16, []) }, // AC-planet-display-026
+        { 15.0f, 100.0f, 100.0f, Expected(TileType.Jungle, 16, LakeCells) }, // AC-planet-display-027
+    };
+
+    [Theory]
+    [Trait("TS", "TS-planet-display-011")]
+    [MemberData(nameof(LakeCases))]
+    public void ClassifyTiles_水資源と異常の列_湖が水資源に応じて広がり氷河と焦土では消える(
+        float temperature, float forest, float water, TileType[,] expected)
+    {
+        Assert.Equal(expected, ClassifyTiles(temperature, forest, water));
+    }
+
+    [Theory]
+    [Trait("TS", "TS-planet-display-013")]
+    [InlineData(16, 0)]
+    [InlineData(0, 9)]
+    [InlineData(-1, 0)]
+    public void TerrainRules_湖のマスが地表の外_例外になる(int column, int row)
+    {
+        Assert.Throws<ArgumentException>(() => new TerrainRules(16, 9, [], [new TerrainCell(column, row)]));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-planet-display-013")]
+    public void TerrainRules_湖のマスが重複_例外になる()
+    {
+        Assert.Throws<ArgumentException>(() => new TerrainRules(16, 9, [], [new TerrainCell(1, 1), new TerrainCell(1, 1)]));
+    }
 }

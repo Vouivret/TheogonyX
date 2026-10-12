@@ -25,6 +25,7 @@ public sealed class WorldScreen
         [TileType.Desert] = Color.FromHtml("#dad45e"),
         [TileType.Scorched] = Color.FromHtml("#442434"),
         [TileType.Glacier] = Color.FromHtml("#deeed6"),
+        [TileType.Water] = Color.FromHtml("#597dce"),
     };
 
     private static readonly Color ResetAlertColor = Color.FromHtml("#d04648");
@@ -32,7 +33,6 @@ public sealed class WorldScreen
     private readonly Node _owner;
     private readonly TimeControl _timeControl;
     private readonly TerrainRules _terrainRules;
-    private readonly int _mapRows;
     private readonly TimeControlSettings _timeSettings;
     private readonly AutoPlayClock _clock;
 
@@ -64,13 +64,12 @@ public sealed class WorldScreen
 
     /// <param name="owner">ノードを探し、Tween を作るためのシーンの根。</param>
     public WorldScreen(
-        Node owner, TimeControl timeControl, AutoPlayClock clock, TerrainRules terrainRules, int mapRows, TimeControlSettings timeSettings)
+        Node owner, TimeControl timeControl, AutoPlayClock clock, TerrainRules terrainRules, TimeControlSettings timeSettings)
     {
         _clock = clock;
         _owner = owner;
         _timeControl = timeControl;
         _terrainRules = terrainRules;
-        _mapRows = mapRows;
         _timeSettings = timeSettings;
 
         _terrain = owner.GetNode<TileMapLayer>("%Terrain");
@@ -197,13 +196,12 @@ public sealed class WorldScreen
 
     private void DrawTerrain()
     {
-        var layout = TerrainClassifier.Classify(_timeControl.World, _terrainRules);
+        var tiles = TerrainClassifier.ClassifyTiles(_timeControl.World, _terrainRules);
         for (var x = 0; x < _terrainRules.Columns; x++)
         {
-            var tileType = x < layout.Columns ? layout.TileType : TileType.Grassland;
-            for (var y = 0; y < _mapRows; y++)
+            for (var y = 0; y < _terrainRules.Rows; y++)
             {
-                _terrain.SetCell(new Vector2I(x, y), 0, new Vector2I((int)tileType, 0));
+                _terrain.SetCell(new Vector2I(x, y), 0, new Vector2I((int)tiles[x, y], 0));
             }
         }
     }
