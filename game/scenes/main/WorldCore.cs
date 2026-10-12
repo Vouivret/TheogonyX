@@ -10,7 +10,7 @@ using TheogonyX.Scenes.Bench;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// メインシーンの根。ゲームデータを読み、画面（<see cref="WorldScreen"/>）・群衆（<see cref="CrowdView"/>）・予言者の夢（<see cref="DreamView"/>）・
+/// メインシーンの根。ゲームデータを読み、画面（<see cref="WorldScreen"/>）・カメラ（<see cref="CameraView"/>）・群衆（<see cref="CrowdView"/>）・予言者の夢（<see cref="DreamView"/>）・
 /// コンパニオンとの通信（<see cref="CompanionHost"/>）を組み立てる。
 /// 起動時にセーブがあれば続きから始め、神託・100 年跳躍・世界再創生の後、自動進行中の一定の間隔、終了時に保存する（docs/domain/save-data.md）。
 /// </summary>
@@ -18,6 +18,7 @@ public partial class WorldCore : Node2D
 {
     private WorldScreen? _screen;
     private AmbienceView? _ambience;
+    private CameraView? _camera;
     private CrowdView? _crowd;
     private DreamView? _dreams;
     private CompanionHost? _companion;
@@ -55,6 +56,7 @@ public partial class WorldCore : Node2D
         var ambienceRules = GameDataLoader.ParseAmbience(rulesJson);
         var prophetSettings = GameDataLoader.ParseProphet(rulesJson);
         var campfireSettings = GameDataLoader.ParseCampfire(rulesJson);
+        var cameraSettings = GameDataLoader.ParseCamera(rulesJson);
         var crowdRules = GameDataLoader.ParseCrowd(rulesJson);
         var crowdLook = GameDataLoader.ParseCrowdLook(rulesJson);
         var prophetDreamRules = GameDataLoader.ParseProphetDreams(rulesJson);
@@ -87,6 +89,7 @@ public partial class WorldCore : Node2D
         _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, dreamSource, clock));
         _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings);
+        _camera = new CameraView(this, cameraSettings);
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         _screen.WorldReset += _crowd.OnWorldReset;
@@ -117,8 +120,17 @@ public partial class WorldCore : Node2D
             Save();
         }
         _ambience?.Process(delta);
+        _camera?.Process(delta);
         _crowd?.Process(delta);
         _companion?.Process(delta);
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (_camera?.HandleInput(@event) == true)
+        {
+            GetViewport().SetInputAsHandled();
+        }
     }
 
     public override void _ExitTree()

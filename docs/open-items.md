@@ -11,6 +11,7 @@
 | 手動テスト TS-crowd-010・TS-planet-display-012 | 群衆の動き（散策・水場と緑地に集まる・群れ・一時停止と高速・狂乱・崩壊と世界再創生）と、湖の見た目（縮む・凍る）。2026-10-12 に画面を見て「全体的にこれでよい」とした。手順どおりに確かめたら `docs/test/results/` に記録する | [docs/test/crowd.md](test/crowd.md)・[planet-display](test/planet-display.md) |
 | 手動テスト TS-ambience-006 | 昼夜の色・予言者の位置とアニメーション・崩壊とリセットの見た目を確かめ、`docs/test/results/` に記録する。地表・予言者・環境光を `SubViewport` の下に移したので、見た目が変わっていないことも確かめる | [docs/test/ambience.md](test/ambience.md) |
 | 崩壊の見た目の確認 | TS-time-control-009 の手順 5 と TS-ambience-006 の手順 5。夢の改ざんで崩壊を起こせるようになったので、確認できる | [実施記録](test/results/2026-10-11-feat-m1-screen.md) |
+| 手動テスト TS-camera-views-006 | ホイールのズーム・ドラッグ・HUD が動かないこと・詳細の視点でドットの幅がそろうこと | [docs/test/camera-views.md](test/camera-views.md) |
 | 手動テスト TS-prophet-request-006 | 依頼の吹き出し（予言者の右）が出て、画面に収まり、神託で消えること。TS-dream-tampering-008 は合格（[実施記録](test/results/2026-10-12-feat-m2-dream-tampering.md)） | [dream-tampering](test/dream-tampering.md)・[prophet-request](test/prophet-request.md) |
 | 手動テスト TS-time-control-009 の手順 3 | 速さのボタンが 通常 → 高速 → 現実同期 → 通常 と回ること。TS-time-control-011 は合格（[実施記録](test/results/2026-10-12-feat-m2-real-time-sync.md)） | [plan](../plan/feat-m2-real-time-sync.md) |
 | 手動テスト TS-save-data-005 の残り | 自動進行中に閉じても止まって始まる・強制終了・壊れたセーブ。続きから始まることは確認済み（[実施記録](test/results/2026-10-12-feat-m2-save-load.md)） | [plan](../plan/feat-m2-save-load.md) |
@@ -32,7 +33,7 @@
 | 夢の改ざん・依頼の仕様書の承認 | [dream-tampering.md](domain/dream-tampering.md)・[prophet-request.md](domain/prophet-request.md) は `draft` のまま（スマホでの操作も足した）。M2 は 2026-10-12 に閉じたので、人間が承認する | 次に夢・依頼を変える前 |
 | AI 連携の仕様の未決 | [ai-presentation.md](domain/ai-presentation.md) の「未決」（予言者の狂気の指標、イベントの ID、周回の終わり、創世図鑑、既定の絵と 32px のタイル、画像生成のライセンス、AI クライアントの置き場所、セーブの形など） | AI 連携（M4 の構想）に着手する前 |
 | 地層の仕様の未決 | [strata.md](domain/strata.md) の「未決」（建物が崩れるきっかけ、大災害、ミクロ沈下の年数・マクロ沈下の条件、発掘と二次誤解の表、地表を広げることによる書き換え、用語など） | 地層（M4 の構想）に着手する前 |
-| カメラの視点の仕様の未決 | [camera-views.md](domain/camera-views.md) の「未決」（ピクセルパーフェクトと小数のズーム、倍率の基準、輪に見せる大陸の視点、詳細の視点の絵、画面の効果との関係、スマホへの配信など） | カメラの視点（M4）に着手する前 |
+| カメラの視点の仕様の未決 | [camera-views.md](domain/camera-views.md) の「未決」（地表を広げた後の範囲と起動時の倍率、輪に見せる大陸の視点、詳細の視点の絵、画面の効果との関係、スマホへの配信など） | カメラの視点（M4）に着手する前 |
 | 文明の創発的な発展の仕様の未決 | [emergent-progression.md](domain/emergent-progression.md) の「未決」（地域の環境の決め方、技術・文化の伸びの量と倍率、禁忌の規則、建物の種類と置き場所の残り、変種技術の表と足りない記号、極秘研究の一覧、パラドックスの条件、スマホへのログ、用語など） | 文明の発展（M4）に着手する前 |
 | 画面の効果の仕様の未決 | [visual-effects.md](domain/visual-effects.md) の「未決」（光の向き・焚き火と星の置き場所・ぼかしやグローの強さ・粒子の切り替えの境目などの値、効果を切る設定の置き場所、法線マップのツールのライセンス、性能） | 画面の効果（M4）に着手する前 |
 

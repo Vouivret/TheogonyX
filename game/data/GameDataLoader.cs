@@ -102,6 +102,27 @@ public static class GameDataLoader
             campfire.Column, ParseColor(campfire.Color), campfire.Energy, campfire.RadiusTiles, campfire.FlickerAmount, campfire.FlickerSpeed);
     }
 
+    public static CameraSettings ParseCamera(string rulesJson)
+    {
+        var camera = Parse<RulesFile>(rulesJson, "rules.json").Camera
+            ?? throw new InvalidDataException("カメラの定義が無い: file=rules.json key=camera");
+        var steps = camera.ZoomSteps ?? [];
+        var stepsValid = steps.Count > 0;
+        for (var i = 0; i < steps.Count && stepsValid; i++)
+        {
+            // 1.0 より大きい段は、ドットの幅がそろう整数倍だけ（docs/domain/camera-views.md）
+            stepsValid = double.IsFinite(steps[i]) && steps[i] > 0
+                && (i == 0 || steps[i] > steps[i - 1])
+                && (steps[i] <= 1 || steps[i] == Math.Floor(steps[i]));
+        }
+        if (!stepsValid || !steps.Contains(camera.StartZoom) || !double.IsFinite(camera.ZoomSmoothing) || camera.ZoomSmoothing <= 0)
+        {
+            throw new InvalidDataException(
+                $"カメラの定義の値が範囲外: file=rules.json zoomSteps={string.Join(',', steps)} startZoom={camera.StartZoom} zoomSmoothing={camera.ZoomSmoothing}");
+        }
+        return new CameraSettings(steps, camera.StartZoom, camera.ZoomSmoothing);
+    }
+
     public static ProphetDreamRules ParseProphetDreams(string rulesJson)
     {
         var rules = Parse<RulesFile>(rulesJson, "rules.json");
@@ -171,6 +192,8 @@ public static class GameDataLoader
 
     private sealed record CampfireFile(int Column, string Color, float Energy, float RadiusTiles, float FlickerAmount, float FlickerSpeed);
 
+    private sealed record CameraFile(IReadOnlyList<double>? ZoomSteps, double StartZoom, double ZoomSmoothing);
+
     private sealed record CrowdFile(
         int Count,
         float WalkSpeed,
@@ -198,6 +221,7 @@ public static class GameDataLoader
         AmbienceFile Ambience,
         ProphetSettings Prophet,
         CampfireFile? Campfire,
+        CameraFile? Camera,
         CrowdFile? Crowd,
         DreamFile Dream,
         ProphetRequestsFile ProphetRequests);
