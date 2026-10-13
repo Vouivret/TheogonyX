@@ -9,18 +9,18 @@
 
 | ID | 受け入れ条件 | 観点 | 前提 | 操作 | 期待結果 | 種別 | 実装場所 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TS-dream-tampering-001 | AC-dream-tampering-001, 011 | 夢の生成（3 つ、記号は 4 種類のどれか、重みは範囲内。同じシードなら同じ夢） | 受け入れ条件のとおり | 夢を作る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/DreamGeneratorTests.cs` |
-| TS-dream-tampering-002 | AC-dream-tampering-002, 003 | 改ざんで記号だけが替わり、2 回目はできない | 受け入れ条件のとおり | 入れ替える | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
-| TS-dream-tampering-003 | AC-dream-tampering-004, 005 | 神託でドグマが加わり、夢なしになる（改ざん前でも下せる） | 受け入れ条件のとおり | 神託を下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
-| TS-dream-tampering-004 | AC-dream-tampering-006, 007, 008 | 100 年ごとの夢と、夢があるあいだは新しい夢を見ないこと | 受け入れ条件のとおり | 年を進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
-| TS-dream-tampering-005 | AC-dream-tampering-009 | 崩壊しているあいだは改ざんも神託もできない | 受け入れ条件のとおり | 操作する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
-| TS-dream-tampering-006 | AC-dream-tampering-010 | 世界再創生でドグマが空になり、新しい夢を見る | 受け入れ条件のとおり | リセットする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
-| TS-dream-tampering-007 | — | 状態遷移表で「不可」の操作（夢なしでの改ざん・神託、改ざん済みでの改ざん）は受け付けない | 各状態 | 操作する | 例外になり、状態・夢・ドグマは変わらない | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
-| TS-dream-tampering-009 | AC-dream-tampering-013, 014 | 夢で自動進行が止まり、神託で再開する。止まっていたなら止まったまま。自分で再開していたら神託では何もしない | 受け入れ条件のとおり | 年を進める・神託を下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
-| TS-dream-tampering-008 | AC-dream-tampering-012 | PC の画面での改ざんと神託 | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 手動 | — |
+| TS-dream-tampering-001 | AC-dream-tampering-001, 011 | 夢の生成（3 つ、記号は 4 種類のどれか、重みは範囲内。同じシードなら同じ夢） | 受け入れ条件のとおり | 夢を作る | 受け入れ条件のとおり | 廃止 | — |
+| TS-dream-tampering-002 | AC-dream-tampering-002, 003 | 改ざんで記号だけが替わり、2 回目はできない | 受け入れ条件のとおり | 入れ替える | 受け入れ条件のとおり | 廃止 | — |
+| TS-dream-tampering-003 | AC-dream-tampering-004, 005 | 神託でドグマが加わり、夢なしになる（改ざん前でも下せる） | 受け入れ条件のとおり | 神託を下す | 受け入れ条件のとおり | 廃止 | — |
+| TS-dream-tampering-004 | AC-dream-tampering-006, 007, 008 | 100 年ごとの夢と、夢があるあいだは新しい夢を見ないこと | 受け入れ条件のとおり | 年を進める | 受け入れ条件のとおり | 廃止 | — |
+| TS-dream-tampering-005 | AC-dream-tampering-009 | 崩壊しているあいだは改ざんも神託もできない | 受け入れ条件のとおり | 操作する | 受け入れ条件のとおり | 廃止 | — |
+| TS-dream-tampering-006 | AC-dream-tampering-010 | 世界再創生でドグマが空になり、新しい夢を見る | 受け入れ条件のとおり | リセットする | 受け入れ条件のとおり | 廃止 | — |
+| TS-dream-tampering-007 | — | 状態遷移表で「不可」の操作（夢なしでの改ざん・神託、改ざん済みでの改ざん）は受け付けない | 各状態 | 操作する | 例外になり、状態・夢・ドグマは変わらない | 廃止 | — |
+| TS-dream-tampering-009 | AC-dream-tampering-013, 014 | 夢で自動進行が止まり、神託で再開する。止まっていたなら止まったまま。自分で再開していたら神託では何もしない | 受け入れ条件のとおり | 年を進める・神託を下す | 受け入れ条件のとおり | 廃止 | — |
+| TS-dream-tampering-008 | AC-dream-tampering-012 | PC の画面での改ざんと神託 | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 廃止 | — |
 | TS-dream-tampering-010 | AC-dream-tampering-015, 016 | `TAMPER`・`PRONOUNCE` の検証（`index` が負・小数・文字列、`symbolId` が空・長すぎる・文字列でない、項目が無い） | 受け入れ条件のとおり | パースする | 失敗し、理由が `invalid_tamper` | 廃止 | — |
 | TS-dream-tampering-011 | AC-dream-tampering-015, 016 | `DREAM_STATE` に、状態・夢ノード・手札・できる操作・崩壊・依頼が入る | 夢あり（改ざん前・改ざん済み）、夢なし、依頼あり、崩壊 | 書き出す | messages.md の形のとおり | 廃止 | — |
-| TS-dream-tampering-012 | AC-dream-tampering-015, 016 | スマホからの改ざんと神託、PC との同時の操作 | ホストとコンパニオンが動き、ペアリングしている | 下の手順 | 下の手順のとおり | 手動 | — |
+| TS-dream-tampering-012 | AC-dream-tampering-015, 016 | スマホからの改ざんと神託、PC との同時の操作 | ホストとコンパニオンが動き、ペアリングしている | 下の手順 | 下の手順のとおり | 廃止 | — |
 
 ## 手動テストの手順
 

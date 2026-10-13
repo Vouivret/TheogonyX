@@ -90,8 +90,7 @@ public partial class WorldCore : Node2D
             [AutoPlaySpeed.RealTime] = timeSettings.RealTimeSecondsPerYear,
         });
         var deck = new OracleDeck(seed, GameDataLoader.ParseDeck(rulesJson, dreamRules));
-        // 夢は見ない（神託は手札のルーンの組で下す）ので、夢の作り方は使わない
-        var prophet = new ProphetDreams(timeControl, dreamRules, prophetDreamRules, () => [], deck, GameDataLoader.ParseOracleRules(rulesJson, dreamRules));
+        var prophet = new ProphetDreams(timeControl, dreamRules, prophetDreamRules, deck, GameDataLoader.ParseOracleRules(rulesJson, dreamRules));
         if (saved is not null)
         {
             SaveGame.Apply(saved, timeControl, prophet, clock);
@@ -117,7 +116,7 @@ public partial class WorldCore : Node2D
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         _screen.WorldReset += _crowd.OnWorldReset;
-        _dreams = new DreamView(this, prophet, new OracleCommandQueue(prophet, timeControl, dreamRules), timeControl);
+        _dreams = new DreamView(this, prophet, new OracleCommandQueue(prophet, timeControl), timeControl);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;
         _screen.WorldReset += _dreams.OnWorldReset;
         _dreams.OraclePronounced += _screen.Refresh;

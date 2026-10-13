@@ -103,10 +103,6 @@ internal static class TestRules
 
     // docs/domain/dream-tampering.md と prophet-request.md のルールの値。
     public static readonly ProphetDreamRules ProphetDreams = new(
-        NodeCount: 3,
-        MinWeight: 0.3f,
-        MaxWeight: 1.0f,
-        YearsBetweenDreams: 100,
         RequestCooldownYears: 50,
         Requests:
         [

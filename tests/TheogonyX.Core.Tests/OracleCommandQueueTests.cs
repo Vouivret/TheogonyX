@@ -2,138 +2,107 @@ using TheogonyX.Core;
 
 namespace TheogonyX.Core.Tests;
 
+// 神託の命令の待ち行列（docs/domain/multiplayer.md）。
 public class OracleCommandQueueTests
 {
-    private static readonly DreamNode[] TreeRainFire = [new("SYM_TREE", 0.5f), new("SYM_RAIN", 0.6f), new("SYM_FIRE", 0.4f)];
-    private static readonly DreamNode[] TreeRainRain = [new("SYM_TREE", 0.5f), new("SYM_RAIN", 0.5f), new("SYM_RAIN", 0.5f)];
+    private const int Seed = 42;
 
-    // 夢を見るたびに、渡した夢を順に返す（最後の夢はくり返す）
-    private static (OracleCommandQueue Queue, ProphetDreams Prophet, TimeControl Time) Create(params DreamNode[][] dreams)
+    private static (OracleCommandQueue Queue, ProphetDreams Prophet, TimeControl Time) Create()
     {
         var time = new TimeControl(TestRules.World, TestRules.JumpYears);
-        var next = 0;
-        var prophet = new ProphetDreams(
-            time,
-            TestRules.Dream,
-            TestRules.ProphetDreams,
-            () => dreams[Math.Min(next++, dreams.Length - 1)]);
-        return (new OracleCommandQueue(prophet, time, TestRules.Dream), prophet, time);
+        var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
+        return (new OracleCommandQueue(prophet, time), prophet, time);
     }
 
     [Fact]
     [Trait("TS", "TS-multiplayer-001")]
-    public void Submit_改ざんと神託の命令を順に積む_ドグマが加わり夢が空になる()
+    public void SubmitPronouncePair_命令で下す_直接下したのと同じ結果になる()
     {
-        var (queue, prophet, time) = Create(TreeRainFire);
+        var (queue, queued, queuedTime) = Create();
+        var (_, direct, directTime) = Create();
 
-        var tamper = queue.SubmitTamper(1, "SYM_BLOOD");
-        var pronounce = queue.SubmitPronounce();
+        var outcome = queue.SubmitPronouncePair(0, 1);
+        var result = direct.PronouncePair(0, 1);
 
-        Assert.True(tamper.Accepted);
-        Assert.True(pronounce.Accepted);
-        var dogma = Assert.Single(time.Dogmas);
-        Assert.Equal("SYM_TREE", dogma.TargetSymbolId);
-        Assert.Equal(DogmaType.Taboo, dogma.Type);
-        Assert.Equal(dogma, pronounce.Result!.Dogma);
-        Assert.Empty(prophet.Dream);
-        Assert.Equal(ProphetDreamState.None, prophet.State);
+        Assert.True(outcome.Accepted);
+        Assert.Equal(result.Dogma, outcome.Result!.Dogma);
+        Assert.Equal(directTime.Dogmas, queuedTime.Dogmas);
+        Assert.Equal(direct.Hand, queued.Hand);
+        Assert.Equal(direct.Faith.Value, queued.Faith.Value);
     }
 
     [Fact]
     [Trait("TS", "TS-multiplayer-002")]
-    public void Submit_同じコマへの改ざんを2つ積む_先の命令だけが効き後の命令は捨てる()
+    public void SubmitPronouncePair_続けて2つ積む_順番の番号の順に実行する()
     {
-        var (queue, prophet, _) = Create(TreeRainFire);
+        var (queue, _, time) = Create();
 
-        var first = queue.SubmitTamper(1, "SYM_BLOOD");
-        var second = queue.SubmitTamper(1, "SYM_FIRE");
+        var first = queue.SubmitPronouncePair(0, 1);
+        var second = queue.SubmitPronouncePair(0, 1);
 
         Assert.True(first.Accepted);
-        Assert.Equal("cannot_tamper", second.RejectedReason);
-        Assert.Equal("SYM_BLOOD", prophet.Dream[1].SymbolId);
+        Assert.True(second.Accepted);
         Assert.True(first.Command.Sequence < second.Command.Sequence);
+        Assert.Equal(2, time.Dogmas.Count);
+        Assert.Equal(first.Result!.Dogma, time.Dogmas[0]);
+        Assert.Equal(second.Result!.Dogma, time.Dogmas[1]);
     }
 
     [Fact]
     [Trait("TS", "TS-multiplayer-003")]
-    public void Submit_夢なしで神託を積む_何も変わらず捨てる()
+    public void SubmitPronouncePair_下せない命令_何も変えずに捨てて理由を返す()
     {
-        var (queue, prophet, time) = Create(TreeRainFire);
-        queue.SubmitPronounce();
+        var (queue, prophet, time) = Create();
+        var before = prophet.Deck.Capture();
 
-        var outcome = queue.SubmitPronounce();
-
-        Assert.Equal("cannot_pronounce", outcome.RejectedReason);
-        Assert.Single(time.Dogmas);
-        Assert.Equal(ProphetDreamState.None, prophet.State);
-    }
-
-    [Theory]
-    [Trait("TS", "TS-multiplayer-003")]
-    [InlineData(-1, "SYM_BLOOD", "invalid_dream_index")]
-    [InlineData(3, "SYM_BLOOD", "invalid_dream_index")]
-    [InlineData(1, "SYM_UNKNOWN", "unknown_symbol")]
-    public void Submit_範囲外の番号か知らない記号の改ざん_夢を変えずに捨てる(int index, string symbolId, string reason)
-    {
-        var (queue, prophet, _) = Create(TreeRainFire);
-
-        var outcome = queue.SubmitTamper(index, symbolId);
-
-        Assert.Equal(reason, outcome.RejectedReason);
-        Assert.Equal(TreeRainFire, prophet.Dream);
-        Assert.Equal(ProphetDreamState.Untampered, prophet.State);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-multiplayer-003")]
-    public void Submit_崩壊した星_改ざんも神託も捨てる()
-    {
-        var (queue, prophet, time) = Create(TreeRainFire);
+        var sameCard = queue.SubmitPronouncePair(1, 1);
+        var outOfHand = queue.SubmitPronouncePair(0, 9);
         time.World.IsDestroyed = true;
+        var destroyed = queue.SubmitPronouncePair(0, 1);
 
-        var tamper = queue.SubmitTamper(1, "SYM_BLOOD");
-        var pronounce = queue.SubmitPronounce();
-
-        Assert.Equal("cannot_tamper", tamper.RejectedReason);
-        Assert.Equal("cannot_pronounce", pronounce.RejectedReason);
-        Assert.Equal(TreeRainFire, prophet.Dream);
+        Assert.Equal("same_card", sameCard.RejectedReason);
+        Assert.Equal("card_not_in_hand", outOfHand.RejectedReason);
+        Assert.Equal("star_destroyed", destroyed.RejectedReason);
         Assert.Empty(time.Dogmas);
+        Assert.Equal(before.Hand, prophet.Deck.Hand);
+        Assert.Equal(before.DrawPile, prophet.Deck.DrawPile);
     }
 
     [Fact]
     [Trait("TS", "TS-multiplayer-004")]
-    public void Submit_同じシードと同じ命令の列を2回再生する_世界とドグマが一致する()
+    public void SubmitPronouncePair_同じシードと同じ命令の列を2回再生する_世界とドグマが一致する()
     {
-        (int Year, IReadOnlyList<Dogma> Dogmas, float Chaos, float Forest) Replay()
+        (int Year, IReadOnlyList<Dogma> Dogmas, float Chaos, List<string> Hand) Replay()
         {
-            var (queue, _, time) = Create(TreeRainFire, TreeRainRain, TreeRainFire);
-            queue.SubmitTamper(1, "SYM_BLOOD");
-            queue.SubmitPronounce();
+            var (queue, prophet, time) = Create();
+            foreach (var (first, second) in new[] { (0, 1), (2, 3), (1, 2) })
+            {
+                queue.SubmitPronouncePair(first, second);
+                time.World.Year += 5;
+                prophet.OnTimeAdvanced();
+            }
             time.Jump();
-            queue.SubmitTamper(0, "SYM_FIRE");
-            queue.SubmitPronounce();
-            time.Jump();
-            return (time.World.Year, [.. time.Dogmas], time.World.ChaosLevel, time.World.ForestAmount);
+            return (time.World.Year, [.. time.Dogmas], time.World.ChaosLevel, [.. prophet.Hand]);
         }
 
         var first = Replay();
         var second = Replay();
 
+        Assert.NotEmpty(first.Dogmas);
         Assert.Equal(first.Year, second.Year);
         Assert.Equal(first.Dogmas, second.Dogmas);
         Assert.Equal(first.Chaos, second.Chaos);
-        Assert.Equal(first.Forest, second.Forest);
-        Assert.NotEmpty(first.Dogmas);
+        Assert.Equal(first.Hand, second.Hand);
     }
 
     [Fact]
     [Trait("TS", "TS-multiplayer-005")]
-    public void Submit_命令を積んで実行した後_待ち行列は空で順番の番号は続く()
+    public void SubmitPronouncePair_命令を積んで実行した後_待ち行列は空で順番の番号は続く()
     {
-        var (queue, _, _) = Create(TreeRainFire);
+        var (queue, _, _) = Create();
 
-        var a = queue.SubmitTamper(0, "SYM_FIRE");
-        var b = queue.SubmitPronounce();
+        var a = queue.SubmitPronouncePair(0, 1);
+        var b = queue.SubmitPronouncePair(0, 1);
 
         Assert.Equal(0, queue.PendingCount);
         Assert.Equal(1, a.Command.Sequence);

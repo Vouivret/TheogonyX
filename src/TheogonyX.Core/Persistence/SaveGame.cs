@@ -8,8 +8,6 @@ public static class SaveGame
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(timeControl);
         ArgumentNullException.ThrowIfNull(prophet);
-        var deck = prophet.Deck ?? throw new InvalidOperationException("セーブには神託のデッキが要る");
-        var faith = prophet.Faith ?? throw new InvalidOperationException("セーブには神威が要る");
         var world = timeControl.World;
         return new SaveData(
             seed,
@@ -32,8 +30,8 @@ public static class SaveGame
             timeControl.Residents?.Copy() ?? Residents.CreateInitial(),
             [.. timeControl.History?.Entries ?? []],
             timeControl.History?.Chapter ?? new ChapterStart(world.Year, world.ChaosLevel),
-            deck.Capture(),
-            faith.Capture());
+            prophet.Deck.Capture(),
+            prophet.Faith.Capture());
     }
 
     /// <summary>
@@ -46,12 +44,9 @@ public static class SaveGame
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(timeControl);
         ArgumentNullException.ThrowIfNull(prophet);
-        var deck = prophet.Deck ?? throw new InvalidOperationException("セーブには神託のデッキが要る");
-
         timeControl.Restore(data.World, data.Dogmas, data.Civilization, data.Residents, data.History, data.Chapter);
-        // ルーンの組モードでは夢を見ない。最後の神託の年は、依頼の待ちに使わないので今の年にしておく
-        prophet.Restore(ProphetDreamState.None, [], data.RequestId, data.AnsweredYears, data.World.Year);
-        deck.Restore(data.Deck);
+        prophet.Restore(data.RequestId, data.AnsweredYears);
+        prophet.Deck.Restore(data.Deck);
         prophet.RestoreFaith(data.Faith.Value, data.Faith.RecentYears);
         clock.Restore(data.Speed, data.ElapsedSeconds);
     }

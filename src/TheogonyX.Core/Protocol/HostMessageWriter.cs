@@ -30,7 +30,7 @@ public static class HostMessageWriter
     public static string OracleState(ProphetDreams prophet, bool isDestroyed)
     {
         ArgumentNullException.ThrowIfNull(prophet);
-        var faith = prophet.Faith ?? throw new ArgumentException("神威を持たない", nameof(prophet));
+        var faith = prophet.Faith;
         var request = prophet.ActiveRequest is { } active ? new { requestType = active.Id, symbolId = active.SymbolId } : null;
         return JsonSerializer.Serialize(new
         {
@@ -38,7 +38,7 @@ public static class HostMessageWriter
             version = 1,
             hand = prophet.Hand,
             faith = new { value = faith.Value, max = faith.Max, cost = faith.Cost },
-            canPronounce = prophet.CanPronouncePair,
+            canPronounce = prophet.CanPronounce,
             isDestroyed,
             request,
         });

@@ -1,50 +1,34 @@
 namespace TheogonyX.Core;
 
 /// <summary>
-/// 神託の命令の待ち行列（docs/domain/multiplayer.md）。夢の改ざんと神託は、ここに積んでから、積んだ順（順番の番号の順）に
-/// <see cref="ProphetDreams"/> へ実行する。番号・記号の検証もここで行う。
+/// 神託の命令の待ち行列（docs/domain/multiplayer.md）。神託を下す操作は、ここに積んでから、積んだ順（順番の番号の順）に
+/// <see cref="ProphetDreams"/> へ実行する。手札の番号・神威などの検証は <see cref="ProphetDreams.PairRejection"/> が行う。
 /// 積んだらすぐ、積んだ命令を含めて待ち行列が空になるまで実行する（再入した命令は、実行中の命令の後ろに積む）。
 /// </summary>
 public sealed class OracleCommandQueue
 {
     private readonly ProphetDreams _prophet;
     private readonly TimeControl _timeControl;
-    private readonly DreamRules _dreamRules;
     private readonly Queue<OracleCommand> _pending = new();
     private long _nextSequence = 1;
     private bool _draining;
 
-    public OracleCommandQueue(ProphetDreams prophet, TimeControl timeControl, DreamRules dreamRules)
+    public OracleCommandQueue(ProphetDreams prophet, TimeControl timeControl)
     {
         ArgumentNullException.ThrowIfNull(prophet);
         ArgumentNullException.ThrowIfNull(timeControl);
-        ArgumentNullException.ThrowIfNull(dreamRules);
 
         _prophet = prophet;
         _timeControl = timeControl;
-        _dreamRules = dreamRules;
     }
 
     /// <summary>実行を待っている命令の数。積んだ呼び出しのうちに空になるので、呼び出しの外では 0。</summary>
     public int PendingCount => _pending.Count;
 
-    /// <summary>夢の <paramref name="index"/> 番目を <paramref name="symbolId"/> のカードと入れ替える命令を積んで実行する。</summary>
-    public OracleCommandOutcome SubmitTamper(int index, string symbolId)
-    {
-        ArgumentNullException.ThrowIfNull(symbolId);
-        return Submit(OracleCommandKind.Tamper, index, symbolId);
-    }
-
-    /// <summary>神託を下す命令を積んで実行する。</summary>
-    public OracleCommandOutcome SubmitPronounce() => Submit(OracleCommandKind.Pronounce, 0, null);
-
     /// <summary>手札の <paramref name="first"/> 番・<paramref name="second"/> 番のルーン（1 枚目が対象）で神託を下す命令を積んで実行する。</summary>
-    public OracleCommandOutcome SubmitPronouncePair(int first, int second) =>
-        Submit(OracleCommandKind.PronouncePair, first, null, second);
-
-    private OracleCommandOutcome Submit(OracleCommandKind kind, int index, string? symbolId, int secondIndex = 0)
+    public OracleCommandOutcome SubmitPronouncePair(int first, int second)
     {
-        var command = new OracleCommand(kind, index, symbolId, _timeControl.World.Year, _nextSequence++, secondIndex);
+        var command = new OracleCommand(first, second, _timeControl.World.Year, _nextSequence++);
         _pending.Enqueue(command);
 
         // 実行中に積まれた命令は、実行中のループが、積まれた順に実行する
@@ -75,43 +59,10 @@ public sealed class OracleCommandQueue
 
     private OracleCommandOutcome Execute(OracleCommand command)
     {
-        switch (command.Kind)
+        if (_prophet.PairRejection(command.First, command.Second) is { } reason)
         {
-            case OracleCommandKind.Tamper:
-                if (!_prophet.CanTamper)
-                {
-                    return Reject(command, "cannot_tamper");
-                }
-                if (command.Index < 0 || command.Index >= _prophet.Dream.Count)
-                {
-                    return Reject(command, "invalid_dream_index");
-                }
-                if (!_dreamRules.Symbols.Any(symbol => symbol.Id == command.SymbolId))
-                {
-                    return Reject(command, "unknown_symbol");
-                }
-                if (!_prophet.Hand.Contains(command.SymbolId))
-                {
-                    return Reject(command, "card_not_in_hand");
-                }
-                _prophet.Tamper(command.Index, command.SymbolId!);
-                return new OracleCommandOutcome(command, null, null);
-
-            case OracleCommandKind.PronouncePair:
-                if (_prophet.PairRejection(command.Index, command.SecondIndex) is { } reason)
-                {
-                    return Reject(command, reason);
-                }
-                return new OracleCommandOutcome(command, null, _prophet.PronouncePair(command.Index, command.SecondIndex));
-
-            default:
-                if (!_prophet.CanPronounce)
-                {
-                    return Reject(command, "cannot_pronounce");
-                }
-                return new OracleCommandOutcome(command, null, _prophet.Pronounce());
+            return new OracleCommandOutcome(command, reason, null);
         }
+        return new OracleCommandOutcome(command, null, _prophet.PronouncePair(command.First, command.Second));
     }
-
-    private static OracleCommandOutcome Reject(OracleCommand command, string reason) => new(command, reason, null);
 }

@@ -336,7 +336,7 @@ public static class SaveDataSerializer
         {
             throw new InvalidSaveDataException("invalid_deck");
         }
-        return new OracleDeckState(drawPile, hand, discardPile, null, shuffleCount);
+        return new OracleDeckState(drawPile, hand, discardPile, shuffleCount);
     }
 
     // 神威（0 以上）と、直近の神託を下した年（0 以上、今の年以下。古い順）

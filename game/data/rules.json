@@ -218,12 +218,6 @@
     ],
     "handSize": 4
   },
-  "dream": {
-    "nodeCount": 3,
-    "minWeight": 0.3,
-    "maxWeight": 1.0,
-    "yearsBetweenDreams": 100
-  },
   "prophetRequests": {
     "cooldownYears": 50,
     "requests": [

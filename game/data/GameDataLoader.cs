@@ -290,11 +290,8 @@ public static class GameDataLoader
 
     public static ProphetDreamRules ParseProphetDreams(string rulesJson)
     {
-        var rules = Parse<RulesFile>(rulesJson, "rules.json");
-        var dream = rules.Dream;
-        var requests = rules.ProphetRequests;
-        return new ProphetDreamRules(
-            dream.NodeCount, dream.MinWeight, dream.MaxWeight, dream.YearsBetweenDreams, requests.CooldownYears, requests.Requests);
+        var requests = Parse<RulesFile>(rulesJson, "rules.json").ProphetRequests;
+        return new ProphetDreamRules(requests.CooldownYears, requests.Requests);
     }
 
     public static CompanionSettings ParseCompanion(string companionJson)
@@ -398,8 +395,6 @@ public static class GameDataLoader
         string DotColor,
         bool UseGpu);
 
-    private sealed record DreamFile(int NodeCount, float MinWeight, float MaxWeight, int YearsBetweenDreams);
-
     private sealed record ProphetRequestsFile(int CooldownYears, IReadOnlyList<ProphetRequestRule> Requests);
 
     private sealed record RulesFile(
@@ -415,6 +410,5 @@ public static class GameDataLoader
         StrataFile? Strata,
         CameraFile? Camera,
         CrowdFile? Crowd,
-        DreamFile Dream,
         ProphetRequestsFile ProphetRequests);
 }

@@ -33,9 +33,8 @@ public class HostMessageWriterTests
     private static (ProphetDreams Prophet, TimeControl Time) CreateProphet()
     {
         var time = new TimeControl(TestRules.World, TestRules.JumpYears);
-        DreamNode[] dream = [new("SYM_TREE", 0.5f), new("SYM_RAIN", 0.6f), new("SYM_FIRE", 0.4f)];
         var deck = new OracleDeck(1, new DeckRules([new DeckRuneCount("SYM_TREE", 1), new DeckRuneCount("SYM_RAIN", 1)], HandSize: 2));
-        return (new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, () => dream, deck, TestRules.Oracle), time);
+        return (new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, TestRules.Oracle), time);
     }
 
     [Fact]

@@ -75,8 +75,7 @@ public class SaveDataTests
     {
         var time = new TimeControl(
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
-        var prophet = new ProphetDreams(
-            time, TestRules.Dream, TestRules.ProphetDreams, () => [], new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
+        var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
             [AutoPlaySpeed.Normal] = 1.0,
@@ -113,10 +112,10 @@ public class SaveDataTests
         game.Time.World.WaterAmount = 10f;
         game.Prophet.OnTimeAdvanced();
         var dogmasBefore = game.Time.Dogmas.ToList();
-        var handBefore = game.Prophet.Deck!.Hand.ToList();
+        var handBefore = game.Prophet.Deck.Hand.ToList();
         var pileBefore = game.Prophet.Deck.DrawPile.ToList();
         var discardBefore = game.Prophet.Deck.DiscardPile.ToList();
-        var faithBefore = game.Prophet.Faith!.Value;
+        var faithBefore = game.Prophet.Faith.Value;
 
         var loaded = RoundTrip(game);
 
@@ -126,13 +125,11 @@ public class SaveDataTests
         Assert.Equal(dogmasBefore, loaded.Time.Dogmas);
         Assert.Equal("THIRST", loaded.Prophet.ActiveRequest?.Id);
         Assert.Equal(new Dictionary<string, int> { ["FAMINE"] = 250 }, loaded.Prophet.AnsweredYears);
-        Assert.Equal(handBefore, loaded.Prophet.Deck!.Hand);
+        Assert.Equal(handBefore, loaded.Prophet.Deck.Hand);
         Assert.Equal(pileBefore, loaded.Prophet.Deck.DrawPile);
         Assert.Equal(discardBefore, loaded.Prophet.Deck.DiscardPile);
-        Assert.Equal(faithBefore, loaded.Prophet.Faith!.Value, 6);
+        Assert.Equal(faithBefore, loaded.Prophet.Faith.Value, 6);
         Assert.Equal([250], loaded.Prophet.Faith.RecentYears);
-        Assert.Equal(ProphetDreamState.None, loaded.Prophet.State);
-        Assert.Empty(loaded.Prophet.Dream);
     }
 
     [Fact]
@@ -146,7 +143,7 @@ public class SaveDataTests
 
         Assert.True(loaded.Time.World.IsDestroyed);
         Assert.Equal(TimeControlState.Destroyed, loaded.Time.State);
-        Assert.False(loaded.Prophet.CanPronouncePair);
+        Assert.False(loaded.Prophet.CanPronounce);
     }
 
     [Fact]
@@ -189,7 +186,7 @@ public class SaveDataTests
             loaded.Prophet.OnTimeAdvanced();
         }
 
-        Assert.Equal(reference.Prophet.Deck!.Hand, loaded.Prophet.Deck!.Hand);
+        Assert.Equal(reference.Prophet.Deck.Hand, loaded.Prophet.Deck.Hand);
         Assert.Equal(reference.Prophet.Deck.DrawPile, loaded.Prophet.Deck.DrawPile);
         Assert.Equal(reference.Prophet.Deck.DiscardPile, loaded.Prophet.Deck.DiscardPile);
         Assert.Equal(reference.Time.Dogmas, loaded.Time.Dogmas);

@@ -4,13 +4,11 @@ namespace TheogonyX.Core;
 /// <param name="DrawPile">山札。</param>
 /// <param name="Hand">手札。</param>
 /// <param name="DiscardPile">捨札。</param>
-/// <param name="UsedSymbolId">夢の改ざんに使って、まだ手札にあるカード。使っていなければ null。</param>
 /// <param name="ShuffleCount">これまでのシャッフルの回数。次のシャッフルの乱数を決める。</param>
 public sealed record OracleDeckState(
     IReadOnlyList<string> DrawPile,
     IReadOnlyList<string> Hand,
     IReadOnlyList<string> DiscardPile,
-    string? UsedSymbolId,
     int ShuffleCount);
 
 /// <summary>
@@ -47,34 +45,7 @@ public sealed class OracleDeck
 
     public IReadOnlyList<string> DiscardPile => _discardPile;
 
-    /// <summary>夢の改ざんに使って、まだ手札にあるカード。</summary>
-    public string? UsedSymbolId { get; private set; }
-
     public int ShuffleCount { get; private set; }
-
-    /// <summary>改ざんに使うカードを覚える（手札からはまだ動かさない）。手札に無いか、すでに使っていれば <see cref="InvalidOperationException"/>。</summary>
-    public void Use(string symbolId)
-    {
-        ArgumentNullException.ThrowIfNull(symbolId);
-        if (UsedSymbolId is not null || !_hand.Contains(symbolId))
-        {
-            throw new InvalidOperationException($"手札に無いか、すでに使っている: symbolId={symbolId}");
-        }
-        UsedSymbolId = symbolId;
-    }
-
-    /// <summary>神託を下したとき。使ったカードがあれば捨札へ移し、1 枚を山札から手札に引く。使っていなければ何もしない。</summary>
-    public void Settle()
-    {
-        if (UsedSymbolId is null)
-        {
-            return;
-        }
-        _hand.Remove(UsedSymbolId);
-        _discardPile.Add(UsedSymbolId);
-        UsedSymbolId = null;
-        Draw(1);
-    }
 
     /// <summary>
     /// 手札の 2 枚（番号は手札の位置）を捨札へ移し、山札から 2 枚を手札に引く（神託の作り方「ルーンの組」）。
@@ -97,10 +68,7 @@ public sealed class OracleDeck
         Draw(2);
     }
 
-    /// <summary>世界再創生など、夢を捨てたとき。使ったカードは手札に残る。</summary>
-    public void ClearUsed() => UsedSymbolId = null;
-
-    public OracleDeckState Capture() => new([.. _drawPile], [.. _hand], [.. _discardPile], UsedSymbolId, ShuffleCount);
+    public OracleDeckState Capture() => new([.. _drawPile], [.. _hand], [.. _discardPile], ShuffleCount);
 
     /// <summary>セーブの状態に戻す。値の検証は読み込む側で済ませておく。</summary>
     public void Restore(OracleDeckState state)
@@ -112,7 +80,6 @@ public sealed class OracleDeck
         _hand.AddRange(state.Hand);
         _discardPile.Clear();
         _discardPile.AddRange(state.DiscardPile);
-        UsedSymbolId = state.UsedSymbolId;
         ShuffleCount = state.ShuffleCount;
     }
 

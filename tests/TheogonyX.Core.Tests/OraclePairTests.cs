@@ -7,8 +7,6 @@ public class OraclePairTests
     private const int Seed = 42;
     private const float Tolerance = 0.001f;
 
-    private static readonly DreamNode[] AnyDream = [new("SYM_TREE", 0.5f), new("SYM_RAIN", 0.6f), new("SYM_FIRE", 0.4f)];
-
     private static DeckRules Deck(int handSize, params (string SymbolId, int Count)[] runes) =>
         new([.. runes.Select(rune => new DeckRuneCount(rune.SymbolId, rune.Count))], handSize);
 
@@ -20,8 +18,7 @@ public class OraclePairTests
         var time = new TimeControl(
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, seed, TestRules.Needs), TestRules.History);
         var oracleDeck = new OracleDeck(seed, deck ?? TestRules.Deck);
-        var prophet = new ProphetDreams(
-            time, TestRules.Dream, TestRules.ProphetDreams, () => AnyDream, oracleDeck, oracle ?? TestRules.Oracle);
+        var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, oracleDeck, oracle ?? TestRules.Oracle);
         return (prophet, time, oracleDeck);
     }
 
@@ -265,7 +262,7 @@ public class OraclePairTests
     public void SubmitPronouncePair_命令で下す_直接下したのと同じ結果で番号が続く()
     {
         var (prophet, time, deck) = Create();
-        var queue = new OracleCommandQueue(prophet, time, TestRules.Dream);
+        var queue = new OracleCommandQueue(prophet, time);
 
         var outcome = queue.SubmitPronouncePair(0, 1);
         var rejected = queue.SubmitPronouncePair(0, 0);

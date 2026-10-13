@@ -178,7 +178,7 @@ public sealed class DreamView
             buttons[i].Disabled = _timeControl.World.IsDestroyed;
         }
 
-        _oracleButton.Disabled = !(_selected.Count == 2 && _prophet.CanPronouncePair);
+        _oracleButton.Disabled = !(_selected.Count == 2 && _prophet.CanPronounce);
         _dreamGuide.Text = GuideText();
 
         if (_prophet.ActiveRequest is { } request)
@@ -203,7 +203,7 @@ public sealed class DreamView
             return Tr("ORACLE_GUIDE_DESTROYED");
         }
 
-        var faith = _prophet.Faith!;
+        var faith = _prophet.Faith;
         var key = _prophet.Hand.Count < 2 ? "ORACLE_GUIDE_NO_CARDS"
             : !faith.CanAfford ? "ORACLE_GUIDE_NO_FAITH"
             : _selected.Count == 2 ? "ORACLE_GUIDE_READY"

@@ -1,10 +1,10 @@
 ---
-status: draft   # draft | approved | as-is
+status: deprecated   # draft | approved | as-is | deprecated
 ---
 
 # 仕様書: 夢の解釈
 
-> **置き換え予定（2026-10-14）**: 神託の作り方を「手札のルーンを 2 枚選ぶ」に変える（[神託の作り方](oracle-pair.md)）。隣り合うコマからペアを探す部分は、神が選んだ 2 枚に替わる。極性・衝撃度・種別・強度の式は使い続ける。実装が済むまでは、この仕様書が今のゲームの動きである。
+> **廃止（2026-10-14）**: この仕様書の機能（夢・夢ノード・改ざん）は、[神託の作り方](oracle-pair.md)に置き換えた。コードは削除済みで、この仕様書は経緯の記録として残す。
 
 - テスト仕様書: [docs/test/dream-interpretation.md](../test/dream-interpretation.md)
 - 関連ADR: なし
