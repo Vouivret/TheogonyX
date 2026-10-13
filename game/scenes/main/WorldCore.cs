@@ -20,6 +20,7 @@ public partial class WorldCore : Node2D
     private AmbienceView? _ambience;
     private CameraView? _camera;
     private BuildingView? _buildings;
+    private StrataView? _strata;
     private CrowdView? _crowd;
     private DreamView? _dreams;
     private CompanionHost? _companion;
@@ -95,6 +96,8 @@ public partial class WorldCore : Node2D
         _camera = new CameraView(this, cameraSettings);
         _buildings = new BuildingView(this, timeControl, lightingSettings);
         _screen.TerrainDrawn += _buildings.Refresh;
+        _strata = new StrataView(this, timeControl, civilizationRules);
+        _screen.TerrainDrawn += _strata.Refresh;
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         _screen.WorldReset += _crowd.OnWorldReset;

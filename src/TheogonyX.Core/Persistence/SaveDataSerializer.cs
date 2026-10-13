@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 3;
+    public const int SaveVersion = 4;
 
     /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
     public const int MaxDreamsGenerated = 1_000_000;
@@ -84,6 +84,35 @@ public static class SaveDataSerializer
                     region = building.Region,
                     column = building.Column,
                     row = building.Row,
+                    collapseYear = building.CollapseYear,
+                }),
+                ruins = data.Civilization.Ruins.Select(ruin => new
+                {
+                    id = ruin.Id,
+                    type = BuildingTypeNames[ruin.Type],
+                    region = ruin.Region,
+                    column = ruin.Column,
+                    row = ruin.Row,
+                    ruinedYear = ruin.RuinedYear,
+                }),
+                relics = data.Civilization.Relics.Select(relic => new
+                {
+                    id = relic.Id,
+                    type = BuildingTypeNames[relic.Type],
+                    region = relic.Region,
+                    column = relic.Column,
+                    row = relic.Row,
+                    depth = relic.Depth,
+                    buriedYear = relic.BuriedYear,
+                    tech = relic.Tech,
+                    culture = relic.Culture,
+                    chaos = relic.Chaos,
+                    dogmas = relic.Dogmas.Select(dogma => new
+                    {
+                        targetSymbolId = dogma.TargetSymbolId,
+                        dogmaType = dogma.Type.ToString(),
+                        intensity = dogma.Intensity,
+                    }),
                 }),
                 nextBuildingId = data.Civilization.NextBuildingId,
             },
@@ -219,15 +248,16 @@ public static class SaveDataSerializer
             throw new InvalidSaveDataException("invalid_number");
         }
 
-        var civilization = ReadCivilization(Property(root, "civilization", JsonValueKind.Object), civilizationRules);
+        var civilization = ReadCivilization(Property(root, "civilization", JsonValueKind.Object), civilizationRules, world.Year, symbolIds);
 
         return new SaveData(
             seed, dreamsGenerated, world, dogmas, dreamState.Key, dream, requestId, answeredYears, lastOracleYear, speed.Key, elapsedSeconds,
             civilization);
     }
 
-    // 地域の数・値の範囲・建物の場所（地域の中の 2 × 2 の枠）と ID を、定義と照らして検証する
-    private static Civilization ReadCivilization(JsonElement element, CivilizationRules rules)
+    // 地域の数・値の範囲・建物・廃墟・遺物の場所（地域の中の 2 × 2 の枠）と ID を、定義と照らして検証する。
+    // ID は建物・廃墟・遺物を通して重ならない（同じ建物が、建物・廃墟・遺物のどれか 1 つとしてだけある）
+    private static Civilization ReadCivilization(JsonElement element, CivilizationRules rules, int year, HashSet<string> symbolIds)
     {
         var regions = Property(element, "regions", JsonValueKind.Array).EnumerateArray()
             .Select(region => ReadRegion(region, rules))
@@ -239,28 +269,75 @@ public static class SaveDataSerializer
 
         var nextBuildingId = ReadInt(element, "nextBuildingId");
         var ids = new HashSet<int>();
-        var slots = new HashSet<(int Column, int Row)>();
-        var buildings = new List<Building>();
-        foreach (var building in Property(element, "buildings", JsonValueKind.Array).EnumerateArray())
+
+        (int Id, BuildingType Type, int Region, int Column, int Row) ReadPlaced(JsonElement placed)
         {
-            if (building.ValueKind != JsonValueKind.Object)
+            if (placed.ValueKind != JsonValueKind.Object)
             {
                 throw new InvalidSaveDataException("invalid_field");
             }
-            var id = ReadInt(building, "id");
-            var typeName = ReadString(building, "type");
+            var id = ReadInt(placed, "id");
+            var typeName = ReadString(placed, "type");
             var type = BuildingTypeNames.FirstOrDefault(pair => pair.Value == typeName);
-            var region = ReadInt(building, "region");
-            var column = ReadInt(building, "column");
-            var row = ReadInt(building, "row");
+            var region = ReadInt(placed, "region");
+            var column = ReadInt(placed, "column");
+            var row = ReadInt(placed, "row");
             if (type.Value is null || id < 0 || id >= nextBuildingId || !ids.Add(id)
-                || region < 0 || region >= rules.Regions.Count || !IsSlot(column, row, region, rules) || !slots.Add((column, row)))
+                || region < 0 || region >= rules.Regions.Count || !IsSlot(column, row, region, rules))
             {
                 throw new InvalidSaveDataException("invalid_civilization");
             }
-            buildings.Add(new Building(id, type.Key, region, column, row));
+            return (id, type.Key, region, column, row);
         }
-        return new Civilization(regions, buildings, nextBuildingId);
+
+        var buildingSlots = new HashSet<(int Column, int Row)>();
+        var buildings = new List<Building>();
+        foreach (var item in Property(element, "buildings", JsonValueKind.Array).EnumerateArray())
+        {
+            var (id, type, region, column, row) = ReadPlaced(item);
+            var collapseYear = ReadInt(item, "collapseYear");
+            if (!buildingSlots.Add((column, row)) || collapseYear < 0)
+            {
+                throw new InvalidSaveDataException("invalid_civilization");
+            }
+            buildings.Add(new Building(id, type, region, column, row, collapseYear));
+        }
+
+        var ruinSlots = new HashSet<(int Column, int Row)>();
+        var ruins = new List<Ruin>();
+        foreach (var item in Property(element, "ruins", JsonValueKind.Array).EnumerateArray())
+        {
+            var (id, type, region, column, row) = ReadPlaced(item);
+            var ruinedYear = ReadInt(item, "ruinedYear");
+            if (!ruinSlots.Add((column, row)) || ruinedYear < 0 || ruinedYear > year)
+            {
+                throw new InvalidSaveDataException("invalid_civilization");
+            }
+            ruins.Add(new Ruin(id, type, region, column, row, ruinedYear));
+        }
+
+        // 世界再創生の後は年が 0 に戻るので、埋もれた年は今の年より大きくてよい
+        var relicSlots = new HashSet<(int Column, int Row, int Depth)>();
+        var relics = new List<Relic>();
+        foreach (var item in Property(element, "relics", JsonValueKind.Array).EnumerateArray())
+        {
+            var (id, type, region, column, row) = ReadPlaced(item);
+            var depth = ReadInt(item, "depth");
+            var buriedYear = ReadInt(item, "buriedYear");
+            var tech = ReadDouble(item, "tech");
+            var culture = ReadDouble(item, "culture");
+            var chaos = ReadDouble(item, "chaos");
+            var dogmas = Property(item, "dogmas", JsonValueKind.Array).EnumerateArray()
+                .Select(dogma => ReadDogma(dogma, symbolIds))
+                .ToList();
+            if (depth < 1 || depth > rules.Strata.MaxDepth || !relicSlots.Add((column, row, depth)) || buriedYear < 0
+                || tech is < 0 or > 1 || culture is < 0 or > 1 || chaos is < 0 or > 1)
+            {
+                throw new InvalidSaveDataException("invalid_civilization");
+            }
+            relics.Add(new Relic(id, type, region, column, row, depth, buriedYear, tech, culture, chaos, dogmas));
+        }
+        return new Civilization(regions, buildings, ruins, relics, nextBuildingId);
     }
 
     private static RegionCivilization ReadRegion(JsonElement element, CivilizationRules rules)

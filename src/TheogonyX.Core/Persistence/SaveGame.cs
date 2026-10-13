@@ -31,7 +31,7 @@ public static class SaveGame
             prophet.LastOracleYear,
             clock.Speed,
             clock.ElapsedSeconds,
-            timeControl.Civilization?.Copy() ?? new Civilization([], [], 0));
+            timeControl.Civilization?.Copy() ?? new Civilization([], [], [], [], 0));
     }
 
     /// <summary>

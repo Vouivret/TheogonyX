@@ -145,6 +145,8 @@ public static class GameDataLoader
         var rules = Parse<RulesFile>(rulesJson, "rules.json");
         var civilization = rules.Civilization
             ?? throw new InvalidDataException("文明の定義が無い: file=rules.json key=civilization");
+        var strata = rules.Strata
+            ?? throw new InvalidDataException("地層の定義が無い: file=rules.json key=strata");
         try
         {
             return new CivilizationRules(
@@ -159,11 +161,12 @@ public static class GameDataLoader
                 civilization.TabooGrowthFactor,
                 civilization.ZeroInfluenceDistance,
                 civilization.EnvironmentMultipliers ?? [],
-                civilization.Thresholds ?? []);
+                civilization.Thresholds ?? [],
+                new StrataRules(strata.LifespanMin, strata.LifespanMax, strata.RuinBurialYears, strata.MaxDepth));
         }
         catch (ArgumentException ex)
         {
-            throw new InvalidDataException($"文明の定義の値が範囲外: file=rules.json value={civilization}", ex);
+            throw new InvalidDataException($"文明・地層の定義の値が範囲外: file=rules.json civilization={civilization} strata={strata}", ex);
         }
     }
 
@@ -250,6 +253,8 @@ public static class GameDataLoader
         Dictionary<TileType, double>? EnvironmentMultipliers,
         IReadOnlyList<double>? Thresholds);
 
+    private sealed record StrataFile(int LifespanMin, int LifespanMax, int RuinBurialYears, int MaxDepth);
+
     private sealed record CrowdFile(
         int Count,
         float WalkSpeed,
@@ -279,6 +284,7 @@ public static class GameDataLoader
         CampfireFile? Campfire,
         LightingSettings? Lighting,
         CivilizationFile? Civilization,
+        StrataFile? Strata,
         CameraFile? Camera,
         CrowdFile? Crowd,
         DreamFile Dream,

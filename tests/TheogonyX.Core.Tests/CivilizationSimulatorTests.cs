@@ -22,7 +22,7 @@ public class CivilizationSimulatorTests
     {
         var regions = Enumerable.Repeat(new RegionCivilization(0, 0, 0, 0), TestRules.Civilization.Regions.Count).ToArray();
         regions[region] = state;
-        return new Civilization(regions, [], 0);
+        return new Civilization(regions, [], [], [], 0);
     }
 
     [Fact]
@@ -129,8 +129,9 @@ public class CivilizationSimulatorTests
         var civilization = Advance(GrasslandWorld(), [], WithRegion(6, new RegionCivilization(0.195, 0, 0, 0)));
 
         var building = Assert.Single(civilization.Buildings);
-        Assert.Equal(new Building(0, BuildingType.Workshop, 6, 12, building.Row), building);
+        Assert.Equal(new Building(0, BuildingType.Workshop, 6, 12, building.Row, building.CollapseYear), building);
         Assert.Contains(building.Row, new[] { 0, 2, 4, 6 });
+        Assert.InRange(building.CollapseYear, 201, 401); // 年 1 に建ち、寿命は 200〜400 年
         Assert.Equal(1, civilization.Regions[6].TechStage);
         Assert.Equal(1, civilization.NextBuildingId);
 
@@ -189,8 +190,8 @@ public class CivilizationSimulatorTests
     {
         var regions = Enumerable.Repeat(new RegionCivilization(0, 0, 0, 0), 8).ToArray();
         regions[6] = new RegionCivilization(0.195, 0, 0, 0);
-        Building[] full = [.. new[] { 0, 2, 4, 6 }.Select((row, id) => new Building(id, BuildingType.Shrine, 6, 12, row))];
-        var civilization = new Civilization(regions, full, 4);
+        Building[] full = [.. new[] { 0, 2, 4, 6 }.Select((row, id) => new Building(id, BuildingType.Shrine, 6, 12, row, 1000))];
+        var civilization = new Civilization(regions, full, [], [], 4);
 
         Advance(GrasslandWorld(), [], civilization);
 

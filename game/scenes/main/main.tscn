@@ -167,3 +167,8 @@ text = "BUTTON_RESET"
 unique_name_in_owner = true
 layout_mode = 2
 text = "BUTTON_RESET_SESSIONS"
+
+[node name="LayerButton" type="Button" parent="Hud/Panel/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BUTTON_LAYER_SURFACE"

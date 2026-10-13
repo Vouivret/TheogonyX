@@ -20,6 +20,8 @@ BUTTON_SPEED_FAST,速さ: 高速,Speed: Fast
 BUTTON_SPEED_REAL_TIME,速さ: 現実同期,Speed: Real Time
 HUD_NEXT_YEAR,次の年まで {0},Next year in {0}
 BUTTON_RESET,世界再創生,Recreate World
+BUTTON_LAYER_SURFACE,地上,Surface
+BUTTON_LAYER_UNDERGROUND,地下 {0} 層,Underground {0}
 BUTTON_RESET_SESSIONS,全セッションリセット,Reset All Sessions
 BUTTON_ORACLE,神託を下す,Deliver Oracle
 DREAM_NONE,予言者は眠っている,The prophet is asleep

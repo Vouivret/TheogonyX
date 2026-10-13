@@ -127,7 +127,9 @@ internal static class TestRules
             [TileType.Jungle] = 1.5,
             [TileType.Water] = 1.5,
         },
-        thresholds: [0.2, 0.4, 0.6, 0.8]);
+        thresholds: [0.2, 0.4, 0.6, 0.8],
+        // docs/domain/strata.md の「M4 で作る範囲と値」の仮の値
+        strata: new StrataRules(lifespanMin: 200, lifespanMax: 400, ruinBurialYears: 150, maxDepth: 3));
 
     // docs/domain/time-control.md の「100年跳躍ボタン」。
     public const int JumpYears = 100;

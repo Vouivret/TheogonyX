@@ -1,11 +1,15 @@
 namespace TheogonyX.Core;
 
-/// <summary>地域ごとの技術・文化の伸びと、閾値を越えたときの自律建築を 1 年ぶん計算する（docs/domain/emergent-progression.md）。</summary>
+/// <summary>
+/// 地域ごとの技術・文化の伸びと自律建築（docs/domain/emergent-progression.md）、
+/// 老朽化・建て増し・ミクロ沈下（docs/domain/strata.md）を 1 年ぶん計算する。
+/// </summary>
 public static class CivilizationSimulator
 {
     /// <summary>
     /// 1 年進める。<paramref name="civilization"/> を書き換える。環境の値を変えた後の <paramref name="world"/> で呼ぶ。
-    /// 建てる場所は、シード・年・地域から作った乱数で選ぶ（乱数の状態をセーブしなくても、読み込んだ後に同じ結果になる）。
+    /// 建てる場所と寿命は、シード・年・地域から作った乱数で選ぶ（乱数の状態をセーブしなくても、読み込んだ後に同じ結果になる）。
+    /// 順番は、寿命が来た建物を廃墟にする → 年数のたった廃墟を沈める → 値を伸ばす → 足りない数の建物を建てる。
     /// </summary>
     public static void AdvanceYear(
         Civilization civilization, WorldState world, IReadOnlyList<Dogma> dogmas, TerrainRules terrain, CivilizationRules rules, int seed)
@@ -15,6 +19,18 @@ public static class CivilizationSimulator
         ArgumentNullException.ThrowIfNull(dogmas);
         ArgumentNullException.ThrowIfNull(terrain);
         ArgumentNullException.ThrowIfNull(rules);
+
+        foreach (var building in civilization.Buildings.Where(building => building.CollapseYear <= world.Year).ToList())
+        {
+            civilization.Collapse(building, world, dogmas, rules);
+        }
+        var idleRuins = civilization.Ruins
+            .Where(ruin => !civilization.HasBuildingAt(ruin.Column, ruin.Row) && world.Year - ruin.RuinedYear >= rules.Strata.RuinBurialYears)
+            .ToList();
+        foreach (var ruin in idleRuins)
+        {
+            civilization.BuryIdleRuin(ruin, world, dogmas, rules);
+        }
 
         var tiles = TerrainClassifier.ClassifyTiles(world, terrain);
         var techBonus = 0.0;
@@ -48,19 +64,18 @@ public static class CivilizationSimulator
             Random? random = null;
             Random Rng() => random ??= new Random(unchecked((int)CrowdHash.Hash((uint)seed, (uint)world.Year, (uint)region)));
 
-            // 越えた閾値 1 つにつき 1 つ建てる。空いた枠が無くても、閾値は越えたものとして数える
-            var techStage = Civilization.StageOf(tech, rules);
-            for (var stage = before.TechStage; stage < techStage; stage++)
+            // 立っている数が段階（越えた閾値の数）より少なければ、足りない数だけ建てる。空いた枠が無ければ次の年にまた建てようとする
+            var techStage = Math.Max(before.TechStage, Civilization.StageOf(tech, rules));
+            var cultureStage = Math.Max(before.CultureStage, Civilization.StageOf(culture, rules));
+            civilization.SetRegion(region, new RegionCivilization(tech, culture, techStage, cultureStage));
+            while (CountStanding(civilization, region, BuildingType.Workshop) < techStage
+                && TryBuild(civilization, tiles, region, BuildingType.Workshop, world.Year, rules, Rng))
             {
-                TryBuild(civilization, tiles, region, BuildingType.Workshop, rules, Rng);
             }
-            var cultureStage = Civilization.StageOf(culture, rules);
-            for (var stage = before.CultureStage; stage < cultureStage; stage++)
+            while (CountStanding(civilization, region, BuildingType.Shrine) < cultureStage
+                && TryBuild(civilization, tiles, region, BuildingType.Shrine, world.Year, rules, Rng))
             {
-                TryBuild(civilization, tiles, region, BuildingType.Shrine, rules, Rng);
             }
-            civilization.SetRegion(region, new RegionCivilization(
-                tech, culture, Math.Max(before.TechStage, techStage), Math.Max(before.CultureStage, cultureStage)));
         }
     }
 
@@ -106,28 +121,40 @@ public static class CivilizationSimulator
         return rules.EnvironmentMultipliers[worst.Value];
     }
 
-    // 地域の 2 × 2 の枠のうち、建物が無く、4 マスとも草地（水場・異常のタイルでない）の枠から乱数で選んで建てる
-    private static void TryBuild(
-        Civilization civilization, TileType[,] tiles, int region, BuildingType type, CivilizationRules rules, Func<Random> random)
+    private static int CountStanding(Civilization civilization, int region, BuildingType type) =>
+        civilization.Buildings.Count(building => building.Region == region && building.Type == type);
+
+    // 地域の 2 × 2 の枠のうち、建物が無く、4 マスとも草地（水場・異常のタイルでない）の枠から乱数で選んで建てる。
+    // 廃墟のある枠（建て増し）を先に選び、無ければ空いている枠から選ぶ。寿命も同じ乱数で決める
+    private static bool TryBuild(
+        Civilization civilization, TileType[,] tiles, int region, BuildingType type, int year, CivilizationRules rules, Func<Random> random)
     {
         var first = rules.Regions.FirstColumn(region);
+        var ruined = new List<(int Column, int Row)>();
         var free = new List<(int Column, int Row)>();
         for (var column = first; column < first + rules.Regions.ColumnsPerRegion; column += 2)
         {
             for (var row = 0; row + 1 < rules.Rows; row += 2)
             {
-                if (IsBuildable(tiles, column, row) && !civilization.Buildings.Any(building => building.Column == column && building.Row == row))
+                if (IsBuildable(tiles, column, row) && !civilization.HasBuildingAt(column, row))
                 {
-                    free.Add((column, row));
+                    (civilization.RuinAt(column, row) is null ? free : ruined).Add((column, row));
                 }
             }
         }
-        if (free.Count == 0)
+        var candidates = ruined.Count > 0 ? ruined : free;
+        if (candidates.Count == 0)
         {
-            return;
+            return false;
         }
-        var (c, r) = free[random().Next(free.Count)];
-        civilization.AddBuilding(type, region, c, r);
+        var (c, r) = candidates[random().Next(candidates.Count)];
+        if (ruined.Count > 0)
+        {
+            StrataTransitions.Next(StrataState.Ruin, StrataTrigger.Overbuild);
+        }
+        var lifespan = random().Next(rules.Strata.LifespanMin, rules.Strata.LifespanMax + 1);
+        civilization.AddBuilding(type, region, c, r, year + lifespan);
+        return true;
     }
 
     private static bool IsBuildable(TileType[,] tiles, int column, int row) =>

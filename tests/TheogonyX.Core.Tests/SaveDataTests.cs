@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 3, "seed": 42, "dreamsGenerated": 2,
+          "saveVersion": 4, "seed": 42, "dreamsGenerated": 2,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -26,8 +26,11 @@ public class SaveDataTests
               { "tech": 0, "culture": 0, "techStage": 0, "cultureStage": 0 }, { "tech": 0, "culture": 0, "techStage": 0, "cultureStage": 0 },
               { "tech": 0, "culture": 0, "techStage": 0, "cultureStage": 0 }
             ],
-            "buildings": [{ "id": 0, "type": "WORKSHOP", "region": 3, "column": 6, "row": 2 }],
-            "nextBuildingId": 1
+            "buildings": [{ "id": 0, "type": "WORKSHOP", "region": 3, "column": 6, "row": 2, "collapseYear": 500 }],
+            "ruins": [{ "id": 1, "type": "SHRINE", "region": 3, "column": 6, "row": 4, "ruinedYear": 300 }],
+            "relics": [{ "id": 2, "type": "SHRINE", "region": 3, "column": 6, "row": 6, "depth": 1, "buriedYear": 280,
+                         "tech": 0.3, "culture": 0.2, "chaos": 0.1, "dogmas": [{ "targetSymbolId": "SYM_FIRE", "dogmaType": "Worship", "intensity": 0.5 }] }],
+            "nextBuildingId": 3
           }
         }
         """;
@@ -195,7 +198,45 @@ public class SaveDataTests
         Assert.NotEmpty(reference.Time.Civilization!.Buildings);
         Assert.Equal(reference.Time.Civilization.Regions, loaded.Time.Civilization!.Regions);
         Assert.Equal(reference.Time.Civilization.Buildings, loaded.Time.Civilization.Buildings);
+        Assert.Equal(reference.Time.Civilization.Ruins, loaded.Time.Civilization.Ruins);
+        Assert.Equal(reference.Time.Civilization.Relics, loaded.Time.Civilization.Relics);
         Assert.Equal(reference.Time.Civilization.NextBuildingId, loaded.Time.Civilization.NextBuildingId);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-save-data-008")]
+    public void RoundTrip_再創生の後の300年目で保存_続けた結果が保存しなかった場合と同じ()
+    {
+        static Game Start()
+        {
+            var game = CreateGame();
+            game.Time.World.ForestAmount = 50f;
+            game.Time.AddDogma(new Dogma("SYM_FIRE", DogmaType.Worship, 0.4f));
+            for (var i = 0; i < 4; i++)
+            {
+                game.Time.Jump();
+            }
+            game.Time.Reset();
+            game.Time.World.ForestAmount = 50f;
+            for (var i = 0; i < 3; i++)
+            {
+                game.Time.Jump();
+            }
+            return game;
+        }
+        var reference = Start();
+        reference.Time.Jump();
+        reference.Time.Jump();
+
+        var loaded = RoundTrip(Start());
+        loaded.Time.Jump();
+        loaded.Time.Jump();
+
+        Assert.NotEmpty(reference.Time.Civilization!.Ruins);
+        Assert.NotEmpty(reference.Time.Civilization.Relics);
+        Assert.Equal(reference.Time.Civilization.Buildings, loaded.Time.Civilization!.Buildings);
+        Assert.Equal(reference.Time.Civilization.Ruins, loaded.Time.Civilization.Ruins);
+        Assert.Equal(reference.Time.Civilization.Relics, loaded.Time.Civilization.Relics);
     }
 
     [Fact]
@@ -208,14 +249,18 @@ public class SaveDataTests
         Assert.Equal(312, data!.World.Year);
         Assert.Equal("THIRST", data.RequestId);
         Assert.Equal(new RegionCivilization(0.25, 0.1, 1, 0), data.Civilization.Regions[0]);
-        Assert.Equal(new Building(0, BuildingType.Workshop, 3, 6, 2), Assert.Single(data.Civilization.Buildings));
+        Assert.Equal(new Building(0, BuildingType.Workshop, 3, 6, 2, 500), Assert.Single(data.Civilization.Buildings));
+        Assert.Equal(new Ruin(1, BuildingType.Shrine, 3, 6, 4, 300), Assert.Single(data.Civilization.Ruins));
+        Assert.Equal(
+            new Relic(2, BuildingType.Shrine, 3, 6, 6, 1, 280, 0.3, 0.2, 0.1, [new Dogma("SYM_FIRE", DogmaType.Worship, 0.5f)]),
+            Assert.Single(data.Civilization.Relics));
     }
 
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 3", "\"saveVersion\": 2", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 3, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 4", "\"saveVersion\": 3", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 4, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": -1", "invalid_dreams_generated")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": 1000001", "invalid_dreams_generated")]
@@ -245,8 +290,16 @@ public class SaveDataTests
     [InlineData("\"column\": 6", "\"column\": 8", "invalid_civilization")] // 地域 3 の外
     [InlineData("\"row\": 2", "\"row\": 3", "invalid_civilization")] // 枠の左上ではない
     [InlineData("\"row\": 2", "\"row\": 8", "invalid_civilization")] // 2 × 2 が地表からはみ出す
-    [InlineData("\"id\": 0", "\"id\": 1", "invalid_civilization")] // 次の ID 以上
-    [InlineData("\"nextBuildingId\": 1", "\"nextBuilding\": 1", "invalid_field")]
+    [InlineData("\"id\": 0", "\"id\": 3", "invalid_civilization")] // 次の ID 以上
+    [InlineData("\"id\": 1", "\"id\": 0", "invalid_civilization")] // 建物と廃墟で ID が重なる
+    [InlineData("\"collapseYear\": 500", "\"collapseYear\": -1", "invalid_civilization")]
+    [InlineData("\"ruinedYear\": 300", "\"ruinedYear\": 313", "invalid_civilization")] // 今の年より後
+    [InlineData("\"depth\": 1", "\"depth\": 0", "invalid_civilization")]
+    [InlineData("\"depth\": 1", "\"depth\": 4", "invalid_civilization")] // 3 層より深い
+    [InlineData("\"chaos\": 0.1", "\"chaos\": 1.5", "invalid_civilization")]
+    [InlineData("\"ruins\": [", "\"ruin\": [", "invalid_field")]
+    [InlineData("\"intensity\": 0.5", "\"intensity\": \"0.5\"", "invalid_field")]
+    [InlineData("\"nextBuildingId\": 3", "\"nextBuilding\": 3", "invalid_field")]
     public void TryParse_壊れたセーブ_失敗して理由が分かる(string original, string replacement, string expectedReason)
     {
         Assert.Contains(original, ValidSave);

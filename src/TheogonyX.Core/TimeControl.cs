@@ -65,12 +65,15 @@ public sealed class TimeControl
 
     public void Pause() => State = NextState(TimeControlAction.Pause);
 
-    /// <summary>年 0・環境と文明の初期値に戻し、ドグマの一覧と建物を空にして、停止中にする。</summary>
+    /// <summary>
+    /// 年 0・環境と文明の初期値に戻し、ドグマの一覧を空にして、停止中にする。
+    /// 地上の建物と廃墟は、そのときの値と一緒に地下 1 層目に沈めて残す（docs/domain/strata.md）。
+    /// </summary>
     public void Reset()
     {
         var next = NextState(TimeControlAction.Reset);
+        Civilization = _civilizationSetup is null ? null : Civilization?.Recreate(World, _dogmas, _civilizationSetup.Rules);
         World = WorldState.CreateInitial(_worldRules);
-        Civilization = _civilizationSetup is null ? null : Civilization.CreateInitial(_civilizationSetup.Rules);
         _dogmas.Clear();
         State = next;
     }

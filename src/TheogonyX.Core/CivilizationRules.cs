@@ -13,6 +13,7 @@ public sealed record CivilizationRules
     /// <param name="zeroInfluenceDistance">ドグマの効き目が 0 になる、予言者の地域からの地域の数。</param>
     /// <param name="environmentMultipliers">地域の環境（タイル種別）ごとの伸びの倍率。小さいほど悪い環境。</param>
     /// <param name="thresholds">建物が建つ技術・文化の値（小さい順）。</param>
+    /// <param name="strata">建物の寿命と地層沈下の定義（docs/domain/strata.md）。</param>
     public CivilizationRules(
         RegionMap regions,
         int rows,
@@ -25,11 +26,13 @@ public sealed record CivilizationRules
         double tabooGrowthFactor,
         int zeroInfluenceDistance,
         IReadOnlyDictionary<TileType, double> environmentMultipliers,
-        IReadOnlyList<double> thresholds)
+        IReadOnlyList<double> thresholds,
+        StrataRules strata)
     {
         ArgumentNullException.ThrowIfNull(regions);
         ArgumentNullException.ThrowIfNull(environmentMultipliers);
         ArgumentNullException.ThrowIfNull(thresholds);
+        ArgumentNullException.ThrowIfNull(strata);
         ArgumentOutOfRangeException.ThrowIfLessThan(rows, 2);
         ArgumentOutOfRangeException.ThrowIfNegative(prophetColumn);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(prophetColumn, regions.Columns);
@@ -68,6 +71,7 @@ public sealed record CivilizationRules
         ZeroInfluenceDistance = zeroInfluenceDistance;
         EnvironmentMultipliers = environmentMultipliers;
         Thresholds = thresholds;
+        Strata = strata;
     }
 
     public RegionMap Regions { get; }
@@ -82,4 +86,5 @@ public sealed record CivilizationRules
     public int ZeroInfluenceDistance { get; }
     public IReadOnlyDictionary<TileType, double> EnvironmentMultipliers { get; }
     public IReadOnlyList<double> Thresholds { get; }
+    public StrataRules Strata { get; }
 }
