@@ -4,6 +4,8 @@ status: draft   # draft | approved | as-is
 
 # 仕様書: 予言者の依頼（祈り）
 
+> **置き換え予定（2026-10-14）**: 神託の作り方を「手札のルーンを 2 枚選ぶ」に変える（[神託の作り方](oracle-pair.md)）。夢が無くなるので、「依頼を出すと新しい夢を見る」部分は廃止する。依頼の条件と吹き出しは変えない。実装が済むまでは、この仕様書が今のゲームの動きである。
+
 - テスト仕様書: [docs/test/prophet-request.md](../test/prophet-request.md)
 - 関連ADR: なし
 - 通信: [messages.md](../protocol/messages.md) の `DREAM_STATE`（`request`）

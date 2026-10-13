@@ -4,6 +4,8 @@ status: draft   # draft | approved | as-is
 
 # 仕様書: 夢の改ざん
 
+> **置き換え予定（2026-10-14）**: 神託の作り方を「手札のルーンを 2 枚選ぶ」に変える（[神託の作り方](oracle-pair.md)）。夢のコマ・改ざん・夢の状態遷移・100 年ごとの夢は廃止する。実装が済むまでは、この仕様書が今のゲームの動きである。
+
 - テスト仕様書: [docs/test/dream-tampering.md](../test/dream-tampering.md)
 - 関連ADR: なし
 - 通信: [messages.md](../protocol/messages.md) の `DREAM_STATE`・`TAMPER`・`PRONOUNCE`
