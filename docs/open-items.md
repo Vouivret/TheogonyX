@@ -34,7 +34,6 @@
 | 推奨スペックの PC | [nfr.md](nfr.md) の性能の目標は「例」のまま。群衆の計測（10,000 人で GPU 版 約 1,000 fps、開発者の PC）を目安に、目標と推奨スペックを決める | 配布する前 |
 | 「狂乱」の言葉の重なり | 群衆の `CrowdMode.Frenzy`（聖地へ押し寄せる）と、住人の精神崩壊の `BreakdownKind.Rampage`（建物を壊す）が、どちらも「狂乱」。どちらかの言葉を変えるか | 急がない |
 | 住人のログのキー | `residentId`・`region`・`name`・`breakdown`・`partnerId` を `project.md` 7 章のキーの表に足す（ルールファイルは人間が直す） | 次に住人を変える前 |
-| 住人の人数と増え方 | ドグマ無しで、住人は 100 年で約 500 人まで増える（子供の確率 0.2・家の定員 4 の結果。2026-10-13 に確認）。画面で見て多すぎないか、動作が重くないかを確かめ、確率・定員を決め直すか。[agent-needs](domain/agent-needs.md)の未決にも書いてある | 次に住人を変える前 |
 | カオス度の自然な減少 | 毎年 0.2（2026-10-13 に決定）。ドグマで上げたカオス度にも効くので、遊んで確かめて、ドグマの効果の値（`rules.json` の `dogmaEffects`）を決め直すか。[time-skip](domain/time-skip.md) | 次にドグマの効果を変える前 |
 | AI が仮に置いた規則と値（`TODO(AI_UNSURE)`） | 2026-10-13 に「仮置きして進める」として作ったもの。[星の年表](domain/history.md)の「未決」すべて（残す出来事・上限 200 行・再創生で消さない・欄の置き場所）、称号「街を包む者」の軒数（2）と建てた人の決め方（[agent-needs](domain/agent-needs.md)）、夜空の星の数・大きさ・瞬き・空の地の色（[visual-effects](domain/visual-effects.md)）。予言者の誤解の待つ秒数（60）・吹き出しの秒数（20）・文字数の上限（30・80）、歴史の神話化の文字数の上限（見出し 30・本文 200）・頼みに入れる行の数（20）と前の見出しの数（3）（[ai-presentation](domain/ai-presentation.md)）。コードの `TODO(AI_UNSURE)` は `History.cs`・`ResidentSimulator.cs`・`SkyView.cs`・`OracleProphecy.cs`・`MythChronicle.cs`・`MythView.cs` にある。人間が決め直すまで、`project.md` 2.1 によりマージしない扱い | 次に年表・称号・空を変える前 |
 | 用語集への追加 | タイル種別・自動進行・世界再創生・環境光・昼夜の周期、ペアリング・ワンタイムトークン・`sessionToken`・画面の配信、神託・依頼（祈り）・困りごとを [用語集](domain/glossary.md) に足すか | 急がない |
