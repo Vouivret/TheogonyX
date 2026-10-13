@@ -33,6 +33,8 @@
 | 精神崩壊 | `BreakdownKind` | SAN 値が 0 になった住人の状態。狂乱（`Rampage`）か自閉・絶望（`Catatonia`）で、3 年続く | Breakdown | 発狂 |
 | 称号 | `ResidentEpithet` | 住人が行いで得る呼び名（例: 血を恐れぬ者）。1 人 1 つで、最初に得たものを残す | Epithet | 二つ名 |
 | 家 | `BuildingType.HouseHut`・`HouseTimber`・`HouseBrick` | 屋根を探す住人が建てる建物。1 軒に 4 人が住める。種類は建った年の地域の技術の段階で決まる（わらぶき小屋・木組みの家・れんがの家） | House | 住居、民家 |
+| つがい | `Resident.PartnerId` | 同じ地域で組んだ 2 人の住人。子供をもうけ、死ぬまで続く | Partner | 夫婦、カップル |
+| 子供 | | 大人の年齢（16 歳）より若い住人。タスクを選ばず、つがいにならない | Child | |
 | 家名 | `ResidentName.LineagePrefix`・`LineageSuffix` | 住人の名前の 2 つ目の部分 | Lineage | 苗字 |
 | ホスト | | シミュレーションと描画を行う PC 側のゲーム | Host | サーバー（画面上） |
 | コンパニオン | | ホストに接続するモバイルの神託インターフェース | Companion | リモコン |

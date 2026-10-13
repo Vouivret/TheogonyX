@@ -49,6 +49,7 @@ public sealed record ResidentEpithet(string Id, string? SymbolId = null);
 /// <param name="BreakdownYear">精神崩壊した年。正常なら意味を持たない。</param>
 /// <param name="Task">その年に選んだタスク。</param>
 /// <param name="Epithet">最初に得た称号。無ければ null。</param>
+/// <param name="PartnerId">つがいの相手の ID。独身なら null。相手も同じ地域にいて、相手の <paramref name="PartnerId"/> は自分。</param>
 public sealed record Resident(
     int Id,
     int Region,
@@ -64,7 +65,8 @@ public sealed record Resident(
     int BreakdownYear,
     ResidentTask Task,
     ResidentName Name,
-    ResidentEpithet? Epithet)
+    ResidentEpithet? Epithet,
+    int? PartnerId = null)
 {
     public int AgeIn(int year) => year - BirthYear;
 }

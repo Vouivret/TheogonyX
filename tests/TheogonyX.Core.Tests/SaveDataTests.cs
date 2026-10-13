@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 6, "seed": 42, "dreamsGenerated": 2,
+          "saveVersion": 7, "seed": 42, "dreamsGenerated": 2,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -34,10 +34,14 @@ public class SaveDataTests
             "nextBuildingId": 4
           },
           "residents": {
-            "people": [{ "id": 4, "region": 3, "birthYear": 280, "hunger": 0.1, "shelter": 0.1, "social": 0.4, "esteem": 0.3, "actualization": 0.2,
+            "people": [{ "id": 3, "region": 3, "birthYear": 290, "hunger": 0.1, "shelter": 0.1, "social": 0, "esteem": 0, "actualization": 0,
+                         "health": 100, "sanity": 80, "breakdown": null, "breakdownYear": 0, "task": "IDLE",
+                         "name": { "firstPrefix": "NAME_PREFIX_OR", "firstSuffix": "NAME_SUFFIX_MION", "lineagePrefix": "NAME_PREFIX_SELE", "lineageSuffix": "NAME_SUFFIX_PHIA" },
+                         "epithet": null, "partnerId": 4 },
+                       { "id": 4, "region": 3, "birthYear": 280, "hunger": 0.1, "shelter": 0.1, "social": 0.4, "esteem": 0.3, "actualization": 0.2,
                          "health": 90, "sanity": 0, "breakdown": "RAMPAGE", "breakdownYear": 311, "task": "BREAKDOWN",
                          "name": { "firstPrefix": "NAME_PREFIX_ART", "firstSuffix": "NAME_SUFFIX_ORIUS", "lineagePrefix": "NAME_PREFIX_ILIO", "lineageSuffix": "NAME_SUFFIX_A" },
-                         "epithet": { "id": "EPITHET_BLOODLESS", "symbolId": null } }],
+                         "epithet": { "id": "EPITHET_BLOODLESS", "symbolId": null }, "partnerId": 3 }],
             "graves": [{ "residentId": 2, "region": 1, "deathYear": 305,
                          "name": { "firstPrefix": "NAME_PREFIX_VAL", "firstSuffix": "NAME_SUFFIX_US", "lineagePrefix": "NAME_PREFIX_EL", "lineageSuffix": "NAME_SUFFIX_GIS" },
                          "epithet": { "id": "EPITHET_WITNESS", "symbolId": "SYM_RAIN" } }],
@@ -270,8 +274,9 @@ public class SaveDataTests
         Assert.Equal(
             new Resident(
                 4, 3, 280, 0.1, 0.1, 0.4, 0.3, 0.2, 90, 0, BreakdownKind.Rampage, 311, ResidentTask.Breakdown,
-                new ResidentName("NAME_PREFIX_ART", "NAME_SUFFIX_ORIUS", "NAME_PREFIX_ILIO", "NAME_SUFFIX_A"), new ResidentEpithet(Epithets.Bloodless)),
-            Assert.Single(data.Residents.People));
+                new ResidentName("NAME_PREFIX_ART", "NAME_SUFFIX_ORIUS", "NAME_PREFIX_ILIO", "NAME_SUFFIX_A"), new ResidentEpithet(Epithets.Bloodless), 3),
+            data.Residents.People[1]);
+        Assert.Equal(4, data.Residents.People[0].PartnerId);
         Assert.Equal(
             new Grave(
                 2, 1, 305, new ResidentName("NAME_PREFIX_VAL", "NAME_SUFFIX_US", "NAME_PREFIX_EL", "NAME_SUFFIX_GIS"),
@@ -309,8 +314,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 6", "\"saveVersion\": 5", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 6, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 7", "\"saveVersion\": 6", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 7, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": -1", "invalid_dreams_generated")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": 1000001", "invalid_dreams_generated")]
@@ -365,6 +370,10 @@ public class SaveDataTests
     [InlineData("\"region\": 1", "\"region\": 8", "invalid_residents")] // 地域の外
     [InlineData("\"deathYear\": 305", "\"deathYear\": 313", "invalid_residents")]
     [InlineData("\"graves\": [", "\"grave\": [", "invalid_field")]
+    [InlineData("\"partnerId\": 4", "\"partnerId\": \"4\"", "invalid_field")]
+    [InlineData("\"partnerId\": 4", "\"partnerId\": 2", "invalid_residents")] // 相手が住人にいない（墓の ID）
+    [InlineData("\"partnerId\": 3", "\"partnerId\": null", "invalid_residents")] // 相手のパートナーが自分でない
+    [InlineData("\"partnerId\": 3", "\"partnerId\": 4", "invalid_residents")] // 自分自身
     public void TryParse_壊れたセーブ_失敗して理由が分かる(string original, string replacement, string expectedReason)
     {
         Assert.Contains(original, ValidSave);

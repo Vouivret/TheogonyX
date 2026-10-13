@@ -6,12 +6,17 @@ public enum ResidentEventType
     Arrived,
     Died,
     BrokeDown,
+    Born,
+    Paired,
 }
 
 /// <summary>住人に起きた出来事。<paramref name="Resident"/> は出来事が起きたときの姿。</summary>
-public sealed record ResidentEvent(ResidentEventType Type, int Year, Resident Resident);
+/// <param name="Partner">つがいになったときの相手。ほかの出来事では null。</param>
+public sealed record ResidentEvent(ResidentEventType Type, int Year, Resident Resident, Resident? Partner = null);
 
-/// <summary>住人の欲求・体力・SAN 値・精神崩壊・死・称号・タスクと、住人が建てる家を 1 年ぶん計算する（docs/domain/agent-needs.md）。</summary>
+/// <summary>
+/// 住人の欲求・体力・SAN 値・精神崩壊・死・称号・タスクと、住人が建てる家、子供とつがいを 1 年ぶん計算する（docs/domain/agent-needs.md）。
+/// </summary>
 public static class ResidentSimulator
 {
     // 建物の乱数（シード・年・地域）と同じ並びにならないよう、住人の乱数と名前の乱数はシードに別の値を混ぜる
@@ -22,7 +27,7 @@ public static class ResidentSimulator
     /// 1 年進める。<paramref name="residents"/>・<paramref name="civilization"/>（狂乱で壊れる建物と、住人が建てる家）・<paramref name="world"/>（狂乱で上がるカオス度）を書き換える。
     /// 文明の計算の後に呼ぶ。星が崩壊した年には呼ばない。
     /// </summary>
-    /// <returns>その年に起きた出来事（移り住む・死・精神崩壊）。</returns>
+    /// <returns>その年に起きた出来事（移り住む・死・精神崩壊・誕生・つがい）。</returns>
     public static IReadOnlyList<ResidentEvent> AdvanceYear(
         Residents residents,
         Civilization civilization,
@@ -55,11 +60,12 @@ public static class ResidentSimulator
             randoms[region] ??= new Random(unchecked((int)CrowdHash.Hash((uint)seed ^ YearSalt, (uint)year, (uint)region)));
         int HousesIn(int region) => civilization.Buildings.Count(building => building.Region == region && building.Type.IsHouse());
         int PeopleIn(int region) => people.Count(person => person.Region == region);
+        bool IsAdult(Resident person) => person.AgeIn(year) >= rules.AdultAge;
 
-        // 1. 移り住む
+        // 1. 移り住む（正常な大人が少ない地域に 1 人）
         for (var region = 0; region < regionCount; region++)
         {
-            if (PeopleIn(region) < rules.BaseCapacity + HousesIn(region) * rules.CapacityPerHouse)
+            if (people.Count(person => person.Region == region && IsAdult(person) && person.Breakdown is null) < rules.ImmigrateBelowAdults)
             {
                 var arrived = new Resident(
                     nextId, region, year - rules.ImmigrantAge, 0, 0, 0, 0, 0, rules.MaxHealth, rules.MaxSanity, null, 0,
@@ -101,10 +107,18 @@ public static class ResidentSimulator
                 + (person.Hunger < rules.LowerNeedsBelow ? rules.SanityRecovery : 0);
             people[i] = person with { Health = health, Sanity = Math.Clamp(sanity, 0, rules.MaxSanity) };
         }
+        // パートナーを亡くした住人は独身に戻り、その年のうちは組み直さない
+        var widowed = new HashSet<int>();
         foreach (var dead in people.Where(person => person.Health <= 0).ToList())
         {
             MentalTransitions.Next(MentalTransitions.StateOf(dead), MentalTrigger.HealthZero);
             people.Remove(dead);
+            var partner = people.FindIndex(person => person.Id == dead.PartnerId);
+            if (partner >= 0)
+            {
+                people[partner] = people[partner] with { PartnerId = null };
+                widowed.Add(people[partner].Id);
+            }
             graves.Add(new Grave(dead.Id, dead.Region, year, dead.Name, dead.Epithet));
             events.Add(new ResidentEvent(ResidentEventType.Died, year, dead));
             deaths[dead.Region]++;
@@ -174,6 +188,11 @@ public static class ResidentSimulator
                 people[i] = person with { Task = ResidentTask.Breakdown };
                 continue;
             }
+            if (!IsAdult(person))
+            {
+                people[i] = person with { Task = ResidentTask.Idle };
+                continue;
+            }
             if (person.Hunger >= rules.LowerNeedsBelow || person.Shelter >= rules.LowerNeedsBelow)
             {
                 people[i] = person with { Task = person.Hunger >= person.Shelter ? ResidentTask.SeekFood : ResidentTask.SeekShelter };
@@ -212,7 +231,52 @@ public static class ResidentSimulator
             CivilizationSimulator.TryBuild(civilization, tiles, region, house, year, civilizationRules, () => Rng(region));
         }
 
-        // 8. 年数のたった墓を消す
+        // 8. 子供が生まれる（地域ごとに、つがいを ID の小さい順に見る。人数が上限より少ないときだけ。上限はその年の初めの家の数で決める）
+        for (var region = 0; region < regionCount; region++)
+        {
+            var couples = people
+                .Where(person => person.Region == region && person.PartnerId is { } partnerId && person.Id < partnerId)
+                .OrderBy(person => person.Id)
+                .Select(person => (First: person, Second: people.Single(other => other.Id == person.PartnerId)))
+                .ToList();
+            foreach (var (first, second) in couples)
+            {
+                var fertile = first.Breakdown is null && second.Breakdown is null
+                    && first.AgeIn(year) <= rules.FertileUntilAge && second.AgeIn(year) <= rules.FertileUntilAge;
+                if (fertile
+                    && PeopleIn(region) < rules.BaseCapacity + houses[region] * rules.CapacityPerHouse
+                    && Rng(region).NextDouble() < rules.BirthProbability)
+                {
+                    var child = new Resident(
+                        nextId, region, year, 0, 0, 0, 0, 0, rules.MaxHealth, rules.MaxSanity, null, 0,
+                        ResidentTask.Idle, NameOfChild(nextId, seed, rules, first.Name, second.Name), null);
+                    people.Add(child);
+                    events.Add(new ResidentEvent(ResidentEventType.Born, year, child));
+                    nextId++;
+                }
+            }
+        }
+
+        // 9. つがいを組む（地域ごとに、独身で正常な大人を ID の小さい順に 2 人ずつ）
+        for (var region = 0; region < regionCount; region++)
+        {
+            var singles = people
+                .Where(person => person.Region == region && person.PartnerId is null && person.Breakdown is null && IsAdult(person)
+                    && !widowed.Contains(person.Id))
+                .OrderBy(person => person.Id)
+                .ToList();
+            for (var k = 0; k + 1 < singles.Count; k += 2)
+            {
+                var (first, second) = (singles[k], singles[k + 1]);
+                var firstIndex = people.FindIndex(person => person.Id == first.Id);
+                var secondIndex = people.FindIndex(person => person.Id == second.Id);
+                people[firstIndex] = first with { PartnerId = second.Id };
+                people[secondIndex] = second with { PartnerId = first.Id };
+                events.Add(new ResidentEvent(ResidentEventType.Paired, year, people[firstIndex], people[secondIndex]));
+            }
+        }
+
+        // 10. 年数のたった墓を消す
         graves.RemoveAll(grave => grave.DeathYear + rules.GraveYears <= year);
 
         residents.Replace(people, graves, nextId);
@@ -239,11 +303,28 @@ public static class ResidentSimulator
     public static ResidentName NameOf(int residentId, int seed, NeedsRules rules)
     {
         ArgumentNullException.ThrowIfNull(rules);
-        var random = new Random(unchecked((int)CrowdHash.Hash((uint)seed ^ NameSalt, (uint)residentId, 0)));
-        string Prefix() => rules.NamePrefixes[random.Next(rules.NamePrefixes.Count)];
-        string Suffix() => rules.NameSuffixes[random.Next(rules.NameSuffixes.Count)];
-        return new ResidentName(Prefix(), Suffix(), Prefix(), Suffix());
+        var random = NameRandom(residentId, seed);
+        return new ResidentName(Prefix(random, rules), Suffix(random, rules), Prefix(random, rules), Suffix(random, rules));
     }
+
+    /// <summary>生まれた子供の名前。名は <see cref="NameOf"/> と同じ乱数で新しく作り、家名は同じ乱数でどちらかの親のものを選ぶ。</summary>
+    public static ResidentName NameOfChild(int residentId, int seed, NeedsRules rules, ResidentName parent, ResidentName otherParent)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        ArgumentNullException.ThrowIfNull(parent);
+        ArgumentNullException.ThrowIfNull(otherParent);
+        var random = NameRandom(residentId, seed);
+        var (prefix, suffix) = (Prefix(random, rules), Suffix(random, rules));
+        var lineage = random.Next(2) == 0 ? parent : otherParent;
+        return new ResidentName(prefix, suffix, lineage.LineagePrefix, lineage.LineageSuffix);
+    }
+
+    private static Random NameRandom(int residentId, int seed) =>
+        new(unchecked((int)CrowdHash.Hash((uint)seed ^ NameSalt, (uint)residentId, 0)));
+
+    private static string Prefix(Random random, NeedsRules rules) => rules.NamePrefixes[random.Next(rules.NamePrefixes.Count)];
+
+    private static string Suffix(Random random, NeedsRules rules) => rules.NameSuffixes[random.Next(rules.NameSuffixes.Count)];
 
     private static bool RampagedIn(Resident person, int year) => person.Breakdown == BreakdownKind.Rampage && person.BreakdownYear == year;
 

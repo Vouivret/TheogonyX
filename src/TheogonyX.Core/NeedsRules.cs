@@ -5,7 +5,8 @@ namespace TheogonyX.Core;
 /// 欲求は 0.0（満たされている）〜 1.0（切実）、体力と SAN 値は 0〜<see cref="MaxHealth"/>・<see cref="MaxSanity"/>。
 /// </summary>
 /// <param name="ImmigrantAge">よそから移り住む住人の年齢。</param>
-/// <param name="BaseCapacity">家の無い地域の住人の上限。</param>
+/// <param name="ImmigrateBelowAdults">地域の正常な大人がこれより少なければ、1 人移り住む。</param>
+/// <param name="BaseCapacity">家の無い地域の住人の上限（子供が生まれるのはこれより少ないときだけ）。</param>
 /// <param name="CapacityPerHouse">家 1 軒で増える住人の上限。住居の足りる人数でもある。</param>
 /// <param name="TimberHouseFromTechStage">住人が建てる家が木組みの家になる、地域の技術の段階（これより下はわらぶき小屋）。</param>
 /// <param name="BrickHouseFromTechStage">住人が建てる家がれんがの家になる、地域の技術の段階。</param>
@@ -27,10 +28,14 @@ namespace TheogonyX.Core;
 /// <param name="WitnessAge">証人の称号を判定する年齢。</param>
 /// <param name="WitnessIntensityAtOrAbove">証人の称号になる、強いドグマの強度。</param>
 /// <param name="ElderAge">長老の称号を得る年齢。</param>
+/// <param name="AdultAge">大人の年齢。これより若い住人はタスクを選ばず（何もしない）、つがいにならない。</param>
+/// <param name="FertileUntilAge">子供をもうけられる年齢の上限（つがいの 2 人ともこれ以下）。</param>
+/// <param name="BirthProbability">条件を満たすつがい 1 組から、1 年に子供が生まれる確率。</param>
 /// <param name="NamePrefixes">名・家名の接頭辞の ID。</param>
 /// <param name="NameSuffixes">名・家名の接尾辞の ID。</param>
 public sealed record NeedsRules(
     int ImmigrantAge,
+    int ImmigrateBelowAdults,
     int BaseCapacity,
     int CapacityPerHouse,
     int TimberHouseFromTechStage,
@@ -66,6 +71,9 @@ public sealed record NeedsRules(
     int WitnessAge,
     float WitnessIntensityAtOrAbove,
     int ElderAge,
+    int AdultAge,
+    int FertileUntilAge,
+    double BirthProbability,
     IReadOnlyList<string> NamePrefixes,
     IReadOnlyList<string> NameSuffixes)
 {
@@ -77,6 +85,7 @@ public sealed record NeedsRules(
         [
             HungerFamine, HungerNormal, HungerCatatonia, ShelterEnough, ShelterLacking, SocialPerYear, EsteemPerYear, ActualizationPerYear,
             TaskRelief, LowerNeedsBelow, SocialAtOrAbove, EsteemAtOrAbove, ActualizationAtOrAbove, RampageProbability,
+            BirthProbability,
         ];
         double[] amounts =
         [
@@ -85,8 +94,8 @@ public sealed record NeedsRules(
         ];
         int[] counts =
         [
-            ImmigrantAge, BaseCapacity, CapacityPerHouse, TimberHouseFromTechStage, BrickHouseFromTechStage, AgingStartAge, BreakdownYears,
-            GraveYears, WitnessAge, ElderAge,
+            ImmigrantAge, ImmigrateBelowAdults, BaseCapacity, CapacityPerHouse, TimberHouseFromTechStage, BrickHouseFromTechStage, AgingStartAge, BreakdownYears,
+            GraveYears, WitnessAge, ElderAge, AdultAge, FertileUntilAge,
         ];
         if (needs.Any(value => !double.IsFinite(value) || value is < 0 or > 1)
             || amounts.Any(value => !double.IsFinite(value) || value < 0)

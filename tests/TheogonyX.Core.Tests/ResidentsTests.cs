@@ -1,6 +1,6 @@
 namespace TheogonyX.Core.Tests;
 
-/// <summary>住人の欲求と健康（docs/domain/agent-needs.md の受け入れ条件 AC-agent-needs-001〜020・022・023）。</summary>
+/// <summary>住人の欲求と健康（docs/domain/agent-needs.md の受け入れ条件 AC-agent-needs-001〜020・022〜028）。</summary>
 public class ResidentsTests
 {
     private const int Seed = 42;
@@ -25,9 +25,11 @@ public class ResidentsTests
         double sanity = 100,
         BreakdownKind? breakdown = null,
         int breakdownYear = 0,
-        ResidentEpithet? epithet = null) =>
+        ResidentEpithet? epithet = null,
+        int? partnerId = null,
+        ResidentName? name = null) =>
         new(id, region, Year - age, hunger, shelter, social, esteem, actualization, health, sanity, breakdown, breakdownYear,
-            ResidentTask.Idle, AnyName, epithet);
+            ResidentTask.Idle, name ?? AnyName, epithet, partnerId);
 
     // Year の 1 つ前の年の世界。Advance で 1 年進めて Year にする
     private static WorldState WorldBefore(float forest = 50f, float water = 50f, float chaos = 0f) => new()
@@ -67,7 +69,7 @@ public class ResidentsTests
 
     [Fact]
     [Trait("TS", "TS-agent-needs-001")]
-    public void AdvanceYear_住人も建物も無い_年1と年2に地域に1人ずつ移り住む()
+    public void AdvanceYear_住人も建物も無い_年1と年2に地域に1人ずつ移り住み年3は増えない()
     {
         var residents = Residents.CreateInitial();
         var civilization = CivilizationWith();
@@ -93,18 +95,30 @@ public class ResidentsTests
         ResidentSimulator.AdvanceYear(residents, civilization, world, [], TestRules.Needs, TestRules.Civilization, TestRules.World, TestRules.Terrain, Seed);
         Assert.Equal(16, residents.People.Count);
         Assert.Equal(Enumerable.Range(8, 8), residents.People.Skip(8).Select(person => person.Id));
+
+        // 年 3 はどの地域にも大人が 2 人いるので移り住まない（年 2 に組んだつがいから、子供は生まれうる）
+        world.Year++;
+        var year3 = ResidentSimulator.AdvanceYear(
+            residents, civilization, world, [], TestRules.Needs, TestRules.Civilization, TestRules.World, TestRules.Terrain, Seed);
+        Assert.DoesNotContain(year3, residentEvent => residentEvent.Type == ResidentEventType.Arrived);
     }
 
     [Fact]
     [Trait("TS", "TS-agent-needs-001")]
-    public void AdvanceYear_家1軒の地域に6人と5人_6人の地域は増えず5人の地域に1人移り住む()
+    public void AdvanceYear_大人1人と子供3人や崩壊中の大人の地域_正常な大人が2人未満の地域にだけ移り住む()
     {
-        var residents = With([.. Enumerable.Range(0, 6).Select(id => Person(id, RegionA)), .. Enumerable.Range(6, 5).Select(id => Person(id, RegionB))]);
+        var residents = With(
+        [
+            Person(0, RegionA), .. Enumerable.Range(1, 3).Select(id => Person(id, RegionA, age: 15)),
+            Person(4, RegionB), Person(5, RegionB),
+            Person(6, 0), Person(7, 0, sanity: 0, breakdown: BreakdownKind.Catatonia, breakdownYear: Year - 1),
+        ]);
 
-        Advance(residents, CivilizationWith(House(0, RegionA), House(1, RegionB)), WorldBefore());
+        Advance(residents, CivilizationWith(), WorldBefore());
 
-        Assert.Equal(6, residents.People.Count(person => person.Region == RegionA));
-        Assert.Equal(6, residents.People.Count(person => person.Region == RegionB));
+        Assert.Equal(5, residents.People.Count(person => person.Region == RegionA));
+        Assert.Equal(2, residents.People.Count(person => person.Region == RegionB));
+        Assert.Equal(3, residents.People.Count(person => person.Region == 0));
     }
 
     [Fact]
@@ -126,13 +140,13 @@ public class ResidentsTests
 
     [Fact]
     [Trait("TS", "TS-agent-needs-002")]
-    public void AdvanceYear_移り住んで4人と5人と家の無い2人_住居は01と08と08()
+    public void AdvanceYear_家1軒に4人と5人と家の無い2人_住居は01と08と08()
     {
         var residents = With(
         [
-            .. Enumerable.Range(0, 3).Select(id => Person(id, RegionA)),
-            .. Enumerable.Range(3, 4).Select(id => Person(id, RegionB)),
-            Person(7, 0),
+            .. Enumerable.Range(0, 4).Select(id => Person(id, RegionA)),
+            .. Enumerable.Range(4, 5).Select(id => Person(id, RegionB)),
+            Person(9, 0), Person(10, 0),
         ]);
 
         Advance(residents, CivilizationWith(House(0, RegionA), House(1, RegionB), Workshop(2, 0)), WorldBefore());
@@ -141,8 +155,8 @@ public class ResidentsTests
         Assert.Equal(5, residents.People.Count(person => person.Region == RegionB));
         Assert.Equal(2, residents.People.Count(person => person.Region == 0));
         Assert.Equal(0.1, Find(residents, 0).Shelter);
-        Assert.Equal(0.8, Find(residents, 3).Shelter);
-        Assert.Equal(0.8, Find(residents, 7).Shelter);
+        Assert.Equal(0.8, Find(residents, 4).Shelter);
+        Assert.Equal(0.8, Find(residents, 9).Shelter);
     }
 
     [Fact]
@@ -219,7 +233,7 @@ public class ResidentsTests
 
         Advance(residents, civilization, world);
 
-        Assert.Equal(3, residents.People.Count(person => person.Region == RegionA));
+        Assert.Equal(2, residents.People.Count(person => person.Region == RegionA));
         Assert.All(residents.People.Where(person => person.Region == RegionA), person => Assert.Equal(0.1, person.Shelter));
         Assert.Single(civilization.Buildings, building => building.Region == RegionA);
     }
@@ -239,6 +253,139 @@ public class ResidentsTests
         Assert.Equal(
             [BuildingType.HouseHut, BuildingType.HouseTimber, BuildingType.HouseTimber, BuildingType.HouseBrick, BuildingType.HouseBrick],
             Enumerable.Range(0, 5).Select(HouseIn));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-013")]
+    public void AdvanceYear_独身の大人5人と子供と崩壊中の大人_IDの小さい順に2組ができ子供と崩壊中は組まない()
+    {
+        var residents = With(
+        [
+            Person(0, RegionA), Person(2, RegionA), Person(3, RegionA, age: 15), Person(5, RegionA), Person(6, RegionA), Person(8, RegionA),
+            Person(9, RegionA, sanity: 0, breakdown: BreakdownKind.Catatonia, breakdownYear: Year - 1),
+        ]);
+
+        var events = Advance(residents, CivilizationWith(House(0, RegionA), House(1, RegionA, row: 2)), WorldBefore());
+
+        Assert.Equal(2, Find(residents, 0).PartnerId);
+        Assert.Equal(0, Find(residents, 2).PartnerId);
+        Assert.Equal(6, Find(residents, 5).PartnerId);
+        Assert.Equal(5, Find(residents, 6).PartnerId);
+        Assert.Null(Find(residents, 8).PartnerId);
+        Assert.Null(Find(residents, 3).PartnerId);
+        Assert.Null(Find(residents, 9).PartnerId);
+        Assert.Equal(
+            [(0, 2), (5, 6)],
+            events.Where(residentEvent => residentEvent.Type == ResidentEventType.Paired).Select(residentEvent => (residentEvent.Resident.Id, residentEvent.Partner!.Id)));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-013")]
+    public void AdvanceYear_パートナーが死ぬ_残った人は独身に戻りその年は組まず次の年に組む()
+    {
+        var residents = With(Person(0, RegionA, age: 100, health: 2, partnerId: 1), Person(1, RegionA, partnerId: 0), Person(2, RegionA));
+        var civilization = CivilizationWith(House(0, RegionA));
+        var world = WorldBefore();
+
+        Advance(residents, civilization, world);
+        Assert.Null(Find(residents, 1).PartnerId);
+        Assert.Null(Find(residents, 2).PartnerId);
+
+        Advance(residents, civilization, world);
+        Assert.Equal(2, Find(residents, 1).PartnerId);
+        Assert.Equal(1, Find(residents, 2).PartnerId);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-014")]
+    public void AdvanceYear_つがい10組で上限に空きがある_同じシードなら同じ組に生まれ0歳で家名はどちらかの親のもの()
+    {
+        var parentName = new ResidentName("NAME_PREFIX_VAL", "NAME_SUFFIX_US", "NAME_PREFIX_EL", "NAME_SUFFIX_GIS");
+        Residents Run()
+        {
+            // 地域 A に家 5 軒（上限 22）、つがい 10 組（20 人）。どの組も 2 人とも 30 歳
+            var people = Enumerable.Range(0, 20)
+                .Select(id => Person(id, RegionA, partnerId: id % 2 == 0 ? id + 1 : id - 1, name: id % 2 == 0 ? AnyName : parentName))
+                .ToArray();
+            var residents = With(people);
+            var houses = Enumerable.Range(0, 5).Select(i => House(i, RegionA, row: i * 2)).ToArray();
+            Advance(residents, CivilizationWith(houses), WorldBefore());
+            return residents;
+        }
+
+        var first = Run();
+        var second = Run();
+
+        var children = first.People.Where(person => person.BirthYear == Year).ToList();
+        Assert.InRange(children.Count, 1, 2); // 上限 22 なので、生まれるのは 2 人まで
+        Assert.Equal(children, second.People.Where(person => person.BirthYear == Year));
+        Assert.All(children, child =>
+        {
+            Assert.Equal(RegionA, child.Region);
+            Assert.Equal(0, child.AgeIn(Year));
+            Assert.Equal(100, child.Health);
+            Assert.Equal(100, child.Sanity);
+            Assert.Null(child.PartnerId);
+            Assert.Contains(
+                (child.Name.LineagePrefix, child.Name.LineageSuffix),
+                new[] { (AnyName.LineagePrefix, AnyName.LineageSuffix), (parentName.LineagePrefix, parentName.LineageSuffix) });
+        });
+        // ID は、ほかの 7 地域に移り住んだ 7 人（ID 20〜26）の後から振られる
+        Assert.Equal(Enumerable.Range(27, children.Count), children.Select(child => child.Id));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-014")]
+    public void AdvanceYear_確率1のつがい_45歳以下で正常で上限に空きがあるときだけ生まれる()
+    {
+        var always = TestRules.Needs with { BirthProbability = 1.0 };
+        int BornIn(int region, Residents residents) => residents.People.Count(person => person.Region == region && person.BirthYear == Year);
+        var residents = With(
+            Person(0, RegionA, age: 45, partnerId: 1), Person(1, RegionA, age: 30, partnerId: 0),
+            Person(2, RegionB, age: 46, partnerId: 3), Person(3, RegionB, age: 30, partnerId: 2),
+            Person(4, 0, partnerId: 5), Person(5, 0, sanity: 0, breakdown: BreakdownKind.Catatonia, breakdownYear: Year - 1, partnerId: 4),
+            Person(6, 1, partnerId: 7), Person(7, 1, partnerId: 6));
+
+        // 地域 1 は家が無く、2 人で上限 2 に届いている
+        Advance(residents, CivilizationWith(House(0, RegionA), House(1, RegionB), House(2, 0)), WorldBefore(), rules: always);
+
+        Assert.Equal(1, BornIn(RegionA, residents));
+        Assert.Equal(0, BornIn(RegionB, residents));
+        Assert.Equal(0, BornIn(0, residents));
+        Assert.Equal(0, BornIn(1, residents));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-014")]
+    public void AdvanceYear_15歳の子供で住居も交流も切実_何もしないで家を建てず交流も減らない()
+    {
+        var residents = With(Person(0, RegionA, age: 15, social: 0.9), Person(1, RegionA), Person(2, RegionA));
+        var civilization = CivilizationWith();
+
+        Advance(residents, civilization, WorldBefore());
+
+        var child = Find(residents, 0);
+        Assert.Equal(0.8, child.Shelter);
+        Assert.Equal(ResidentTask.Idle, child.Task);
+        Assert.Equal(1.0, child.Social, 6);
+        Assert.Equal(ResidentTask.SeekShelter, Find(residents, 1).Task);
+        Assert.Single(civilization.Buildings, building => building.Region == RegionA); // 家は大人が建てた 1 軒
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-014")]
+    public void NameOfChild_同じシードと同じID_毎回同じ名前で家名はどちらかの親のもの()
+    {
+        var parent = new ResidentName("NAME_PREFIX_VAL", "NAME_SUFFIX_US", "NAME_PREFIX_EL", "NAME_SUFFIX_GIS");
+        var other = new ResidentName("NAME_PREFIX_ART", "NAME_SUFFIX_ORIUS", "NAME_PREFIX_OR", "NAME_SUFFIX_A");
+
+        var names = Enumerable.Range(0, 50).Select(id => ResidentSimulator.NameOfChild(id, Seed, TestRules.Needs, parent, other)).ToList();
+
+        Assert.Equal(names, Enumerable.Range(0, 50).Select(id => ResidentSimulator.NameOfChild(id, Seed, TestRules.Needs, parent, other)));
+        Assert.Contains(names, name => name.LineagePrefix == "NAME_PREFIX_EL" && name.LineageSuffix == "NAME_SUFFIX_GIS");
+        Assert.Contains(names, name => name.LineagePrefix == "NAME_PREFIX_OR" && name.LineageSuffix == "NAME_SUFFIX_A");
+        Assert.All(names, name => Assert.True(
+            (name.LineagePrefix, name.LineageSuffix) is ("NAME_PREFIX_EL", "NAME_SUFFIX_GIS") or ("NAME_PREFIX_OR", "NAME_SUFFIX_A")));
     }
 
     [Fact]
@@ -480,8 +627,9 @@ public class ResidentsTests
             var events = new List<ResidentEvent>();
             void Jumps()
             {
-                // 森を壊すドグマで、100 年余りで飢饉になり、カオス度も少しずつ上がる
+                // 森を壊すドグマで 100 年余りで飢饉になり、血の崇拝でカオス度が上がって精神崩壊が起き、星が崩壊する
                 time.AddDogma(new Dogma("SYM_TREE", DogmaType.Destruction, 0.3f));
+                time.AddDogma(new Dogma("SYM_BLOOD", DogmaType.Worship, 0.3f));
                 for (var i = 0; i < 3 && time.CanDo(TimeControlAction.Jump); i++)
                 {
                     time.Jump();
@@ -499,6 +647,8 @@ public class ResidentsTests
 
         Assert.Contains(firstEvents, residentEvent => residentEvent.Type == ResidentEventType.Died);
         Assert.Contains(firstEvents, residentEvent => residentEvent.Type == ResidentEventType.BrokeDown);
+        Assert.Contains(firstEvents, residentEvent => residentEvent.Type == ResidentEventType.Born);
+        Assert.Contains(firstEvents, residentEvent => residentEvent.Type == ResidentEventType.Paired);
         Assert.Equal(first.Residents!.People, second.Residents!.People);
         Assert.Equal(first.Residents.Graves, second.Residents.Graves);
         Assert.Equal(first.Residents.NextResidentId, second.Residents.NextResidentId);

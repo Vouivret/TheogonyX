@@ -10,7 +10,8 @@ namespace TheogonyX.Scenes.Main;
 /// 住人と墓を地表の上に描く（docs/domain/agent-needs.md の「画面」）。住人は群衆の点より大きい 7 種類の絵（住人の ID で選ぶ）で、
 /// 昼はその年のタスクに合わせて地域の中を歩き、夜は地域の建物のそば（建物が無ければその場）で横になる。
 /// 歩き方は描画だけで、シミュレーションの結果に影響しない（乱数はコアの計算と別の <see cref="CrowdHash"/> を使う）。
-/// 住人をクリックすると、名前・欲求・体力・SAN 値の欄を出す。
+/// 子供（大人の年齢より若い住人）は小さく描き、つがいは夜に同じ建物のそばで並んで寝る。
+/// 住人をクリックすると、名前・パートナー・欲求・体力・SAN 値の欄を出す。
 /// </summary>
 public sealed class ResidentView
 {
@@ -22,6 +23,8 @@ public sealed class ResidentView
     private const float ArrivedDistance = 0.5f;
 
     private const int DollKinds = 7;
+    private const float ChildScale = 0.7f;
+    private const float CoupleGap = 3f; // 並んで寝るつがいの、建物のそばの点からのずれ（px）
 
     // 精神崩壊中の住人は、絵に色を掛けて見分ける（狂乱は赤く、自閉・絶望は灰色に）
     private static readonly Color RampageTint = new(1f, 0.45f, 0.45f);
@@ -31,6 +34,7 @@ public sealed class ResidentView
 
     private readonly TimeControl _timeControl;
     private readonly CivilizationRules _rules;
+    private readonly NeedsRules _needs;
     private readonly AmbienceView _ambience;
     private readonly uint _seed;
     private readonly SubViewport _viewport;
@@ -45,10 +49,11 @@ public sealed class ResidentView
     private int? _selectedId;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public ResidentView(Node owner, TimeControl timeControl, CivilizationRules rules, AmbienceView ambience, int seed)
+    public ResidentView(Node owner, TimeControl timeControl, CivilizationRules rules, NeedsRules needs, AmbienceView ambience, int seed)
     {
         _timeControl = timeControl;
         _rules = rules;
+        _needs = needs;
         _ambience = ambience;
         _seed = unchecked((uint)seed);
         _viewport = owner.GetNode<SubViewport>("%WorldViewport");
@@ -99,7 +104,11 @@ public sealed class ResidentView
         }
         var point = _viewport.GetCanvasTransform().AffineInverse() * button.Position;
         var hit = _walkers.Values
-            .Where(walker => new Rect2(walker.Node.Position - new Vector2(DollWidth / 2f, DollHeight), new Vector2(DollWidth, DollHeight)).HasPoint(point))
+            .Where(walker =>
+            {
+                var size = new Vector2(DollWidth, DollHeight) * walker.Node.Scale;
+                return new Rect2(walker.Node.Position - new Vector2(size.X / 2f, size.Y), size).HasPoint(point);
+            })
             .OrderBy(walker => walker.Node.Position.DistanceSquaredTo(point))
             .FirstOrDefault();
         _selectedId = hit?.Resident.Id;
@@ -134,6 +143,7 @@ public sealed class ResidentView
             }
             walker.Resident = person;
             walker.Node.Texture = _dolls[person.Id % DollKinds];
+            walker.Node.Scale = Vector2.One * (person.AgeIn(_timeControl.World.Year) < _needs.AdultAge ? ChildScale : 1f);
             walker.Node.Modulate = person.Breakdown switch
             {
                 BreakdownKind.Rampage => RampageTint,
@@ -179,8 +189,12 @@ public sealed class ResidentView
         }
         var person = walker.Resident;
         var culture = CultureInfo.CurrentCulture;
+        var partner = person.PartnerId is { } partnerId && _walkers.TryGetValue(partnerId, out var other)
+            ? string.Format(culture, Tr("RESIDENT_INFO_PARTNER"), ResidentText.NameOf(other.Resident.Name, other.Resident.Epithet))
+            : Tr("RESIDENT_INFO_SINGLE");
         _infoLabel.Text = string.Join('\n',
             ResidentText.NameOf(person.Name, person.Epithet),
+            partner,
             string.Format(culture, Tr("RESIDENT_INFO_LOWER_NEEDS"), person.Hunger, person.Shelter),
             string.Format(culture, Tr("RESIDENT_INFO_UPPER_NEEDS"), person.Social, person.Esteem, person.Actualization),
             string.Format(culture, Tr("RESIDENT_INFO_BODY"), person.Health, person.Sanity));
@@ -294,9 +308,20 @@ public sealed class ResidentView
             return view.RandomPointIn(Resident.Region, id, _step + 1);
         }
 
-        // 地域の建物のうち近いもののそば。建物が無ければその場
+        // 地域の建物のうち近いもののそば。建物が無ければその場。
+        // つがいは、ID の小さいほうで決めた同じ建物のそばに、左右に並んで寝る（建物が無ければ、ID の小さいほうの寝る点の左右）
         private Vector2 NightSpot(IReadOnlyList<Building> buildings, ResidentView view)
         {
+            if (Resident.PartnerId is { } partnerId && view._walkers.TryGetValue(partnerId, out var partner))
+            {
+                var anchor = Resident.Id < partnerId ? this : partner;
+                var side = new Vector2(Resident.Id < partnerId ? -CoupleGap : CoupleGap, 0f);
+                var regionBuildings = buildings.Where(building => building.Region == Resident.Region).OrderBy(building => building.Id).ToList();
+                var anchorId = (uint)anchor.Resident.Id;
+                return regionBuildings.Count == 0
+                    ? anchor.Node.Position + side
+                    : view.BesideBuilding(regionBuildings[(int)(CrowdHash.Hash(view._seed, anchorId, 0x4000) % (uint)regionBuildings.Count)], anchorId, 0x4000) + side;
+            }
             var here = Node.Position;
             var nearest = buildings
                 .Where(building => building.Region == Resident.Region)

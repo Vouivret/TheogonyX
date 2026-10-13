@@ -134,6 +134,7 @@ internal static class TestRules
     // docs/domain/agent-needs.md の「M5 で作る最初の範囲と値」の値の表と、名前のパーツ（陸の人の 6 × 6）。
     public static readonly NeedsRules Needs = new(
         ImmigrantAge: 20,
+        ImmigrateBelowAdults: 2,
         BaseCapacity: 2,
         CapacityPerHouse: 4,
         TimberHouseFromTechStage: 1,
@@ -169,6 +170,9 @@ internal static class TestRules
         WitnessAge: 21,
         WitnessIntensityAtOrAbove: 0.8f,
         ElderAge: 81,
+        AdultAge: 16,
+        FertileUntilAge: 45,
+        BirthProbability: 0.2,
         NamePrefixes: ["NAME_PREFIX_ART", "NAME_PREFIX_VAL", "NAME_PREFIX_ILIO", "NAME_PREFIX_EL", "NAME_PREFIX_SELE", "NAME_PREFIX_OR"],
         NameSuffixes: ["NAME_SUFFIX_ORIUS", "NAME_SUFFIX_US", "NAME_SUFFIX_PHIA", "NAME_SUFFIX_GIS", "NAME_SUFFIX_MION", "NAME_SUFFIX_A"]);
 

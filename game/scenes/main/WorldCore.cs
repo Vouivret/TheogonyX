@@ -100,7 +100,7 @@ public partial class WorldCore : Node2D
         _screen.TerrainDrawn += _buildings.Refresh;
         _strata = new StrataView(this, timeControl, civilizationRules);
         _screen.TerrainDrawn += _strata.Refresh;
-        _residents = new ResidentView(this, timeControl, civilizationRules, _ambience, seed);
+        _residents = new ResidentView(this, timeControl, civilizationRules, needsRules, _ambience, seed);
         _screen.TerrainDrawn += _residents.Refresh;
         _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
@@ -194,6 +194,12 @@ public partial class WorldCore : Node2D
                 case ResidentEventType.BrokeDown:
                     var breakdown = person.Breakdown == BreakdownKind.Rampage ? "rampage" : "catatonia";
                     GD.Print($"event=resident_breakdown year={residentEvent.Year} residentId={person.Id} region={person.Region} breakdown={breakdown}");
+                    break;
+                case ResidentEventType.Born:
+                    GD.Print($"event=resident_born year={residentEvent.Year} residentId={person.Id} region={person.Region} name={name}");
+                    break;
+                case ResidentEventType.Paired:
+                    GD.Print($"event=resident_paired year={residentEvent.Year} residentId={person.Id} partnerId={residentEvent.Partner?.Id} region={person.Region}");
                     break;
                 case ResidentEventType.Arrived when OS.IsDebugBuild():
                     GD.Print($"event=resident_arrived year={residentEvent.Year} residentId={person.Id} region={person.Region}");

@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 6;
+    public const int SaveVersion = 7;
 
     /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
     public const int MaxDreamsGenerated = 1_000_000;
@@ -157,6 +157,7 @@ public static class SaveDataSerializer
                     task = TaskNames[person.Task],
                     name = WriteName(person.Name),
                     epithet = WriteEpithet(person.Epithet),
+                    partnerId = person.PartnerId,
                 }),
                 graves = data.Residents.Graves.Select(grave => new
                 {
@@ -367,6 +368,13 @@ public static class SaveDataSerializer
                 breakdown = kind.Value is null ? throw new InvalidSaveDataException("invalid_residents") : kind.Key;
             }
             var breakdownYear = ReadInt(item, "breakdownYear");
+            var partnerElement = Property(item, "partnerId", null);
+            int? partnerId = partnerElement.ValueKind switch
+            {
+                JsonValueKind.Null => null,
+                JsonValueKind.Number when partnerElement.TryGetInt32(out var value) => value,
+                _ => throw new InvalidSaveDataException("invalid_field"),
+            };
             var taskName = ReadString(item, "task");
             var task = TaskNames.FirstOrDefault(pair => pair.Value == taskName);
             if (birthYear > year || needs.Any(value => value is < 0 or > 1) || health <= 0 || health > rules.MaxHealth
@@ -377,7 +385,17 @@ public static class SaveDataSerializer
             }
             people.Add(new Resident(
                 id, region, birthYear, needs[0], needs[1], needs[2], needs[3], needs[4], health, sanity, breakdown, breakdownYear, task.Key,
-                ReadName(Property(item, "name", JsonValueKind.Object), rules), ReadEpithet(Property(item, "epithet", null), symbolIds)));
+                ReadName(Property(item, "name", JsonValueKind.Object), rules), ReadEpithet(Property(item, "epithet", null), symbolIds),
+                partnerId));
+        }
+        // つがいの相手は、同じ地域にいる別の住人で、相手のパートナーも自分
+        foreach (var person in people.Where(person => person.PartnerId is not null))
+        {
+            var partner = people.Find(other => other.Id == person.PartnerId);
+            if (partner is null || partner.Id == person.Id || partner.Region != person.Region || partner.PartnerId != person.Id)
+            {
+                throw new InvalidSaveDataException("invalid_residents");
+            }
         }
 
         var graves = new List<Grave>();
