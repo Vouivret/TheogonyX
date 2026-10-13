@@ -7,7 +7,8 @@ using TheogonyX.Data;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// 地域に建った建物（docs/domain/emergent-progression.md）と地上の廃墟（docs/domain/strata.md）を、32 × 32 px の絵で地表の上に描く。
+/// 地域に建った建物（docs/domain/emergent-progression.md）・住人が建てた家（docs/domain/agent-needs.md）と地上の廃墟（docs/domain/strata.md）を、
+/// 32 × 32 px の絵で地表の上に描く。廃墟の上に建て増しした家だけは、石の土台の上の家（32 × 48 px）で描く。
 /// 予言者・焚き火と同じ Y ソートのレイヤーに置き、原点を足元（2 × 2 マスの下の辺の中央）にする。
 /// 予言者と同じく、建物には法線マップの陰影と足元の落ち影を付ける（docs/domain/visual-effects.md）。
 /// </summary>
@@ -18,9 +19,13 @@ public sealed class BuildingView
     {
         [BuildingType.Workshop] = "res://assets/sprites/building_workshop.png",
         [BuildingType.Shrine] = "res://assets/sprites/building_shrine.png",
+        [BuildingType.HouseHut] = "res://assets/sprites/building_hut.png",
+        [BuildingType.HouseTimber] = "res://assets/sprites/building_house_medieval.png",
+        [BuildingType.HouseBrick] = "res://assets/sprites/building_house_brick.png",
     };
 
     private const string RuinTexturePath = "res://assets/sprites/building_ruin.png";
+    private const string OverbuiltHouseTexturePath = "res://assets/sprites/building_overbuild.png";
 
     private readonly TimeControl _timeControl;
     private readonly LightingSettings _lightingSettings;
@@ -28,6 +33,7 @@ public sealed class BuildingView
     private readonly Vector2 _terrainOrigin;
     private readonly Dictionary<BuildingType, Texture2D> _textures = [];
     private readonly Texture2D _ruinTexture;
+    private readonly Texture2D _overbuiltHouseTexture;
     private readonly List<Sprite2D> _sprites = [];
 
     // 描いている廃墟と建物の ID の並び（変わっていなければ描き直さない）
@@ -47,6 +53,8 @@ public sealed class BuildingView
         }
         var ruin = GD.Load<Texture2D>(RuinTexturePath);
         _ruinTexture = SpriteLighting.WithNormalMap(ruin, RuinTexturePath, ruin.GetWidth());
+        var overbuilt = GD.Load<Texture2D>(OverbuiltHouseTexturePath);
+        _overbuiltHouseTexture = SpriteLighting.WithNormalMap(overbuilt, OverbuiltHouseTexturePath, overbuilt.GetWidth());
         Refresh();
     }
 
@@ -81,7 +89,8 @@ public sealed class BuildingView
         }
         foreach (var building in buildings)
         {
-            AddSprite($"Building{building.Id}", _textures[building.Type], building.Column, building.Row, shadow: true);
+            var overbuilt = building.Type.IsHouse() && ruins.Any(ruin => ruin.Column == building.Column && ruin.Row == building.Row);
+            AddSprite($"Building{building.Id}", overbuilt ? _overbuiltHouseTexture : _textures[building.Type], building.Column, building.Row, shadow: true);
         }
         _shownIds = ids;
     }

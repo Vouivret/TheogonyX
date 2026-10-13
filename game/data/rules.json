@@ -113,7 +113,9 @@
   "needs": {
     "immigrantAge": 20,
     "baseCapacity": 2,
-    "capacityPerBuilding": 4,
+    "capacityPerHouse": 4,
+    "timberHouseFromTechStage": 1,
+    "brickHouseFromTechStage": 3,
     "famineAtOrBelow": 30.0,
     "hungerFamine": 0.9,
     "hungerNormal": 0.1,

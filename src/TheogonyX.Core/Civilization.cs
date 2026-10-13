@@ -1,6 +1,9 @@
 namespace TheogonyX.Core;
 
-/// <summary>建物の種類（docs/domain/emergent-progression.md）。技術と文化のどちらの閾値を越えて建ったかで分ける。</summary>
+/// <summary>
+/// 建物の種類（docs/domain/emergent-progression.md、docs/domain/agent-needs.md）。
+/// 工房・祠は技術と文化のどちらの閾値を越えて建ったかで分け、家は住人が建てた年の地域の技術の段階で分ける。
+/// </summary>
 public enum BuildingType
 {
     /// <summary>技術の閾値を越えて建つ工房。</summary>
@@ -8,6 +11,21 @@ public enum BuildingType
 
     /// <summary>文化の閾値を越えて建つ祠。</summary>
     Shrine,
+
+    /// <summary>住人が建てる家（わらぶき小屋）。</summary>
+    HouseHut,
+
+    /// <summary>住人が建てる家（木組みの家）。</summary>
+    HouseTimber,
+
+    /// <summary>住人が建てる家（れんがの家）。</summary>
+    HouseBrick,
+}
+
+public static class BuildingTypes
+{
+    /// <summary>住人の住居になる家か。</summary>
+    public static bool IsHouse(this BuildingType type) => type is BuildingType.HouseHut or BuildingType.HouseTimber or BuildingType.HouseBrick;
 }
 
 /// <summary>建っている建物。大きさは 2 × 2 マスで、(<paramref name="Column"/>, <paramref name="Row"/>) はその左上のマス（0 から数える）。</summary>

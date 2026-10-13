@@ -5,8 +5,10 @@ namespace TheogonyX.Core;
 /// 欲求は 0.0（満たされている）〜 1.0（切実）、体力と SAN 値は 0〜<see cref="MaxHealth"/>・<see cref="MaxSanity"/>。
 /// </summary>
 /// <param name="ImmigrantAge">よそから移り住む住人の年齢。</param>
-/// <param name="BaseCapacity">建物の無い地域の住人の上限。</param>
-/// <param name="CapacityPerBuilding">建物 1 つで増える住人の上限。住居の足りる人数でもある。</param>
+/// <param name="BaseCapacity">家の無い地域の住人の上限。</param>
+/// <param name="CapacityPerHouse">家 1 軒で増える住人の上限。住居の足りる人数でもある。</param>
+/// <param name="TimberHouseFromTechStage">住人が建てる家が木組みの家になる、地域の技術の段階（これより下はわらぶき小屋）。</param>
+/// <param name="BrickHouseFromTechStage">住人が建てる家がれんがの家になる、地域の技術の段階。</param>
 /// <param name="FamineAtOrBelow">森林量か水資源がこれ以下なら飢饉の年。</param>
 /// <param name="HungerCatatonia">自閉・絶望の住人の空腹（食事を拒む）。</param>
 /// <param name="LowerNeedsBelow">空腹・住居がどちらもこれ未満なら、交流・承認・自己実現のタスクを選べる。空腹がこれ未満なら SAN 値が戻る。</param>
@@ -30,7 +32,9 @@ namespace TheogonyX.Core;
 public sealed record NeedsRules(
     int ImmigrantAge,
     int BaseCapacity,
-    int CapacityPerBuilding,
+    int CapacityPerHouse,
+    int TimberHouseFromTechStage,
+    int BrickHouseFromTechStage,
     float FamineAtOrBelow,
     double HungerFamine,
     double HungerNormal,
@@ -79,13 +83,17 @@ public sealed record NeedsRules(
             MaxHealth, HealthLoss, HealthRecovery, AgingLossPerYear, MaxSanity, SanityLossPerDeath, SanityRecovery, RecoveredSanity, RampageChaos,
             FamineAtOrBelow, WitnessIntensityAtOrAbove,
         ];
-        int[] counts = [ImmigrantAge, BaseCapacity, CapacityPerBuilding, AgingStartAge, BreakdownYears, GraveYears, WitnessAge, ElderAge];
+        int[] counts =
+        [
+            ImmigrantAge, BaseCapacity, CapacityPerHouse, TimberHouseFromTechStage, BrickHouseFromTechStage, AgingStartAge, BreakdownYears,
+            GraveYears, WitnessAge, ElderAge,
+        ];
         if (needs.Any(value => !double.IsFinite(value) || value is < 0 or > 1)
             || amounts.Any(value => !double.IsFinite(value) || value < 0)
             || counts.Any(value => value < 0)
             || !double.IsFinite(SanityChaosDivisor) || SanityChaosDivisor <= 0
             || MaxHealth <= 0 || MaxSanity <= 0 || RecoveredSanity > MaxSanity
-            || BreakdownYears == 0 || GraveYears == 0)
+            || BreakdownYears == 0 || GraveYears == 0 || TimberHouseFromTechStage > BrickHouseFromTechStage)
         {
             throw new ArgumentException($"欲求と健康の定義の値が範囲外: {this}");
         }

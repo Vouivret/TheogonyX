@@ -135,7 +135,9 @@ internal static class TestRules
     public static readonly NeedsRules Needs = new(
         ImmigrantAge: 20,
         BaseCapacity: 2,
-        CapacityPerBuilding: 4,
+        CapacityPerHouse: 4,
+        TimberHouseFromTechStage: 1,
+        BrickHouseFromTechStage: 3,
         FamineAtOrBelow: 30f,
         HungerFamine: 0.9,
         HungerNormal: 0.1,

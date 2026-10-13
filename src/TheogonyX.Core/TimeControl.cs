@@ -121,7 +121,7 @@ public sealed class TimeControl
                 if (residents is not null && setup.Needs is not null)
                 {
                     events.AddRange(ResidentSimulator.AdvanceYear(
-                        residents, civilization, World, _dogmas, setup.Needs, setup.Rules, _worldRules, setup.Seed));
+                        residents, civilization, World, _dogmas, setup.Needs, setup.Rules, _worldRules, setup.Terrain, setup.Seed));
                 }
             };
         WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules, afterYear);

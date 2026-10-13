@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 5, "seed": 42, "dreamsGenerated": 2,
+          "saveVersion": 6, "seed": 42, "dreamsGenerated": 2,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -26,11 +26,12 @@ public class SaveDataTests
               { "tech": 0, "culture": 0, "techStage": 0, "cultureStage": 0 }, { "tech": 0, "culture": 0, "techStage": 0, "cultureStage": 0 },
               { "tech": 0, "culture": 0, "techStage": 0, "cultureStage": 0 }
             ],
-            "buildings": [{ "id": 0, "type": "WORKSHOP", "region": 3, "column": 6, "row": 2, "collapseYear": 500 }],
+            "buildings": [{ "id": 0, "type": "WORKSHOP", "region": 3, "column": 6, "row": 2, "collapseYear": 500 },
+                          { "id": 3, "type": "HOUSE_TIMBER", "region": 3, "column": 6, "row": 0, "collapseYear": 600 }],
             "ruins": [{ "id": 1, "type": "SHRINE", "region": 3, "column": 6, "row": 4, "ruinedYear": 300 }],
             "relics": [{ "id": 2, "type": "SHRINE", "region": 3, "column": 6, "row": 6, "depth": 1, "buriedYear": 280,
                          "tech": 0.3, "culture": 0.2, "chaos": 0.1, "dogmas": [{ "targetSymbolId": "SYM_FIRE", "dogmaType": "Worship", "intensity": 0.5 }] }],
-            "nextBuildingId": 3
+            "nextBuildingId": 4
           },
           "residents": {
             "people": [{ "id": 4, "region": 3, "birthYear": 280, "hunger": 0.1, "shelter": 0.1, "social": 0.4, "esteem": 0.3, "actualization": 0.2,
@@ -259,7 +260,9 @@ public class SaveDataTests
         Assert.Equal(312, data!.World.Year);
         Assert.Equal("THIRST", data.RequestId);
         Assert.Equal(new RegionCivilization(0.25, 0.1, 1, 0), data.Civilization.Regions[0]);
-        Assert.Equal(new Building(0, BuildingType.Workshop, 3, 6, 2, 500), Assert.Single(data.Civilization.Buildings));
+        Assert.Equal(
+            [new Building(0, BuildingType.Workshop, 3, 6, 2, 500), new Building(3, BuildingType.HouseTimber, 3, 6, 0, 600)],
+            data.Civilization.Buildings);
         Assert.Equal(new Ruin(1, BuildingType.Shrine, 3, 6, 4, 300), Assert.Single(data.Civilization.Ruins));
         Assert.Equal(
             new Relic(2, BuildingType.Shrine, 3, 6, 6, 1, 280, 0.3, 0.2, 0.1, [new Dogma("SYM_FIRE", DogmaType.Worship, 0.5f)]),
@@ -306,8 +309,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 5", "\"saveVersion\": 4", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 5, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 6", "\"saveVersion\": 5", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 6, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": -1", "invalid_dreams_generated")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": 1000001", "invalid_dreams_generated")]
@@ -337,7 +340,7 @@ public class SaveDataTests
     [InlineData("\"column\": 6", "\"column\": 8", "invalid_civilization")] // 地域 3 の外
     [InlineData("\"row\": 2", "\"row\": 3", "invalid_civilization")] // 枠の左上ではない
     [InlineData("\"row\": 2", "\"row\": 8", "invalid_civilization")] // 2 × 2 が地表からはみ出す
-    [InlineData("\"id\": 0", "\"id\": 3", "invalid_civilization")] // 次の ID 以上
+    [InlineData("\"id\": 0", "\"id\": 4", "invalid_civilization")] // 次の ID 以上
     [InlineData("\"id\": 1", "\"id\": 0", "invalid_civilization")] // 建物と廃墟で ID が重なる
     [InlineData("\"collapseYear\": 500", "\"collapseYear\": -1", "invalid_civilization")]
     [InlineData("\"ruinedYear\": 300", "\"ruinedYear\": 313", "invalid_civilization")] // 今の年より後
@@ -346,7 +349,7 @@ public class SaveDataTests
     [InlineData("\"chaos\": 0.1", "\"chaos\": 1.5", "invalid_civilization")]
     [InlineData("\"ruins\": [", "\"ruin\": [", "invalid_field")]
     [InlineData("\"intensity\": 0.5", "\"intensity\": \"0.5\"", "invalid_field")]
-    [InlineData("\"nextBuildingId\": 3", "\"nextBuilding\": 3", "invalid_field")]
+    [InlineData("\"nextBuildingId\": 4", "\"nextBuilding\": 4", "invalid_field")]
     [InlineData("\"hunger\": 0.1", "\"hunger\": 1.5", "invalid_residents")]
     [InlineData("\"health\": 90", "\"health\": 0", "invalid_residents")] // 体力 0 の住人は死んでいる
     [InlineData("\"sanity\": 0", "\"sanity\": 101", "invalid_residents")]

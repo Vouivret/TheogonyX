@@ -125,8 +125,8 @@ public static class CivilizationSimulator
         civilization.Buildings.Count(building => building.Region == region && building.Type == type);
 
     // 地域の 2 × 2 の枠のうち、建物が無く、4 マスとも草地（水場・異常のタイルでない）の枠から乱数で選んで建てる。
-    // 廃墟のある枠（建て増し）を先に選び、無ければ空いている枠から選ぶ。寿命も同じ乱数で決める
-    private static bool TryBuild(
+    // 廃墟のある枠（建て増し）を先に選び、無ければ空いている枠から選ぶ。寿命も同じ乱数で決める。住人が家を建てるのにも使う
+    internal static bool TryBuild(
         Civilization civilization, TileType[,] tiles, int region, BuildingType type, int year, CivilizationRules rules, Func<Random> random)
     {
         var first = rules.Regions.FirstColumn(region);

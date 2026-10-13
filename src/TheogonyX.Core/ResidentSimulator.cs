@@ -11,7 +11,7 @@ public enum ResidentEventType
 /// <summary>住人に起きた出来事。<paramref name="Resident"/> は出来事が起きたときの姿。</summary>
 public sealed record ResidentEvent(ResidentEventType Type, int Year, Resident Resident);
 
-/// <summary>住人の欲求・体力・SAN 値・精神崩壊・死・称号・タスクを 1 年ぶん計算する（docs/domain/agent-needs.md）。</summary>
+/// <summary>住人の欲求・体力・SAN 値・精神崩壊・死・称号・タスクと、住人が建てる家を 1 年ぶん計算する（docs/domain/agent-needs.md）。</summary>
 public static class ResidentSimulator
 {
     // 建物の乱数（シード・年・地域）と同じ並びにならないよう、住人の乱数と名前の乱数はシードに別の値を混ぜる
@@ -19,7 +19,7 @@ public static class ResidentSimulator
     private const uint NameSalt = 0x4E414D45; // "NAME"
 
     /// <summary>
-    /// 1 年進める。<paramref name="residents"/>・<paramref name="civilization"/>（狂乱で壊れる建物）・<paramref name="world"/>（狂乱で上がるカオス度）を書き換える。
+    /// 1 年進める。<paramref name="residents"/>・<paramref name="civilization"/>（狂乱で壊れる建物と、住人が建てる家）・<paramref name="world"/>（狂乱で上がるカオス度）を書き換える。
     /// 文明の計算の後に呼ぶ。星が崩壊した年には呼ばない。
     /// </summary>
     /// <returns>その年に起きた出来事（移り住む・死・精神崩壊）。</returns>
@@ -31,6 +31,7 @@ public static class ResidentSimulator
         NeedsRules rules,
         CivilizationRules civilizationRules,
         WorldRules worldRules,
+        TerrainRules terrain,
         int seed)
     {
         ArgumentNullException.ThrowIfNull(residents);
@@ -40,6 +41,7 @@ public static class ResidentSimulator
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(civilizationRules);
         ArgumentNullException.ThrowIfNull(worldRules);
+        ArgumentNullException.ThrowIfNull(terrain);
 
         var year = world.Year;
         var regionCount = civilizationRules.Regions.Count;
@@ -51,13 +53,13 @@ public static class ResidentSimulator
         var randoms = new Random?[regionCount];
         Random Rng(int region) =>
             randoms[region] ??= new Random(unchecked((int)CrowdHash.Hash((uint)seed ^ YearSalt, (uint)year, (uint)region)));
-        int BuildingsIn(int region) => civilization.Buildings.Count(building => building.Region == region);
+        int HousesIn(int region) => civilization.Buildings.Count(building => building.Region == region && building.Type.IsHouse());
         int PeopleIn(int region) => people.Count(person => person.Region == region);
 
         // 1. 移り住む
         for (var region = 0; region < regionCount; region++)
         {
-            if (PeopleIn(region) < rules.BaseCapacity + BuildingsIn(region) * rules.CapacityPerBuilding)
+            if (PeopleIn(region) < rules.BaseCapacity + HousesIn(region) * rules.CapacityPerHouse)
             {
                 var arrived = new Resident(
                     nextId, region, year - rules.ImmigrantAge, 0, 0, 0, 0, 0, rules.MaxHealth, rules.MaxSanity, null, 0,
@@ -71,12 +73,12 @@ public static class ResidentSimulator
         // 2. 欲求を動かす
         var famine = world.ForestAmount <= rules.FamineAtOrBelow || world.WaterAmount <= rules.FamineAtOrBelow;
         var populations = Enumerable.Range(0, regionCount).Select(PeopleIn).ToArray();
-        var buildings = Enumerable.Range(0, regionCount).Select(BuildingsIn).ToArray();
+        var houses = Enumerable.Range(0, regionCount).Select(HousesIn).ToArray();
         for (var i = 0; i < people.Count; i++)
         {
             var person = people[i];
             var region = person.Region;
-            var housed = buildings[region] > 0 && populations[region] <= buildings[region] * rules.CapacityPerBuilding;
+            var housed = houses[region] > 0 && populations[region] <= houses[region] * rules.CapacityPerHouse;
             people[i] = person with
             {
                 Hunger = person.Breakdown == BreakdownKind.Catatonia ? rules.HungerCatatonia : famine ? rules.HungerFamine : rules.HungerNormal,
@@ -201,7 +203,16 @@ public static class ResidentSimulator
             };
         }
 
-        // 7. 年数のたった墓を消す
+        // 7. 屋根を探す住人がいる地域に、家を 1 軒建てる（地域の番号の順。空いた枠が無ければ建たない）
+        TileType[,]? tiles = null;
+        foreach (var region in people.Where(person => person.Task == ResidentTask.SeekShelter).Select(person => person.Region).Distinct().Order())
+        {
+            tiles ??= TerrainClassifier.ClassifyTiles(world, terrain);
+            var house = HouseFor(civilization.Regions[region].TechStage, rules);
+            CivilizationSimulator.TryBuild(civilization, tiles, region, house, year, civilizationRules, () => Rng(region));
+        }
+
+        // 8. 年数のたった墓を消す
         graves.RemoveAll(grave => grave.DeathYear + rules.GraveYears <= year);
 
         residents.Replace(people, graves, nextId);
@@ -213,6 +224,15 @@ public static class ResidentSimulator
     {
         ArgumentNullException.ThrowIfNull(rules);
         return Math.Max(0, rules.MaxHealth - Math.Max(0, age - rules.AgingStartAge) * rules.AgingLossPerYear);
+    }
+
+    /// <summary>地域の技術の段階で決まる、住人が建てる家の種類。</summary>
+    public static BuildingType HouseFor(int techStage, NeedsRules rules)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        return techStage >= rules.BrickHouseFromTechStage ? BuildingType.HouseBrick
+            : techStage >= rules.TimberHouseFromTechStage ? BuildingType.HouseTimber
+            : BuildingType.HouseHut;
     }
 
     /// <summary>住人の名と家名。「シード × 住人の ID」から作った、シミュレーションとは別の乱数でパーツを選ぶ。</summary>

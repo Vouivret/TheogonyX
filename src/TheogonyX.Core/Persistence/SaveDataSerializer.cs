@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 5;
+    public const int SaveVersion = 6;
 
     /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
     public const int MaxDreamsGenerated = 1_000_000;
@@ -32,6 +32,9 @@ public static class SaveDataSerializer
     {
         [BuildingType.Workshop] = "WORKSHOP",
         [BuildingType.Shrine] = "SHRINE",
+        [BuildingType.HouseHut] = "HOUSE_HUT",
+        [BuildingType.HouseTimber] = "HOUSE_TIMBER",
+        [BuildingType.HouseBrick] = "HOUSE_BRICK",
     };
 
     private static readonly Dictionary<BreakdownKind, string> BreakdownNames = new()
