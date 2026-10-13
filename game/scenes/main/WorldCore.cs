@@ -116,7 +116,7 @@ public partial class WorldCore : Node2D
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         _screen.WorldReset += _crowd.OnWorldReset;
-        _dreams = new DreamView(this, prophet, timeControl, dreamRules);
+        _dreams = new DreamView(this, prophet, new OracleCommandQueue(prophet, timeControl, dreamRules), timeControl, dreamRules);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;
         _screen.WorldReset += _dreams.OnWorldReset;
         _dreams.OraclePronounced += _screen.Refresh;

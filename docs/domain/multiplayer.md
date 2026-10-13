@@ -4,7 +4,7 @@ status: draft   # draft | approved | as-is
 
 # 仕様書: 多人数プレイ（神託の命令の待ち行列）
 
-- テスト仕様書: 未作成（この仕様書の確認後に `write-test-spec` の手順で `docs/test/multiplayer.md` を書く）
+- テスト仕様書: [docs/test/multiplayer.md](../test/multiplayer.md)
 - 関連ADR: なし（通信の形を決めるときに ADR にする。[未決](#未決)）
 - 通信: なし（今の `TAMPER`・`PRONOUNCE` は変えない。複数の神を扱うときに [messages.md](../protocol/messages.md) を更新する）
 - 画面デザイン: なし

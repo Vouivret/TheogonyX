@@ -18,6 +18,7 @@ namespace TheogonyX.Scenes.Main;
 public sealed class DreamView
 {
     private readonly ProphetDreams _prophet;
+    private readonly OracleCommandQueue _commands;
     private readonly TimeControl _timeControl;
     private readonly DreamRules _dreamRules;
     private readonly Label _dreamGuide;
@@ -34,9 +35,10 @@ public sealed class DreamView
     private int _selectedIndex = -1;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public DreamView(Node owner, ProphetDreams prophet, TimeControl timeControl, DreamRules dreamRules)
+    public DreamView(Node owner, ProphetDreams prophet, OracleCommandQueue commands, TimeControl timeControl, DreamRules dreamRules)
     {
         _prophet = prophet;
+        _commands = commands;
         _timeControl = timeControl;
         _dreamRules = dreamRules;
         _dreamGuide = owner.GetNode<Label>("%DreamGuide");
@@ -124,20 +126,12 @@ public sealed class DreamView
     /// <returns>改ざんできなかったときの理由（ログの <c>reason</c>）。できたら null。</returns>
     public string? TryTamper(int index, string symbolId)
     {
-        if (!_prophet.CanTamper)
+        var outcome = _commands.SubmitTamper(index, symbolId);
+        if (!outcome.Accepted)
         {
-            return "cannot_tamper";
-        }
-        if (index < 0 || index >= _prophet.Dream.Count)
-        {
-            return "invalid_dream_index";
-        }
-        if (!_dreamRules.Symbols.Any(symbol => symbol.Id == symbolId))
-        {
-            return "unknown_symbol";
+            return outcome.RejectedReason;
         }
 
-        _prophet.Tamper(index, symbolId);
         _selectedIndex = -1;
         LogDream("dream_tampered");
         Redraw();
@@ -148,13 +142,13 @@ public sealed class DreamView
     /// <returns>下せたか。</returns>
     public bool TryPronounce()
     {
-        if (!_prophet.CanPronounce)
+        var year = _timeControl.World.Year;
+        var outcome = _commands.SubmitPronounce();
+        if (outcome.Result is not { } result)
         {
             return false;
         }
 
-        var year = _timeControl.World.Year;
-        var result = _prophet.Pronounce();
         if (result.Dogma is { } dogma)
         {
             GD.Print(FormattableString.Invariant(
