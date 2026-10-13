@@ -24,7 +24,8 @@ public static class WorldSimulator
             world.ForestAmount = Math.Clamp(world.ForestAmount + perYear.ForestAmount, rules.Min.ForestAmount, rules.Max.ForestAmount);
             world.WaterAmount = Math.Clamp(world.WaterAmount + perYear.WaterAmount, rules.Min.WaterAmount, rules.Max.WaterAmount);
             world.Temperature = Math.Clamp(world.Temperature + perYear.Temperature, rules.Min.Temperature, rules.Max.Temperature);
-            world.ChaosLevel = Math.Clamp(world.ChaosLevel + perYear.ChaosLevel, rules.Min.ChaosLevel, rules.Max.ChaosLevel);
+            world.ChaosLevel = Math.Clamp(
+                world.ChaosLevel + perYear.ChaosLevel - rules.ChaosDecayPerYear, rules.Min.ChaosLevel, rules.Max.ChaosLevel);
             world.HarmonyLevel = Math.Clamp(world.HarmonyLevel + perYear.HarmonyLevel, rules.Min.HarmonyLevel, rules.Max.HarmonyLevel);
 
             if (IsCollapsed(world, rules.Collapse))

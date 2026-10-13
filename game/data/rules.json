@@ -19,6 +19,7 @@
       { "symbolId": "SYM_BLOOD", "dogmaType": "Worship", "perYear": { "chaosLevel": 1.5, "harmonyLevel": -1.0 } },
       { "symbolId": "SYM_BLOOD", "dogmaType": "Destruction", "perYear": { "chaosLevel": 1.5, "harmonyLevel": -1.0 } }
     ],
+    "chaosDecayPerYear": 0.2,
     "collapse": {
       "chaosAtOrAbove": 100.0,
       "barrenWaterAtOrBelow": 0.0,
@@ -143,7 +144,6 @@
     "rampageProbability": 0.5,
     "breakdownYears": 3,
     "recoveredSanity": 30.0,
-    "rampageChaos": 5.0,
     "graveYears": 10,
     "witnessAge": 21,
     "witnessIntensityAtOrAbove": 0.8,

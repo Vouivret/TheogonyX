@@ -141,7 +141,7 @@ public sealed class TimeControl
                     if (residents is not null && setup.Needs is not null)
                     {
                         yearEvents.AddRange(ResidentSimulator.AdvanceYear(
-                            residents, civilization, World, _dogmas, setup.Needs, setup.Rules, _worldRules, setup.Terrain, setup.Seed));
+                            residents, civilization, World, _dogmas, setup.Needs, setup.Rules, setup.Terrain, setup.Seed));
                     }
                 }
                 events.AddRange(yearEvents);

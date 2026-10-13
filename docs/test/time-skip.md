@@ -20,6 +20,9 @@
 | TS-time-skip-009 | AC-time-skip-009 | 崩壊後の跳躍は何も変えない | 受け入れ条件のとおり | 跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/WorldSimulatorTests.cs` |
 | TS-time-skip-010 | AC-time-skip-010 | ドグマが跳躍をまたいで効き続ける（分割しても結果が同じ） | 受け入れ条件のとおり | 跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/WorldSimulatorTests.cs` |
 | TS-time-skip-011 | — | 決定性: 同じ入力で2回実行すると、すべての値が一致する | 木の破壊と雨の破壊 | 100年跳躍を2回、別々の世界で行う | 2つの世界の状態が一致 | 自動 | `tests/TheogonyX.Core.Tests/WorldSimulatorTests.cs` |
+| TS-time-skip-013 | AC-time-skip-011 | カオス度が毎年自然に下がる | カオス度 10 の星（ドグマなし。自然な減少 0.2） | 10年跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/WorldSimulatorTests.cs` |
+| TS-time-skip-014 | AC-time-skip-012 | 自然な減少が下限（0）を下回らない | カオス度 0.1 の星（ドグマなし） | 1年跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/WorldSimulatorTests.cs` |
+| TS-time-skip-015 | AC-time-skip-013 | ドグマの上昇と自然な減少が合算される | 木の破壊（強度 1.0）の星（自然な減少 0.2） | 10年跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/WorldSimulatorTests.cs` |
 | TS-time-skip-012 | — | Godot 上でコアループが動く（`WorldCore` の出力） | `game/` を Godot 4.7.2 で開く | メインシーンを実行し（F5）、100年跳躍ボタンを押す | 出力に改ざん前後の夢、生成されたドグマ、100年後の世界の状態が出て、エラーが無い | 手動 | — |
 
 ## 手動テストの手順

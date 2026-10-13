@@ -60,7 +60,7 @@ public class ResidentsTests
     {
         world.Year++;
         return ResidentSimulator.AdvanceYear(
-            residents, civilization, world, dogmas ?? [], rules ?? TestRules.Needs, TestRules.Civilization, TestRules.World, TestRules.Terrain, Seed);
+            residents, civilization, world, dogmas ?? [], rules ?? TestRules.Needs, TestRules.Civilization, TestRules.Terrain, Seed);
     }
 
     private static Residents With(params Resident[] people) =>
@@ -78,7 +78,7 @@ public class ResidentsTests
         world.Year = 0;
 
         world.Year++;
-        ResidentSimulator.AdvanceYear(residents, civilization, world, [], TestRules.Needs, TestRules.Civilization, TestRules.World, TestRules.Terrain, Seed);
+        ResidentSimulator.AdvanceYear(residents, civilization, world, [], TestRules.Needs, TestRules.Civilization, TestRules.Terrain, Seed);
 
         // 地域の番号の順に ID 0〜7（テスト用の地表は 8 地域）
         Assert.Equal(Enumerable.Range(0, 8), residents.People.Select(person => person.Id));
@@ -93,14 +93,14 @@ public class ResidentsTests
         Assert.Equal(0.05, first.Actualization, 6);
 
         world.Year++;
-        ResidentSimulator.AdvanceYear(residents, civilization, world, [], TestRules.Needs, TestRules.Civilization, TestRules.World, TestRules.Terrain, Seed);
+        ResidentSimulator.AdvanceYear(residents, civilization, world, [], TestRules.Needs, TestRules.Civilization, TestRules.Terrain, Seed);
         Assert.Equal(16, residents.People.Count);
         Assert.Equal(Enumerable.Range(8, 8), residents.People.Skip(8).Select(person => person.Id));
 
         // 年 3 はどの地域にも大人が 2 人いるので移り住まない（年 2 に組んだつがいから、子供は生まれうる）
         world.Year++;
         var year3 = ResidentSimulator.AdvanceYear(
-            residents, civilization, world, [], TestRules.Needs, TestRules.Civilization, TestRules.World, TestRules.Terrain, Seed);
+            residents, civilization, world, [], TestRules.Needs, TestRules.Civilization, TestRules.Terrain, Seed);
         Assert.DoesNotContain(year3, residentEvent => residentEvent.Type == ResidentEventType.Arrived);
     }
 
@@ -497,7 +497,7 @@ public class ResidentsTests
 
     [Fact]
     [Trait("TS", "TS-agent-needs-006")]
-    public void AdvanceYear_2人が狂乱_カオス度は10上がり建物のある地域の1つが廃墟になり次の年に建て直される()
+    public void AdvanceYear_2人が狂乱_カオス度は上がらず建物のある地域の1つが廃墟になり次の年に建て直される()
     {
         // 移り住んだ住人が家を建てて廃墟の枠を使わないよう、移り住ませない
         var rampageOnly = TestRules.Needs with { RampageProbability = 1.0, BaseCapacity = 0 };
@@ -509,7 +509,7 @@ public class ResidentsTests
 
         Advance(residents, civilization, world, rules: rampageOnly);
 
-        Assert.Equal(60f, world.ChaosLevel);
+        Assert.Equal(50f, world.ChaosLevel);
         var ruin = Assert.Single(civilization.Ruins);
         Assert.Equal(Year, ruin.RuinedYear);
         Assert.Equal(RegionA, ruin.Region);
@@ -525,6 +525,20 @@ public class ResidentsTests
         CivilizationSimulator.AdvanceYear(civilization, world, [], TestRules.Terrain, TestRules.Civilization, Seed);
         Assert.Equal(2, civilization.Buildings.Count);
         Assert.Contains(civilization.Buildings, building => building.Column == ruin.Column && building.Row == ruin.Row);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-016")]
+    public void AdvanceYear_同じ地域の3人が狂乱_カオス度は上がらず50のまま()
+    {
+        var rules = TestRules.Needs with { RampageProbability = 1.0, BaseCapacity = 0 };
+        var residents = With(Person(0, RegionA, sanity: 3), Person(1, RegionA, sanity: 3), Person(2, RegionA, sanity: 3));
+        var world = WorldBefore(forest: 20f, chaos: 50f);
+
+        Advance(residents, CivilizationWith(), world, rules: rules);
+
+        Assert.Equal(50f, world.ChaosLevel);
+        Assert.All(residents.People.Where(person => person.Id is 0 or 1 or 2), person => Assert.Equal(BreakdownKind.Rampage, person.Breakdown));
     }
 
     [Fact]

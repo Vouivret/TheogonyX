@@ -144,6 +144,52 @@ public class WorldSimulatorTests
         Assert.Equal(20.0f, world.Temperature, Tolerance);
     }
 
+    // 自然なカオス度の減少（0.2）を入れた定義。ほかのテストは、減少を 0 とした定義（TestRules.World）で計算している
+    private static readonly WorldRules DecayingRules = TestRules.World with { ChaosDecayPerYear = 0.2f };
+
+    private static WorldState SkipWithDecay(WorldState world, int years, params Dogma[] dogmas)
+    {
+        WorldSimulator.SimulateTimeSkip(world, dogmas, years, DecayingRules);
+        return world;
+    }
+
+    [Fact]
+    [Trait("TS", "TS-time-skip-013")]
+    public void SimulateTimeSkip_カオス度10でドグマなしの10年_カオス度が毎年0点2ずつ下がり8点0になる()
+    {
+        var world = WorldState.CreateInitial(TestRules.World);
+        world.ChaosLevel = 10f;
+
+        SkipWithDecay(world, 10);
+
+        Assert.Equal(10, world.Year);
+        Assert.Equal(8.0f, world.ChaosLevel, Tolerance);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-time-skip-014")]
+    public void SimulateTimeSkip_カオス度0点1で1年_下限の0を下回らない()
+    {
+        var world = WorldState.CreateInitial(TestRules.World);
+        world.ChaosLevel = 0.1f;
+
+        SkipWithDecay(world, 1);
+
+        Assert.Equal(0.0f, world.ChaosLevel, Tolerance);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-time-skip-015")]
+    public void SimulateTimeSkip_木の破壊で10年_ドグマの上昇と自然な減少が合算され6点0になる()
+    {
+        var world = WorldState.CreateInitial(TestRules.World);
+
+        SkipWithDecay(world, 10, new Dogma("SYM_TREE", DogmaType.Destruction, 1.0f));
+
+        Assert.Equal(10, world.Year);
+        Assert.Equal(6.0f, world.ChaosLevel, Tolerance);
+    }
+
     [Fact]
     [Trait("TS", "TS-time-skip-011")]
     public void SimulateTimeSkip_同じ入力で2回実行_すべての値が一致する()

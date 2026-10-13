@@ -165,7 +165,6 @@ internal static class TestRules
         RampageProbability: 0.5,
         BreakdownYears: 3,
         RecoveredSanity: 30,
-        RampageChaos: 5f,
         GraveYears: 10,
         WitnessAge: 21,
         WitnessIntensityAtOrAbove: 0.8f,

@@ -35,7 +35,6 @@ public static class ResidentSimulator
         IReadOnlyList<Dogma> dogmas,
         NeedsRules rules,
         CivilizationRules civilizationRules,
-        WorldRules worldRules,
         TerrainRules terrain,
         int seed)
     {
@@ -45,7 +44,6 @@ public static class ResidentSimulator
         ArgumentNullException.ThrowIfNull(dogmas);
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(civilizationRules);
-        ArgumentNullException.ThrowIfNull(worldRules);
         ArgumentNullException.ThrowIfNull(terrain);
 
         var year = world.Year;
@@ -178,7 +176,6 @@ public static class ResidentSimulator
             {
                 if (RampagedIn(person, year))
                 {
-                    world.ChaosLevel = Math.Min(world.ChaosLevel + rules.RampageChaos, worldRules.Max.ChaosLevel);
                     var standing = civilization.Buildings.Where(building => building.Region == person.Region).ToList();
                     if (standing.Count > 0)
                     {

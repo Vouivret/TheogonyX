@@ -23,7 +23,6 @@ namespace TheogonyX.Core;
 /// <param name="RampageProbability">精神崩壊が狂乱になる確率。残りは自閉・絶望。</param>
 /// <param name="BreakdownYears">精神崩壊が続く年数。</param>
 /// <param name="RecoveredSanity">精神崩壊から戻ったときの SAN 値。</param>
-/// <param name="RampageChaos">狂乱になった年に上がるカオス度。</param>
 /// <param name="GraveYears">墓を残す年数。</param>
 /// <param name="WitnessAge">証人の称号を判定する年齢。</param>
 /// <param name="WitnessIntensityAtOrAbove">証人の称号になる、強いドグマの強度。</param>
@@ -67,7 +66,6 @@ public sealed record NeedsRules(
     double RampageProbability,
     int BreakdownYears,
     double RecoveredSanity,
-    float RampageChaos,
     int GraveYears,
     int WitnessAge,
     float WitnessIntensityAtOrAbove,
@@ -91,7 +89,7 @@ public sealed record NeedsRules(
         ];
         double[] amounts =
         [
-            MaxHealth, HealthLoss, HealthRecovery, AgingLossPerYear, MaxSanity, SanityLossPerDeath, SanityRecovery, RecoveredSanity, RampageChaos,
+            MaxHealth, HealthLoss, HealthRecovery, AgingLossPerYear, MaxSanity, SanityLossPerDeath, SanityRecovery, RecoveredSanity,
             FamineAtOrBelow, WitnessIntensityAtOrAbove,
         ];
         int[] counts =
