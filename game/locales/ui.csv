@@ -20,6 +20,15 @@ BUTTON_SPEED_FAST,速さ: 高速,Speed: Fast
 BUTTON_SPEED_REAL_TIME,速さ: 現実同期,Speed: Real Time
 HUD_NEXT_YEAR,次の年まで {0},Next year in {0}
 BUTTON_RESET,世界再創生,Recreate World
+BUTTON_HISTORY,年表,Chronicle
+HISTORY_TITLE,星の年表,Chronicle of the Star
+HISTORY_EMPTY,（まだ何も起きていない）,(Nothing has happened yet)
+HISTORY_DOGMA_FORMED,{0} 年　{1}が生まれた,Year {0}: {1} was born
+HISTORY_RAMPAGE,{0} 年　{1}が狂乱した,Year {0}: {1} went on a rampage
+HISTORY_CATATONIA,{0} 年　{1}が自閉・絶望に沈んだ,Year {0}: {1} sank into despair
+HISTORY_NOTABLE_DIED,{0} 年　{1}が死んだ,Year {0}: {1} died
+HISTORY_WORLD_DESTROYED,{0} 年　星が崩壊した,Year {0}: The star collapsed
+HISTORY_WORLD_RECREATED,{0} 年　世界が再創生された,Year {0}: The world was recreated
 BUTTON_LAYER_SURFACE,地上,Surface
 BUTTON_LAYER_UNDERGROUND,地下 {0} 層,Underground {0}
 BUTTON_RESET_SESSIONS,全セッションリセット,Reset All Sessions
@@ -57,6 +66,7 @@ RESIDENT_NAME_WITH_EPITHET,{0}・{1} の {2},{0} {1} the {2}
 EPITHET_BLOODLESS,血を恐れぬ者,Unafraid of Blood
 EPITHET_WITNESS,{0}の証人,Witness of {0}
 EPITHET_ELDER,長き日を見た者,One Who Saw Long Days
+EPITHET_BUILDER,街を包む者,Embracer of the Town
 RESIDENT_INFO_LOWER_NEEDS,空腹 {0:F2}　住居 {1:F2},Hunger {0:F2}  Shelter {1:F2}
 RESIDENT_INFO_UPPER_NEEDS,交流 {0:F2}　承認 {1:F2}　自己実現 {2:F2},Social {0:F2}  Esteem {1:F2}  Actualization {2:F2}
 RESIDENT_INFO_PARTNER,パートナー: {0},Partner: {0}

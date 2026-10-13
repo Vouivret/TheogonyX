@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 7, "seed": 42, "dreamsGenerated": 2,
+          "saveVersion": 8, "seed": 42, "dreamsGenerated": 2,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -37,16 +37,26 @@ public class SaveDataTests
             "people": [{ "id": 3, "region": 3, "birthYear": 290, "hunger": 0.1, "shelter": 0.1, "social": 0, "esteem": 0, "actualization": 0,
                          "health": 100, "sanity": 80, "breakdown": null, "breakdownYear": 0, "task": "IDLE",
                          "name": { "firstPrefix": "NAME_PREFIX_OR", "firstSuffix": "NAME_SUFFIX_MION", "lineagePrefix": "NAME_PREFIX_SELE", "lineageSuffix": "NAME_SUFFIX_PHIA" },
-                         "epithet": null, "partnerId": 4 },
+                         "epithet": null, "partnerId": 4, "housesBuilt": 0 },
                        { "id": 4, "region": 3, "birthYear": 280, "hunger": 0.1, "shelter": 0.1, "social": 0.4, "esteem": 0.3, "actualization": 0.2,
                          "health": 90, "sanity": 0, "breakdown": "RAMPAGE", "breakdownYear": 311, "task": "BREAKDOWN",
                          "name": { "firstPrefix": "NAME_PREFIX_ART", "firstSuffix": "NAME_SUFFIX_ORIUS", "lineagePrefix": "NAME_PREFIX_ILIO", "lineageSuffix": "NAME_SUFFIX_A" },
-                         "epithet": { "id": "EPITHET_BLOODLESS", "symbolId": null }, "partnerId": 3 }],
+                         "epithet": { "id": "EPITHET_BLOODLESS", "symbolId": null }, "partnerId": 3, "housesBuilt": 1 }],
             "graves": [{ "residentId": 2, "region": 1, "deathYear": 305,
                          "name": { "firstPrefix": "NAME_PREFIX_VAL", "firstSuffix": "NAME_SUFFIX_US", "lineagePrefix": "NAME_PREFIX_EL", "lineageSuffix": "NAME_SUFFIX_GIS" },
                          "epithet": { "id": "EPITHET_WITNESS", "symbolId": "SYM_RAIN" } }],
             "nextResidentId": 5
-          }
+          },
+          "history": [
+            { "year": 200, "type": "DOGMA_FORMED", "symbolId": "SYM_TREE", "dogmaType": "Taboo", "name": null, "epithet": null, "breakdown": null },
+            { "year": 300, "type": "WORLD_RECREATED", "symbolId": null, "dogmaType": null, "name": null, "epithet": null, "breakdown": null },
+            { "year": 305, "type": "NOTABLE_DIED", "symbolId": null, "dogmaType": null,
+              "name": { "firstPrefix": "NAME_PREFIX_VAL", "firstSuffix": "NAME_SUFFIX_US", "lineagePrefix": "NAME_PREFIX_EL", "lineageSuffix": "NAME_SUFFIX_GIS" },
+              "epithet": { "id": "EPITHET_BUILDER", "symbolId": null }, "breakdown": null },
+            { "year": 311, "type": "RESIDENT_BROKE_DOWN", "symbolId": null, "dogmaType": null,
+              "name": { "firstPrefix": "NAME_PREFIX_ART", "firstSuffix": "NAME_SUFFIX_ORIUS", "lineagePrefix": "NAME_PREFIX_ILIO", "lineageSuffix": "NAME_SUFFIX_A" },
+              "epithet": null, "breakdown": "RAMPAGE" }
+          ]
         }
         """;
 
@@ -54,7 +64,8 @@ public class SaveDataTests
 
     private static Game CreateGame()
     {
-        var time = new TimeControl(TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs));
+        var time = new TimeControl(
+            TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
         var dreams = new DreamSource(Seed, TestRules.Dream, TestRules.ProphetDreams);
         var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, dreams.Next);
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
@@ -256,6 +267,7 @@ public class SaveDataTests
 
     [Fact]
     [Trait("TS", "TS-save-data-004")]
+    [Trait("TS", "TS-history-007")]
     public void TryParse_正しいセーブ_読める()
     {
         var ok = SaveDataSerializer.TryParse(ValidSave, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, out var data, out var reason);
@@ -274,7 +286,7 @@ public class SaveDataTests
         Assert.Equal(
             new Resident(
                 4, 3, 280, 0.1, 0.1, 0.4, 0.3, 0.2, 90, 0, BreakdownKind.Rampage, 311, ResidentTask.Breakdown,
-                new ResidentName("NAME_PREFIX_ART", "NAME_SUFFIX_ORIUS", "NAME_PREFIX_ILIO", "NAME_SUFFIX_A"), new ResidentEpithet(Epithets.Bloodless), 3),
+                new ResidentName("NAME_PREFIX_ART", "NAME_SUFFIX_ORIUS", "NAME_PREFIX_ILIO", "NAME_SUFFIX_A"), new ResidentEpithet(Epithets.Bloodless), 3, 1),
             data.Residents.People[1]);
         Assert.Equal(4, data.Residents.People[0].PartnerId);
         Assert.Equal(
@@ -283,10 +295,25 @@ public class SaveDataTests
                 new ResidentEpithet(Epithets.Witness, "SYM_RAIN")),
             Assert.Single(data.Residents.Graves));
         Assert.Equal(5, data.Residents.NextResidentId);
+        Assert.Equal(
+            [
+                new HistoryEntry(200, HistoryEventType.DogmaFormed, "SYM_TREE", DogmaType.Taboo),
+                new HistoryEntry(300, HistoryEventType.WorldRecreated),
+                new HistoryEntry(
+                    305, HistoryEventType.NotableDied,
+                    Name: new ResidentName("NAME_PREFIX_VAL", "NAME_SUFFIX_US", "NAME_PREFIX_EL", "NAME_SUFFIX_GIS"),
+                    Epithet: new ResidentEpithet(Epithets.Builder)),
+                new HistoryEntry(
+                    311, HistoryEventType.ResidentBrokeDown,
+                    Name: new ResidentName("NAME_PREFIX_ART", "NAME_SUFFIX_ORIUS", "NAME_PREFIX_ILIO", "NAME_SUFFIX_A"),
+                    Breakdown: BreakdownKind.Rampage),
+            ],
+            data.History);
     }
 
     [Fact]
     [Trait("TS", "TS-save-data-009")]
+    [Trait("TS", "TS-history-007")]
     public void RoundTrip_住人と墓がある_続けた結果が保存しなかった場合と同じ()
     {
         static Game Start()
@@ -308,14 +335,16 @@ public class SaveDataTests
         Assert.Equal(reference.Time.Residents.People, loaded.Time.Residents!.People);
         Assert.Equal(reference.Time.Residents.Graves, loaded.Time.Residents.Graves);
         Assert.Equal(reference.Time.Residents.NextResidentId, loaded.Time.Residents.NextResidentId);
+        Assert.NotEmpty(reference.Time.History!.Entries);
+        Assert.Equal(reference.Time.History.Entries, loaded.Time.History!.Entries);
         Assert.Equal(reference.Time.World.ChaosLevel, loaded.Time.World.ChaosLevel);
     }
 
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 7", "\"saveVersion\": 6", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 7, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 8", "\"saveVersion\": 7", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 8, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": -1", "invalid_dreams_generated")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": 1000001", "invalid_dreams_generated")]
@@ -363,7 +392,7 @@ public class SaveDataTests
     [InlineData("\"task\": \"BREAKDOWN\"", "\"task\": \"BUILD\"", "invalid_residents")]
     [InlineData("\"birthYear\": 280", "\"birthYear\": 313", "invalid_residents")]
     [InlineData("\"firstPrefix\": \"NAME_PREFIX_ART\"", "\"firstPrefix\": \"NAME_PREFIX_DAGO\"", "invalid_residents")]
-    [InlineData("\"id\": \"EPITHET_BLOODLESS\"", "\"id\": \"EPITHET_BUILDER\"", "invalid_residents")]
+    [InlineData("\"id\": \"EPITHET_BLOODLESS\"", "\"id\": \"EPITHET_CONQUEROR\"", "invalid_residents")]
     [InlineData("\"symbolId\": \"SYM_RAIN\"", "\"symbolId\": \"SYM_STONE\"", "invalid_residents")]
     [InlineData("\"residentId\": 2", "\"residentId\": 4", "invalid_residents")] // 住人と墓で ID が重なる
     [InlineData("\"nextResidentId\": 5", "\"nextResidentId\": 4", "invalid_residents")] // 次の ID 以上
@@ -371,9 +400,19 @@ public class SaveDataTests
     [InlineData("\"deathYear\": 305", "\"deathYear\": 313", "invalid_residents")]
     [InlineData("\"graves\": [", "\"grave\": [", "invalid_field")]
     [InlineData("\"partnerId\": 4", "\"partnerId\": \"4\"", "invalid_field")]
+    [InlineData("\"housesBuilt\": 1", "\"housesBuilt\": -1", "invalid_residents")]
+    [InlineData("\"history\": [", "\"histories\": [", "invalid_field")]
+    [InlineData("\"type\": \"DOGMA_FORMED\"", "\"type\": \"WAR_STARTED\"", "invalid_history")]
+    [InlineData("\"year\": 200", "\"year\": -1", "invalid_history")]
+    [InlineData("\"symbolId\": \"SYM_TREE\", \"dogmaType\": \"Taboo\"", "\"symbolId\": \"SYM_STONE\", \"dogmaType\": \"Taboo\"", "invalid_history")]
+    [InlineData("\"dogmaType\": \"Taboo\", \"name\"", "\"dogmaType\": \"Love\", \"name\"", "invalid_history")]
+    [InlineData("\"epithet\": { \"id\": \"EPITHET_BUILDER\", \"symbolId\": null }, \"breakdown\": null", "\"epithet\": null, \"breakdown\": null", "invalid_history")] // 称号の無い住人の死は残さない
+    [InlineData("\"epithet\": null, \"breakdown\": \"RAMPAGE\"", "\"epithet\": null, \"breakdown\": \"FRENZY\"", "invalid_history")]
+    [InlineData("\"type\": \"WORLD_RECREATED\", \"symbolId\": null", "\"type\": \"WORLD_RECREATED\", \"symbolId\": \"SYM_TREE\"", "invalid_history")] // 使わない項目は null
     [InlineData("\"partnerId\": 4", "\"partnerId\": 2", "invalid_residents")] // 相手が住人にいない（墓の ID）
     [InlineData("\"partnerId\": 3", "\"partnerId\": null", "invalid_residents")] // 相手のパートナーが自分でない
     [InlineData("\"partnerId\": 3", "\"partnerId\": 4", "invalid_residents")] // 自分自身
+    [Trait("TS", "TS-history-007")]
     public void TryParse_壊れたセーブ_失敗して理由が分かる(string original, string replacement, string expectedReason)
     {
         Assert.Contains(original, ValidSave);

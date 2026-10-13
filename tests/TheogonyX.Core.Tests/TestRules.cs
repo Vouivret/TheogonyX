@@ -170,6 +170,7 @@ internal static class TestRules
         WitnessAge: 21,
         WitnessIntensityAtOrAbove: 0.8f,
         ElderAge: 81,
+        BuilderHouses: 2,
         AdultAge: 16,
         FertileUntilAge: 45,
         BirthProbability: 0.2,
@@ -193,4 +194,6 @@ internal static class TestRules
         DestroyedColor: Rgb(68, 36, 52));
 
     public static LightColor Rgb(float r, float g, float b) => new(r / 255f, g / 255f, b / 255f);
+
+    public static readonly HistoryRules History = new(MaxEntries: 200);
 }

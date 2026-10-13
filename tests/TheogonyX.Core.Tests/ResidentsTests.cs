@@ -1,6 +1,6 @@
 namespace TheogonyX.Core.Tests;
 
-/// <summary>住人の欲求と健康（docs/domain/agent-needs.md の受け入れ条件 AC-agent-needs-001〜020・022〜028）。</summary>
+/// <summary>住人の欲求と健康（docs/domain/agent-needs.md の受け入れ条件 AC-agent-needs-001〜020・022〜029）。</summary>
 public class ResidentsTests
 {
     private const int Seed = 42;
@@ -27,9 +27,10 @@ public class ResidentsTests
         int breakdownYear = 0,
         ResidentEpithet? epithet = null,
         int? partnerId = null,
-        ResidentName? name = null) =>
+        ResidentName? name = null,
+        int housesBuilt = 0) =>
         new(id, region, Year - age, hunger, shelter, social, esteem, actualization, health, sanity, breakdown, breakdownYear,
-            ResidentTask.Idle, name ?? AnyName, epithet, partnerId);
+            ResidentTask.Idle, name ?? AnyName, epithet, partnerId, housesBuilt);
 
     // Year の 1 つ前の年の世界。Advance で 1 年進めて Year にする
     private static WorldState WorldBefore(float forest = 50f, float water = 50f, float chaos = 0f) => new()
@@ -386,6 +387,41 @@ public class ResidentsTests
         Assert.Contains(names, name => name.LineagePrefix == "NAME_PREFIX_OR" && name.LineageSuffix == "NAME_SUFFIX_A");
         Assert.All(names, name => Assert.True(
             (name.LineagePrefix, name.LineageSuffix) is ("NAME_PREFIX_EL", "NAME_SUFFIX_GIS") or ("NAME_PREFIX_OR", "NAME_SUFFIX_A")));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-015")]
+    public void AdvanceYear_家を1軒建てた住人がもう1軒建てる_街を包む者になり先に称号があれば数だけ増える()
+    {
+        var residents = With(
+            Person(3, RegionA, housesBuilt: 1), Person(5, RegionA),
+            Person(7, RegionB, housesBuilt: 1, epithet: new ResidentEpithet(Epithets.Elder)), Person(8, RegionB));
+        var civilization = CivilizationWith();
+
+        Advance(residents, civilization, WorldBefore());
+
+        // 家はどちらの地域にも 1 軒建ち、建てたのは屋根を探す住人のうち ID のいちばん小さい人
+        Assert.Single(civilization.Buildings, building => building.Region == RegionA);
+        Assert.Single(civilization.Buildings, building => building.Region == RegionB);
+        Assert.Equal((2, new ResidentEpithet(Epithets.Builder)), (Find(residents, 3).HousesBuilt, Find(residents, 3).Epithet));
+        Assert.Equal((0, (ResidentEpithet?)null), (Find(residents, 5).HousesBuilt, Find(residents, 5).Epithet));
+        Assert.Equal((2, new ResidentEpithet(Epithets.Elder)), (Find(residents, 7).HousesBuilt, Find(residents, 7).Epithet));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-015")]
+    public void AdvanceYear_空き枠の無い地域で屋根を探す_家は建たず建てた数も増えない()
+    {
+        var residents = With(Person(0, RegionA, housesBuilt: 1), Person(1, RegionA));
+        // 地域 A の 2 × 2 の枠（行 0〜7 の 4 つ）を、工房で埋める
+        var civilization = CivilizationWith([.. Enumerable.Range(0, 4).Select(i => Workshop(i, RegionA, row: i * 2))]);
+
+        Advance(residents, civilization, WorldBefore());
+
+        Assert.Equal(ResidentTask.SeekShelter, Find(residents, 0).Task);
+        Assert.DoesNotContain(civilization.Buildings, building => building.Region == RegionA && building.Type.IsHouse());
+        Assert.Equal(1, Find(residents, 0).HousesBuilt);
+        Assert.Null(Find(residents, 0).Epithet);
     }
 
     [Fact]

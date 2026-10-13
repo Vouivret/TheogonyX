@@ -50,6 +50,7 @@ public sealed record ResidentEpithet(string Id, string? SymbolId = null);
 /// <param name="Task">その年に選んだタスク。</param>
 /// <param name="Epithet">最初に得た称号。無ければ null。</param>
 /// <param name="PartnerId">つがいの相手の ID。独身なら null。相手も同じ地域にいて、相手の <paramref name="PartnerId"/> は自分。</param>
+/// <param name="HousesBuilt">この住人が建てた家の数（称号「街を包む者」の判定に使う）。</param>
 public sealed record Resident(
     int Id,
     int Region,
@@ -66,7 +67,8 @@ public sealed record Resident(
     ResidentTask Task,
     ResidentName Name,
     ResidentEpithet? Epithet,
-    int? PartnerId = null)
+    int? PartnerId = null,
+    int HousesBuilt = 0)
 {
     public int AgeIn(int year) => year - BirthYear;
 }
@@ -80,6 +82,7 @@ public static class Epithets
     public const string Bloodless = "EPITHET_BLOODLESS";
     public const string Witness = "EPITHET_WITNESS";
     public const string Elder = "EPITHET_ELDER";
+    public const string Builder = "EPITHET_BUILDER";
 }
 
 /// <summary>精神の状態（状態遷移表の行）。</summary>

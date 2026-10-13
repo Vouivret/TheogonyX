@@ -200,6 +200,28 @@ public static class GameDataLoader
         return needs;
     }
 
+    public static HistoryRules ParseHistory(string rulesJson)
+    {
+        var section = Parse<HistorySection>(rulesJson, "rules.json").History
+            ?? throw new InvalidDataException("年表の定義が無い: file=rules.json key=history");
+        HistoryRules history;
+        try
+        {
+            history = section.Deserialize<HistoryRules>(StrictOptions)
+                ?? throw new InvalidDataException("年表の定義が空: file=rules.json key=history");
+            history.Validate();
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("年表の定義を読めない: file=rules.json key=history", ex);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("年表の定義の値が範囲外: file=rules.json key=history", ex);
+        }
+        return history;
+    }
+
     public static ProphetDreamRules ParseProphetDreams(string rulesJson)
     {
         var rules = Parse<RulesFile>(rulesJson, "rules.json");
@@ -284,6 +306,8 @@ public static class GameDataLoader
         IReadOnlyList<double>? Thresholds);
 
     private sealed record NeedsSection(JsonElement? Needs);
+
+    private sealed record HistorySection(JsonElement? History);
 
     private sealed record StrataFile(int LifespanMin, int LifespanMax, int RuinBurialYears, int MaxDepth);
 

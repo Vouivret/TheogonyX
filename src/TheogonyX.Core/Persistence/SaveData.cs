@@ -9,6 +9,7 @@ namespace TheogonyX.Core.Persistence;
 /// <param name="ElapsedSeconds">自動進行の、その年の進み（秒）。</param>
 /// <param name="Civilization">地域の文明の値と建物。</param>
 /// <param name="Residents">住人と墓。</param>
+/// <param name="History">年表の行（古い順）。年表を残さないなら空。</param>
 public sealed record SaveData(
     int Seed,
     int DreamsGenerated,
@@ -22,4 +23,5 @@ public sealed record SaveData(
     AutoPlaySpeed Speed,
     double ElapsedSeconds,
     Civilization Civilization,
-    Residents Residents);
+    Residents Residents,
+    IReadOnlyList<HistoryEntry> History);

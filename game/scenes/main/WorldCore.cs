@@ -18,10 +18,12 @@ public partial class WorldCore : Node2D
 {
     private WorldScreen? _screen;
     private AmbienceView? _ambience;
+    private SkyView? _sky;
     private CameraView? _camera;
     private BuildingView? _buildings;
     private StrataView? _strata;
     private ResidentView? _residents;
+    private HistoryView? _history;
     private CrowdView? _crowd;
     private DreamView? _dreams;
     private CompanionHost? _companion;
@@ -66,6 +68,7 @@ public partial class WorldCore : Node2D
         var prophetDreamRules = GameDataLoader.ParseProphetDreams(rulesJson);
         var civilizationRules = GameDataLoader.ParseCivilization(rulesJson);
         var needsRules = GameDataLoader.ParseNeeds(rulesJson);
+        var historyRules = GameDataLoader.ParseHistory(rulesJson);
 
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
         _saveStore = new SaveStore("user://save", TimeProvider.System);
@@ -74,7 +77,8 @@ public partial class WorldCore : Node2D
         // シードはセーブのもの、無ければ起動時の時刻から作り、記録する（同じシードで同じ夢を再現できる）
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
         var dreamSource = new DreamSource(seed, dreamRules, prophetDreamRules);
-        var timeControl = new TimeControl(worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules));
+        var timeControl = new TimeControl(
+            worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules), historyRules);
         _timeControl = timeControl;
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
@@ -95,6 +99,7 @@ public partial class WorldCore : Node2D
         _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, dreamSource, clock));
         _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings, lightingSettings);
+        _sky = new SkyView(this, _ambience, civilizationRules, seed);
         _camera = new CameraView(this, cameraSettings);
         _buildings = new BuildingView(this, timeControl, lightingSettings);
         _screen.TerrainDrawn += _buildings.Refresh;
@@ -102,6 +107,7 @@ public partial class WorldCore : Node2D
         _screen.TerrainDrawn += _strata.Refresh;
         _residents = new ResidentView(this, timeControl, civilizationRules, needsRules, _ambience, seed);
         _screen.TerrainDrawn += _residents.Refresh;
+        _history = new HistoryView(this, timeControl);
         _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
@@ -133,8 +139,10 @@ public partial class WorldCore : Node2D
             Save();
         }
         _ambience?.Process(delta);
+        _sky?.Process(delta);
         _camera?.Process(delta);
         _residents?.Process(delta);
+        _history?.Process();
         _crowd?.Process(delta);
         _companion?.Process(delta);
     }

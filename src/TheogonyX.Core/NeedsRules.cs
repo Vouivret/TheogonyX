@@ -28,6 +28,7 @@ namespace TheogonyX.Core;
 /// <param name="WitnessAge">証人の称号を判定する年齢。</param>
 /// <param name="WitnessIntensityAtOrAbove">証人の称号になる、強いドグマの強度。</param>
 /// <param name="ElderAge">長老の称号を得る年齢。</param>
+/// <param name="BuilderHouses">称号「街を包む者」を得る、建てた家の数。</param>
 /// <param name="AdultAge">大人の年齢。これより若い住人はタスクを選ばず（何もしない）、つがいにならない。</param>
 /// <param name="FertileUntilAge">子供をもうけられる年齢の上限（つがいの 2 人ともこれ以下）。</param>
 /// <param name="BirthProbability">条件を満たすつがい 1 組から、1 年に子供が生まれる確率。</param>
@@ -71,6 +72,7 @@ public sealed record NeedsRules(
     int WitnessAge,
     float WitnessIntensityAtOrAbove,
     int ElderAge,
+    int BuilderHouses,
     int AdultAge,
     int FertileUntilAge,
     double BirthProbability,
@@ -95,14 +97,14 @@ public sealed record NeedsRules(
         int[] counts =
         [
             ImmigrantAge, ImmigrateBelowAdults, BaseCapacity, CapacityPerHouse, TimberHouseFromTechStage, BrickHouseFromTechStage, AgingStartAge, BreakdownYears,
-            GraveYears, WitnessAge, ElderAge, AdultAge, FertileUntilAge,
+            GraveYears, WitnessAge, ElderAge, BuilderHouses, AdultAge, FertileUntilAge,
         ];
         if (needs.Any(value => !double.IsFinite(value) || value is < 0 or > 1)
             || amounts.Any(value => !double.IsFinite(value) || value < 0)
             || counts.Any(value => value < 0)
             || !double.IsFinite(SanityChaosDivisor) || SanityChaosDivisor <= 0
             || MaxHealth <= 0 || MaxSanity <= 0 || RecoveredSanity > MaxSanity
-            || BreakdownYears == 0 || GraveYears == 0 || TimberHouseFromTechStage > BrickHouseFromTechStage)
+            || BreakdownYears == 0 || GraveYears == 0 || BuilderHouses == 0 || TimberHouseFromTechStage > BrickHouseFromTechStage)
         {
             throw new ArgumentException($"欲求と健康の定義の値が範囲外: {this}");
         }

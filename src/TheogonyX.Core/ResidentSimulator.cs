@@ -222,13 +222,28 @@ public static class ResidentSimulator
             };
         }
 
-        // 7. 屋根を探す住人がいる地域に、家を 1 軒建てる（地域の番号の順。空いた枠が無ければ建たない）
+        // 7. 屋根を探す住人がいる地域に、家を 1 軒建てる（地域の番号の順。空いた枠が無ければ建たない）。
+        //    建てたのは、屋根を探す住人のうち ID のいちばん小さい人とし、建てた数が届いたら「街を包む者」の称号を得る
+        //    TODO(AI_UNSURE): 建てた人の決め方と軒数（rules.json の builderHouses）は AI が仮に置いた。人間が決め直す
         TileType[,]? tiles = null;
         foreach (var region in people.Where(person => person.Task == ResidentTask.SeekShelter).Select(person => person.Region).Distinct().Order())
         {
             tiles ??= TerrainClassifier.ClassifyTiles(world, terrain);
             var house = HouseFor(civilization.Regions[region].TechStage, rules);
-            CivilizationSimulator.TryBuild(civilization, tiles, region, house, year, civilizationRules, () => Rng(region));
+            if (!CivilizationSimulator.TryBuild(civilization, tiles, region, house, year, civilizationRules, () => Rng(region)))
+            {
+                continue;
+            }
+            var builder = people
+                .Select((person, index) => (Person: person, Index: index))
+                .Where(pair => pair.Person.Region == region && pair.Person.Task == ResidentTask.SeekShelter)
+                .MinBy(pair => pair.Person.Id);
+            var built = builder.Person.HousesBuilt + 1;
+            people[builder.Index] = builder.Person with
+            {
+                HousesBuilt = built,
+                Epithet = builder.Person.Epithet ?? (built >= rules.BuilderHouses ? new ResidentEpithet(Epithets.Builder) : null),
+            };
         }
 
         // 8. 子供が生まれる（地域ごとに、つがいを ID の小さい順に見る。人数が上限より少ないときだけ。上限はその年の初めの家の数で決める）

@@ -82,6 +82,12 @@ public sealed class AmbienceView
     /// <summary>焚き火が灯っている間（夕方から明け方）。住人が眠る時刻に使う。</summary>
     public bool IsNight => CampfireLight.Brightness(_cycleSeconds, _timeControl.World, _rules) > 0f;
 
+    /// <summary>夜の深さ（0〜1）。焚き火の明るさと同じく、夕方から灯って夜にいちばん強くなり、朝に 0 に戻る。星が崩壊すると 0。</summary>
+    public float NightLevel => CampfireLight.Brightness(_cycleSeconds, _timeControl.World, _rules);
+
+    /// <summary>今の環境光の色（地表にかかる色）。</summary>
+    public Color LightColor => _ambience.Color;
+
     /// <summary>毎フレーム呼ぶ。ログは出さない。</summary>
     public void Process(double delta)
     {

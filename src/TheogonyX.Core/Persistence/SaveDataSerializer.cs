@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 7;
+    public const int SaveVersion = 8;
 
     /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
     public const int MaxDreamsGenerated = 1_000_000;
@@ -37,6 +37,15 @@ public static class SaveDataSerializer
         [BuildingType.HouseBrick] = "HOUSE_BRICK",
     };
 
+    private static readonly Dictionary<HistoryEventType, string> HistoryTypeNames = new()
+    {
+        [HistoryEventType.DogmaFormed] = "DOGMA_FORMED",
+        [HistoryEventType.ResidentBrokeDown] = "RESIDENT_BROKE_DOWN",
+        [HistoryEventType.NotableDied] = "NOTABLE_DIED",
+        [HistoryEventType.WorldDestroyed] = "WORLD_DESTROYED",
+        [HistoryEventType.WorldRecreated] = "WORLD_RECREATED",
+    };
+
     private static readonly Dictionary<BreakdownKind, string> BreakdownNames = new()
     {
         [BreakdownKind.Rampage] = "RAMPAGE",
@@ -54,7 +63,7 @@ public static class SaveDataSerializer
         [ResidentTask.Breakdown] = "BREAKDOWN",
     };
 
-    private static readonly string[] EpithetIds = [Epithets.Bloodless, Epithets.Witness, Epithets.Elder];
+    private static readonly string[] EpithetIds = [Epithets.Bloodless, Epithets.Witness, Epithets.Elder, Epithets.Builder];
 
     public static string Write(SaveData data)
     {
@@ -158,6 +167,7 @@ public static class SaveDataSerializer
                     name = WriteName(person.Name),
                     epithet = WriteEpithet(person.Epithet),
                     partnerId = person.PartnerId,
+                    housesBuilt = person.HousesBuilt,
                 }),
                 graves = data.Residents.Graves.Select(grave => new
                 {
@@ -169,6 +179,16 @@ public static class SaveDataSerializer
                 }),
                 nextResidentId = data.Residents.NextResidentId,
             },
+            history = data.History.Select(entry => new
+            {
+                year = entry.Year,
+                type = HistoryTypeNames[entry.Type],
+                symbolId = entry.SymbolId,
+                dogmaType = entry.DogmaType?.ToString(),
+                name = entry.Name is null ? null : WriteName(entry.Name),
+                epithet = WriteEpithet(entry.Epithet),
+                breakdown = entry.Breakdown is { } kind ? BreakdownNames[kind] : null,
+            }),
         });
     }
 
@@ -306,10 +326,85 @@ public static class SaveDataSerializer
 
         var civilization = ReadCivilization(Property(root, "civilization", JsonValueKind.Object), civilizationRules, world.Year, symbolIds);
         var residents = ReadResidents(Property(root, "residents", JsonValueKind.Object), needsRules, civilizationRules, world.Year, symbolIds);
+        var history = Property(root, "history", JsonValueKind.Array).EnumerateArray()
+            .Select(element => ReadHistoryEntry(element, needsRules, symbolIds))
+            .ToList();
 
         return new SaveData(
             seed, dreamsGenerated, world, dogmas, dreamState.Key, dream, requestId, answeredYears, lastOracleYear, speed.Key, elapsedSeconds,
-            civilization, residents);
+            civilization, residents, history);
+    }
+
+    // 年表の行。世界再創生の前の行は今の年より後になりうるので、年は 0 以上だけを見る。種類ごとに、使う項目があり、使わない項目は null
+    private static HistoryEntry ReadHistoryEntry(JsonElement element, NeedsRules needsRules, HashSet<string> symbolIds)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidSaveDataException("invalid_field");
+        }
+        var year = ReadInt(element, "year");
+        var typeName = ReadString(element, "type");
+        var type = HistoryTypeNames.FirstOrDefault(pair => pair.Value == typeName);
+        var symbolElement = Property(element, "symbolId", null);
+        var dogmaTypeElement = Property(element, "dogmaType", null);
+        var nameElement = Property(element, "name", null);
+        var epithetElement = Property(element, "epithet", null);
+        var breakdownElement = Property(element, "breakdown", null);
+        if (year < 0 || type.Value is null)
+        {
+            throw new InvalidSaveDataException("invalid_history");
+        }
+
+        string? symbolId = null;
+        DogmaType? dogmaType = null;
+        if (type.Key == HistoryEventType.DogmaFormed)
+        {
+            symbolId = symbolElement.ValueKind == JsonValueKind.String ? symbolElement.GetString() : null;
+            var dogmaTypeName = dogmaTypeElement.ValueKind == JsonValueKind.String ? dogmaTypeElement.GetString() : null;
+            if (symbolId is null || !symbolIds.Contains(symbolId) || dogmaTypeName is null || !Enum.GetNames<DogmaType>().Contains(dogmaTypeName))
+            {
+                throw new InvalidSaveDataException("invalid_history");
+            }
+            dogmaType = Enum.Parse<DogmaType>(dogmaTypeName);
+        }
+        else if (symbolElement.ValueKind != JsonValueKind.Null || dogmaTypeElement.ValueKind != JsonValueKind.Null)
+        {
+            throw new InvalidSaveDataException("invalid_history");
+        }
+
+        ResidentName? name = null;
+        ResidentEpithet? epithet = null;
+        var aboutResident = type.Key is HistoryEventType.ResidentBrokeDown or HistoryEventType.NotableDied;
+        if (aboutResident)
+        {
+            if (nameElement.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidSaveDataException("invalid_history");
+            }
+            name = ReadName(nameElement, needsRules);
+            epithet = ReadEpithet(epithetElement, symbolIds);
+            if (type.Key == HistoryEventType.NotableDied && epithet is null)
+            {
+                throw new InvalidSaveDataException("invalid_history");
+            }
+        }
+        else if (nameElement.ValueKind != JsonValueKind.Null || epithetElement.ValueKind != JsonValueKind.Null)
+        {
+            throw new InvalidSaveDataException("invalid_history");
+        }
+
+        BreakdownKind? breakdown = null;
+        if (type.Key == HistoryEventType.ResidentBrokeDown)
+        {
+            var breakdownName = breakdownElement.ValueKind == JsonValueKind.String ? breakdownElement.GetString() : null;
+            var kind = BreakdownNames.FirstOrDefault(pair => pair.Value == breakdownName);
+            breakdown = kind.Value is null ? throw new InvalidSaveDataException("invalid_history") : kind.Key;
+        }
+        else if (breakdownElement.ValueKind != JsonValueKind.Null)
+        {
+            throw new InvalidSaveDataException("invalid_history");
+        }
+        return new HistoryEntry(year, type.Key, symbolId, dogmaType, name, epithet, breakdown);
     }
 
     private static object WriteName(ResidentName name) => new
@@ -375,18 +470,19 @@ public static class SaveDataSerializer
                 JsonValueKind.Number when partnerElement.TryGetInt32(out var value) => value,
                 _ => throw new InvalidSaveDataException("invalid_field"),
             };
+            var housesBuilt = ReadInt(item, "housesBuilt");
             var taskName = ReadString(item, "task");
             var task = TaskNames.FirstOrDefault(pair => pair.Value == taskName);
             if (birthYear > year || needs.Any(value => value is < 0 or > 1) || health <= 0 || health > rules.MaxHealth
                 || sanity < 0 || sanity > rules.MaxSanity || (breakdown is not null && (breakdownYear < 0 || breakdownYear > year))
-                || task.Value is null)
+                || task.Value is null || housesBuilt < 0)
             {
                 throw new InvalidSaveDataException("invalid_residents");
             }
             people.Add(new Resident(
                 id, region, birthYear, needs[0], needs[1], needs[2], needs[3], needs[4], health, sanity, breakdown, breakdownYear, task.Key,
                 ReadName(Property(item, "name", JsonValueKind.Object), rules), ReadEpithet(Property(item, "epithet", null), symbolIds),
-                partnerId));
+                partnerId, housesBuilt));
         }
         // つがいの相手は、同じ地域にいる別の住人で、相手のパートナーも自分
         foreach (var person in people.Where(person => person.PartnerId is not null))

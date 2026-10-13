@@ -22,6 +22,7 @@
 | TS-agent-needs-012 | AC-agent-needs-022, 023 | 屋根を探す住人が家を建てること（1 年に 1 軒、住居が足りれば建たない）と、技術の段階による家の種類 | 受け入れ条件のとおり | 1 年ずつ進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-013 | AC-agent-needs-024, 025 | つがいの組み方（ID の小さい順、子供と崩壊中は組まない）と、パートナーの死で独身に戻り次の年に組み直すこと | 受け入れ条件のとおり | 1 年ずつ進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-014 | AC-agent-needs-026, 027, 028 | 子供の生まれ方（決定性・上限・年齢・崩壊・その年の家を数えない）、子供の初期値と家名、子供は何もしないこと | 受け入れ条件のとおり | 1 年進める、名前を作る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
+| TS-agent-needs-015 | AC-agent-needs-029 | 称号「街を包む者」（家を建てた人と数、先にある称号を残すこと、建たなかった年を数えないこと） | 受け入れ条件のとおり | 1 年進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-011 | AC-agent-needs-021 | 住人の見た目・1 日の暮らし・情報の欄・墓と記録 | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順

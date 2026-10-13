@@ -27,7 +27,8 @@ public sealed class TimeControl
 
     /// <param name="jumpYears">100年跳躍ボタンで進める年数。</param>
     /// <param name="civilization">地域の文明の計算に使う定義。null なら文明の計算をしない。</param>
-    public TimeControl(WorldRules worldRules, int jumpYears, CivilizationSetup? civilization = null)
+    /// <param name="history">年表の定義。null なら年表を残さない。</param>
+    public TimeControl(WorldRules worldRules, int jumpYears, CivilizationSetup? civilization = null, HistoryRules? history = null)
     {
         ArgumentNullException.ThrowIfNull(worldRules);
         ArgumentOutOfRangeException.ThrowIfNegative(jumpYears);
@@ -38,6 +39,7 @@ public sealed class TimeControl
         World = WorldState.CreateInitial(worldRules);
         Civilization = civilization is null ? null : Civilization.CreateInitial(civilization.Rules);
         Residents = civilization?.Needs is null ? null : Residents.CreateInitial();
+        History = history is null ? null : new History([], history);
     }
 
     public TimeControlState State { get; private set; } = TimeControlState.Stopped;
@@ -52,16 +54,20 @@ public sealed class TimeControl
     /// <summary>住人と墓。住人の計算をしないなら null。</summary>
     public Residents? Residents { get; private set; }
 
+    /// <summary>星の年表。年表を残さないなら null。</summary>
+    public History? History { get; private set; }
+
     /// <summary>直前の跳躍・1 年の進みで、住人に起きた出来事（ログに出す）。</summary>
     public IReadOnlyList<ResidentEvent> ResidentEvents { get; private set; } = [];
 
     public bool CanDo(TimeControlAction action) => Transitions.ContainsKey((State, action));
 
-    /// <summary>ドグマを一覧に加える。状態は変えない。</summary>
+    /// <summary>ドグマを一覧に加え、年表に残す。状態は変えない。</summary>
     public void AddDogma(Dogma dogma)
     {
         ArgumentNullException.ThrowIfNull(dogma);
         _dogmas.Add(dogma);
+        History?.Add(new HistoryEntry(World.Year, HistoryEventType.DogmaFormed, dogma.TargetSymbolId, dogma.Type));
     }
 
     public void Jump() => Skip(TimeControlAction.Jump, _jumpYears);
@@ -75,11 +81,12 @@ public sealed class TimeControl
     /// <summary>
     /// 年 0・環境と文明の初期値に戻し、ドグマの一覧を空にして、停止中にする。
     /// 地上の建物と廃墟は、そのときの値と一緒に地下 1 層目に沈めて残す（docs/domain/strata.md）。
-    /// 住人と墓は消し、次の住人の ID だけを残す（docs/domain/agent-needs.md）。
+    /// 住人と墓は消し、次の住人の ID だけを残す（docs/domain/agent-needs.md）。年表は消さず、再創生した年を残す（docs/domain/history.md）。
     /// </summary>
     public void Reset()
     {
         var next = NextState(TimeControlAction.Reset);
+        History?.Add(new HistoryEntry(World.Year, HistoryEventType.WorldRecreated));
         Civilization = _civilizationSetup is null ? null : Civilization?.Recreate(World, _dogmas, _civilizationSetup.Rules);
         Residents = Residents?.Recreate();
         ResidentEvents = [];
@@ -91,7 +98,9 @@ public sealed class TimeControl
     /// <summary>セーブから読み込んだ世界・ドグマ・文明・住人に置き換える。崩壊していれば崩壊、そうでなければ止まった状態にする。</summary>
     /// <param name="civilization">文明の計算をしないなら無視する。</param>
     /// <param name="residents">住人の計算をしないなら無視する。</param>
-    public void Restore(WorldState world, IEnumerable<Dogma> dogmas, Civilization civilization, Residents residents)
+    /// <param name="history">年表の行（古い順）。年表を残さないなら無視する。null なら年表を空にする。</param>
+    public void Restore(
+        WorldState world, IEnumerable<Dogma> dogmas, Civilization civilization, Residents residents, IEnumerable<HistoryEntry>? history = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(dogmas);
@@ -100,6 +109,7 @@ public sealed class TimeControl
         World = world;
         Civilization = _civilizationSetup is null ? null : civilization.Copy();
         Residents = _civilizationSetup?.Needs is null ? null : residents.Copy();
+        History = History is null ? null : new History(history ?? [], History.Rules);
         ResidentEvents = [];
         _dogmas.Clear();
         _dogmas.AddRange(dogmas);
@@ -124,8 +134,14 @@ public sealed class TimeControl
                         residents, civilization, World, _dogmas, setup.Needs, setup.Rules, _worldRules, setup.Terrain, setup.Seed));
                 }
             };
+        var wasDestroyed = World.IsDestroyed;
         WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules, afterYear);
         ResidentEvents = events;
+        History?.AddResidentEvents(events);
+        if (World.IsDestroyed && !wasDestroyed)
+        {
+            History?.Add(new HistoryEntry(World.Year, HistoryEventType.WorldDestroyed));
+        }
         State = World.IsDestroyed ? TimeControlState.Destroyed : next;
     }
 
