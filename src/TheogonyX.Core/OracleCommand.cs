@@ -8,6 +8,9 @@ public enum OracleCommandKind
 
     /// <summary>神託を下す。</summary>
     Pronounce,
+
+    /// <summary>手札のルーン 2 枚を選んで神託を下す（神託の作り方「ルーンの組」）。</summary>
+    PronouncePair,
 }
 
 /// <summary>
@@ -15,11 +18,11 @@ public enum OracleCommandKind
 /// <see cref="OracleCommandQueue"/> に積む。
 /// </summary>
 /// <param name="Kind">操作の種類。</param>
-/// <param name="Index">改ざんする夢のコマの番号（0 から）。<see cref="OracleCommandKind.Pronounce"/> では使わない。</param>
+/// <param name="Index">改ざんする夢のコマの番号（0 から）。<see cref="OracleCommandKind.PronouncePair"/> では 1 枚目の手札の番号。<see cref="OracleCommandKind.Pronounce"/> では使わない。</param>
 /// <param name="SymbolId">入れ替える記号。<see cref="OracleCommandKind.Pronounce"/> では null。</param>
 /// <param name="Year">積んだ年（今の星の年）。</param>
 /// <param name="Sequence">順番の番号（積んだ順に 1 から振る通し番号）。</param>
-public sealed record OracleCommand(OracleCommandKind Kind, int Index, string? SymbolId, int Year, long Sequence);
+public sealed record OracleCommand(OracleCommandKind Kind, int Index, string? SymbolId, int Year, long Sequence, int SecondIndex = 0);
 
 /// <summary>命令を実行した結果。</summary>
 /// <param name="Command">実行した命令。</param>

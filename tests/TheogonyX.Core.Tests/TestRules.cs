@@ -95,6 +95,12 @@ internal static class TestRules
         [new DeckRuneCount("SYM_TREE", 3), new DeckRuneCount("SYM_RAIN", 3), new DeckRuneCount("SYM_BLOOD", 3), new DeckRuneCount("SYM_FIRE", 3)],
         HandSize: 4);
 
+    // docs/domain/oracle-pair.md の受け入れ条件の値（重みは AC の記号の重みと同じ。神威は上限 3・1 年に 0.1・コスト 1。歪みは 10 年に 2 回まで、超えた分 SAN 値 −20・カオス度 +5）。
+    public static readonly OracleRules Oracle = new(
+        [new RuneWeight("SYM_TREE", 0.5f), new RuneWeight("SYM_RAIN", 0.5f), new RuneWeight("SYM_BLOOD", 0.9f), new RuneWeight("SYM_FIRE", 0.4f)],
+        new FaithRules(Max: 3f, PerYear: 0.1f, Cost: 1f, Initial: 3f),
+        new OverloadRules(WindowYears: 10, FreeCount: 2, SanityLoss: 20, ChaosGain: 5f));
+
     // docs/domain/dream-tampering.md と prophet-request.md のルールの値。
     public static readonly ProphetDreamRules ProphetDreams = new(
         NodeCount: 3,

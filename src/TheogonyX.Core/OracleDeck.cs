@@ -76,6 +76,27 @@ public sealed class OracleDeck
         Draw(1);
     }
 
+    /// <summary>
+    /// 手札の 2 枚（番号は手札の位置）を捨札へ移し、山札から 2 枚を手札に引く（神託の作り方「ルーンの組」）。
+    /// 番号が手札の範囲外か同じなら <see cref="ArgumentException"/>。
+    /// </summary>
+    public void SpendPair(int first, int second)
+    {
+        if (first < 0 || second < 0 || first >= _hand.Count || second >= _hand.Count || first == second)
+        {
+            throw new ArgumentException($"手札の番号が正しくない: first={first} second={second} handCount={_hand.Count}");
+        }
+
+        var cards = new[] { _hand[first], _hand[second] };
+        // 後ろの番号から消して、前の番号がずれないようにする
+        foreach (var index in new[] { first, second }.OrderByDescending(index => index))
+        {
+            _hand.RemoveAt(index);
+        }
+        _discardPile.AddRange(cards);
+        Draw(2);
+    }
+
     /// <summary>世界再創生など、夢を捨てたとき。使ったカードは手札に残る。</summary>
     public void ClearUsed() => UsedSymbolId = null;
 

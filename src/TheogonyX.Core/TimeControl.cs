@@ -70,6 +70,23 @@ public sealed class TimeControl
         History?.Add(new HistoryEntry(World.Year, HistoryEventType.DogmaFormed, dogma.TargetSymbolId, dogma.Type));
     }
 
+    /// <summary>
+    /// 神の歪み: すべての住人の SAN 値を <paramref name="sanityLoss"/> 下げ（0 を下回らない）、カオス度を <paramref name="chaosGain"/> 上げる
+    /// （上限を越えない）。状態は変えない。SAN 値が 0 になった住人の精神崩壊は、次の年の計算で起きる。
+    /// </summary>
+    public void ApplyOverload(double sanityLoss, float chaosGain)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(sanityLoss);
+        ArgumentOutOfRangeException.ThrowIfNegative(chaosGain);
+
+        World.ChaosLevel = Math.Min(_worldRules.Max.ChaosLevel, World.ChaosLevel + chaosGain);
+        if (Residents is { } residents && sanityLoss > 0)
+        {
+            var people = residents.People.Select(person => person with { Sanity = Math.Max(0, person.Sanity - sanityLoss) }).ToList();
+            residents.Replace(people, [.. residents.Graves], residents.NextResidentId);
+        }
+    }
+
     public void Jump() => Skip(TimeControlAction.Jump, _jumpYears);
 
     public void AdvanceOneYear() => Skip(TimeControlAction.AdvanceOneYear, 1);

@@ -38,9 +38,13 @@ public sealed class OracleCommandQueue
     /// <summary>神託を下す命令を積んで実行する。</summary>
     public OracleCommandOutcome SubmitPronounce() => Submit(OracleCommandKind.Pronounce, 0, null);
 
-    private OracleCommandOutcome Submit(OracleCommandKind kind, int index, string? symbolId)
+    /// <summary>手札の <paramref name="first"/> 番・<paramref name="second"/> 番のルーン（1 枚目が対象）で神託を下す命令を積んで実行する。</summary>
+    public OracleCommandOutcome SubmitPronouncePair(int first, int second) =>
+        Submit(OracleCommandKind.PronouncePair, first, null, second);
+
+    private OracleCommandOutcome Submit(OracleCommandKind kind, int index, string? symbolId, int secondIndex = 0)
     {
-        var command = new OracleCommand(kind, index, symbolId, _timeControl.World.Year, _nextSequence++);
+        var command = new OracleCommand(kind, index, symbolId, _timeControl.World.Year, _nextSequence++, secondIndex);
         _pending.Enqueue(command);
 
         // 実行中に積まれた命令は、実行中のループが、積まれた順に実行する
@@ -92,6 +96,13 @@ public sealed class OracleCommandQueue
                 }
                 _prophet.Tamper(command.Index, command.SymbolId!);
                 return new OracleCommandOutcome(command, null, null);
+
+            case OracleCommandKind.PronouncePair:
+                if (_prophet.PairRejection(command.Index, command.SecondIndex) is { } reason)
+                {
+                    return Reject(command, reason);
+                }
+                return new OracleCommandOutcome(command, null, _prophet.PronouncePair(command.Index, command.SecondIndex));
 
             default:
                 if (!_prophet.CanPronounce)

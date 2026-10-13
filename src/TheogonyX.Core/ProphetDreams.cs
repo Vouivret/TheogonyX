@@ -56,15 +56,19 @@ public sealed class ProphetDreams
     private readonly List<DreamNode> _dream = [];
     private readonly Dictionary<string, int> _answeredYears = [];
     private int _lastOracleYear;
+    private readonly OracleRules? _oracleRules;
+    private int _faithYear;
 
     // 夢か依頼のために自動進行を止めたか。神託を下したときに再開するのに使う。
     private bool _pausedForDream;
 
     /// <summary>作った時点で、起動時の夢を見る。</summary>
     /// <param name="createDream">新しい夢を返す。</param>
+    /// <param name="oracleRules">神託の作り方（ルーンの組）と神威の定義。null なら <see cref="PronouncePair"/> を使わない。</param>
     /// <param name="deck">神託のデッキ。null なら、使う記号すべてが手札で、使ってもなくならない（デッキの前の動き）。</param>
     public ProphetDreams(
-        TimeControl timeControl, DreamRules dreamRules, ProphetDreamRules rules, Func<IReadOnlyList<DreamNode>> createDream, OracleDeck? deck = null)
+        TimeControl timeControl, DreamRules dreamRules, ProphetDreamRules rules, Func<IReadOnlyList<DreamNode>> createDream, OracleDeck? deck = null,
+        OracleRules? oracleRules = null)
     {
         ArgumentNullException.ThrowIfNull(timeControl);
         ArgumentNullException.ThrowIfNull(dreamRules);
@@ -76,6 +80,9 @@ public sealed class ProphetDreams
         _rules = rules;
         _createDream = createDream;
         Deck = deck;
+        _oracleRules = oracleRules;
+        Faith = oracleRules is null ? null : new OracleFaith(oracleRules.Faith, oracleRules.Overload);
+        _faithYear = timeControl.World.Year;
         Reset();
     }
 
@@ -83,6 +90,9 @@ public sealed class ProphetDreams
 
     /// <summary>神託のデッキ。持たなければ null。</summary>
     public OracleDeck? Deck { get; }
+
+    /// <summary>神威と神の歪み。神託の作り方（ルーンの組）の定義を持たなければ null。</summary>
+    public OracleFaith? Faith { get; }
 
     /// <summary>手札の記号（重複がありうる）。デッキが無ければ、使う記号すべて。</summary>
     public IReadOnlyList<string> Hand => Deck?.Hand ?? [.. _dreamRules.Symbols.Select(symbol => symbol.Id)];
@@ -107,6 +117,11 @@ public sealed class ProphetDreams
     public DreamUpdate OnTimeAdvanced()
     {
         var world = _timeControl.World;
+        if (world.Year > _faithYear)
+        {
+            Faith?.Advance(world.Year - _faithYear);
+        }
+        _faithYear = world.Year;
         if (world.IsDestroyed)
         {
             return new DreamUpdate(false, null, false);
@@ -193,9 +208,86 @@ public sealed class ProphetDreams
         return new OracleResult(dogma, answered, resumed);
     }
 
+    /// <summary>
+    /// 手札の 2 枚（番号は手札の位置）で神託を下せない理由。下せるなら null。
+    /// 理由は <c>star_destroyed</c>・<c>not_enough_cards</c>・<c>card_not_in_hand</c>・<c>same_card</c>・<c>not_enough_faith</c>。
+    /// </summary>
+    public string? PairRejection(int first, int second)
+    {
+        if (Deck is null || Faith is null || _oracleRules is null)
+        {
+            throw new InvalidOperationException("神託の作り方（ルーンの組）には、デッキと神託の定義が要る");
+        }
+        if (_timeControl.World.IsDestroyed)
+        {
+            return "star_destroyed";
+        }
+        if (Deck.Hand.Count < 2)
+        {
+            return "not_enough_cards";
+        }
+        if (first < 0 || second < 0 || first >= Deck.Hand.Count || second >= Deck.Hand.Count)
+        {
+            return "card_not_in_hand";
+        }
+        if (first == second)
+        {
+            return "same_card";
+        }
+        return Faith.CanAfford ? null : "not_enough_faith";
+    }
+
+    /// <summary>
+    /// 手札の 2 枚（1 枚目がドグマの対象）を選んで神託を下す。ドグマを加え、神威を使い、短い年数に重ねすぎたら神の歪みを起こし、
+    /// 使った 2 枚を捨札へ移して 2 枚を補う（docs/domain/oracle-pair.md）。依頼は済み、止めていた自動進行は再開する。
+    /// </summary>
+    /// <exception cref="InvalidOperationException">下せない（<see cref="PairRejection"/> が null でない）。</exception>
+    public OracleResult PronouncePair(int first, int second)
+    {
+        if (PairRejection(first, second) is { } reason)
+        {
+            throw new InvalidOperationException($"神託を下せない: reason={reason}");
+        }
+
+        var world = _timeControl.World;
+        var firstSymbol = Deck!.Hand[first];
+        var secondSymbol = Deck.Hand[second];
+        var dogma = OracleInterpreter.Interpret(firstSymbol, secondSymbol, _dreamRules, _oracleRules!);
+        if (dogma is not null)
+        {
+            _timeControl.AddDogma(dogma);
+        }
+        Deck.SpendPair(first, second);
+
+        var overload = Faith!.Pronounce(world.Year);
+        if (overload > 0)
+        {
+            _timeControl.ApplyOverload(_oracleRules!.Overload.SanityLoss * overload, _oracleRules.Overload.ChaosGain * overload);
+        }
+
+        var answered = ActiveRequest;
+        if (answered is not null)
+        {
+            _answeredYears[answered.Id] = world.Year;
+        }
+        ActiveRequest = RequestTransitions[(answered is not null, RequestTrigger.Pronounce)] ? answered : null;
+        _lastOracleYear = world.Year;
+
+        var resumed = false;
+        if (_pausedForDream && _timeControl.CanDo(TimeControlAction.StartAutoPlay))
+        {
+            _timeControl.StartAutoPlay();
+            resumed = true;
+        }
+        _pausedForDream = false;
+        return new OracleResult(dogma, answered, resumed, overload);
+    }
+
     /// <summary>世界再創生: 夢・依頼・同じ困りごとを待つ年数を消し、新しい夢を見る。</summary>
     public void Reset()
     {
+        Faith?.Reset();
+        _faithYear = _timeControl.World.Year;
         ActiveRequest = RequestTransitions[(ActiveRequest is not null, RequestTrigger.Reset)] ? ActiveRequest : null;
         _answeredYears.Clear();
         _pausedForDream = false;
