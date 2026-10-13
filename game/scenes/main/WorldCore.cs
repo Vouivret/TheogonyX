@@ -57,6 +57,7 @@ public partial class WorldCore : Node2D
         var ambienceRules = GameDataLoader.ParseAmbience(rulesJson);
         var prophetSettings = GameDataLoader.ParseProphet(rulesJson);
         var campfireSettings = GameDataLoader.ParseCampfire(rulesJson);
+        var lightingSettings = GameDataLoader.ParseLighting(rulesJson);
         var cameraSettings = GameDataLoader.ParseCamera(rulesJson);
         var crowdRules = GameDataLoader.ParseCrowd(rulesJson);
         var crowdLook = GameDataLoader.ParseCrowdLook(rulesJson);
@@ -90,9 +91,9 @@ public partial class WorldCore : Node2D
         }
         _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, dreamSource, clock));
         _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings);
-        _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings);
+        _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings, lightingSettings);
         _camera = new CameraView(this, cameraSettings);
-        _buildings = new BuildingView(this, timeControl);
+        _buildings = new BuildingView(this, timeControl, lightingSettings);
         _screen.TerrainDrawn += _buildings.Refresh;
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;

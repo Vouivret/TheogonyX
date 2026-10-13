@@ -102,6 +102,22 @@ public static class GameDataLoader
             campfire.Column, ParseColor(campfire.Color), campfire.Energy, campfire.RadiusTiles, campfire.FlickerAmount, campfire.FlickerSpeed);
     }
 
+    public static LightingSettings ParseLighting(string rulesJson)
+    {
+        var lighting = Parse<RulesFile>(rulesJson, "rules.json").Lighting
+            ?? throw new InvalidDataException("光と影の定義が無い: file=rules.json key=lighting");
+        if (!float.IsFinite(lighting.DirectionDegrees)
+            || !float.IsFinite(lighting.Height) || lighting.Height is < 0 or > 1
+            || !float.IsFinite(lighting.Energy) || lighting.Energy < 0
+            || !float.IsFinite(lighting.ShadowOpacity) || lighting.ShadowOpacity is < 0 or > 1
+            || !float.IsFinite(lighting.ShadowWidthRatio) || lighting.ShadowWidthRatio is <= 0 or > 1
+            || lighting.ShadowHeight < 1)
+        {
+            throw new InvalidDataException($"光と影の定義の値が範囲外: file=rules.json value={lighting}");
+        }
+        return lighting;
+    }
+
     public static CameraSettings ParseCamera(string rulesJson)
     {
         var camera = Parse<RulesFile>(rulesJson, "rules.json").Camera
@@ -261,6 +277,7 @@ public static class GameDataLoader
         AmbienceFile Ambience,
         ProphetSettings Prophet,
         CampfireFile? Campfire,
+        LightingSettings? Lighting,
         CivilizationFile? Civilization,
         CameraFile? Camera,
         CrowdFile? Crowd,

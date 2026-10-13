@@ -77,6 +77,14 @@
     "flickerAmount": 0.2,
     "flickerSpeed": 4.0
   },
+  "lighting": {
+    "directionDegrees": -45.0,
+    "height": 0.5,
+    "energy": 0.5,
+    "shadowOpacity": 0.35,
+    "shadowWidthRatio": 0.75,
+    "shadowHeight": 5
+  },
   "civilization": {
     "columnsPerRegion": 2,
     "initialTech": 0.0,

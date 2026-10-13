@@ -5,7 +5,7 @@ using TheogonyX.Data;
 
 namespace TheogonyX.Scenes.Main;
 
-/// <summary>昼夜の環境光と予言者（docs/domain/ambience.md）、焚き火（docs/domain/visual-effects.md）を描く。</summary>
+/// <summary>昼夜の環境光と予言者（docs/domain/ambience.md）、焚き火と予言者の陰影・落ち影（docs/domain/visual-effects.md）を描く。</summary>
 public sealed class AmbienceView
 {
     private const string IdleTexturePath = "res://assets/sprites/prophet_idle.png";
@@ -32,6 +32,8 @@ public sealed class AmbienceView
     private readonly CampfireSettings _campfireSettings;
     private readonly Sprite2D _flame;
     private readonly PointLight2D _campfireLight;
+    private readonly LightingSettings _lightingSettings;
+    private readonly DirectionalLight2D _sunLight;
     // 揺らぎは描画だけの演出なので、乱数ではなく決まった形のノイズを時間で引く（.agent/rules/project.md の 3 章）
     private readonly FastNoiseLite _flicker = new() { NoiseType = FastNoiseLite.NoiseTypeEnum.Perlin };
 
@@ -41,23 +43,38 @@ public sealed class AmbienceView
     private double _flickerSeconds;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public AmbienceView(Node owner, TimeControl timeControl, AmbienceRules rules, ProphetSettings prophetSettings, CampfireSettings campfireSettings)
+    public AmbienceView(Node owner, TimeControl timeControl, AmbienceRules rules, ProphetSettings prophetSettings, CampfireSettings campfireSettings, LightingSettings lightingSettings)
     {
         _timeControl = timeControl;
         _rules = rules;
         _prophetSettings = prophetSettings;
         _campfireSettings = campfireSettings;
+        _lightingSettings = lightingSettings;
         _ambience = owner.GetNode<CanvasModulate>("%Ambience");
         _prophet = owner.GetNode<Sprite2D>("%Prophet");
         var terrain = owner.GetNode<TileMapLayer>("%Terrain");
 
-        _idleTexture = LoadOrPlaceholder(IdleTexturePath, CreatePlaceholderIdle);
-        _fallenTexture = LoadOrPlaceholder(FallenTexturePath, CreatePlaceholderFallen);
+        _idleTexture = LoadWithNormalMap(IdleTexturePath, CreatePlaceholderIdle);
+        _fallenTexture = LoadWithNormalMap(FallenTexturePath, CreatePlaceholderFallen);
+        _prophet.LightMask = 1 | SpriteLighting.LitMask;
+        // 原点は 1 コマの左下なので、足元の中央はコマの幅の半分だけ右
+        SpriteLighting.AddShadow(_prophet, WorldScreen.TileSize, new Vector2(WorldScreen.TileSize / 2, 0), lightingSettings);
 
         // 足元を地表の一番上の行の上端に合わせる。原点は足元（Y ソートで足元の高さを比べるため。ShowTexture で Offset を合わせる）。
         _prophet.Position = terrain.Position + new Vector2((prophetSettings.Column - 1) * WorldScreen.TileSize, 0);
 
         (_flame, _campfireLight) = CreateCampfire(_prophet.GetParent(), terrain.Position, campfireSettings);
+
+        // 色は白にし、向きと強さだけを受け持つ（色は CanvasModulate がかける）。法線マップのある絵だけに当てる。
+        _sunLight = new DirectionalLight2D
+        {
+            Name = "SunLight",
+            Color = Colors.White,
+            Height = lightingSettings.Height,
+            RotationDegrees = lightingSettings.DirectionDegrees,
+            RangeItemCullMask = SpriteLighting.LitMask,
+        };
+        _ambience.GetParent().AddChild(_sunLight);
 
         Process(0);
     }
@@ -75,6 +92,8 @@ public sealed class AmbienceView
 
         var light = AmbientLight.Compute(_cycleSeconds, world, _rules);
         _ambience.Color = new Color(light.R, light.G, light.B);
+        // 光は足し算なので、夜に予言者だけが明るく浮かないよう、環境光の明るさに合わせて弱める
+        _sunLight.Energy = _lightingSettings.Energy * _ambience.Color.Luminance;
 
         var brightness = CampfireLight.Brightness(_cycleSeconds, world, _rules);
         var flicker = 1f + (_campfireSettings.FlickerAmount * _flicker.GetNoise1D((float)(_flickerSeconds * _campfireSettings.FlickerSpeed)));
@@ -158,10 +177,14 @@ public sealed class AmbienceView
         _prophet.Frame = 0;
     }
 
-    private static Texture2D LoadOrPlaceholder(string path, Func<Image> createPlaceholder) =>
-        ResourceLoader.Exists(path)
+    // 1 コマは縦の高さと同じ幅の正方形（docs/art-guide.md）
+    private static Texture2D LoadWithNormalMap(string path, Func<Image> createPlaceholder)
+    {
+        var diffuse = ResourceLoader.Exists(path)
             ? GD.Load<Texture2D>(path)
             : ImageTexture.CreateFromImage(createPlaceholder());
+        return SpriteLighting.WithNormalMap(diffuse, path, diffuse.GetHeight());
+    }
 
     // 仮の待機アニメーション 2 コマ: 1 コマ目は目を開けて立つ、2 コマ目は息を吐いて 1 px 沈み、目を閉じる。
     private static Image CreatePlaceholderIdle()
