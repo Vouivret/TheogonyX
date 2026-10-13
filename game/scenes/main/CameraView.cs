@@ -5,7 +5,7 @@ using TheogonyX.Data;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// 星の地表を映すカメラ。マウスホイールでズームの段を切り替え、ドラッグで動かす（docs/domain/camera-views.md）。
+/// 星の地表を映すカメラ。マウスホイールでズームの段を切り替え、ドラッグか WASD キーで動かす（docs/domain/camera-views.md）。
 /// カメラは地表を描く <c>SubViewport</c> の中に置くので、HUD は動かない。計算はコアの <see cref="CameraZoom"/> が行う。
 /// </summary>
 public sealed class CameraView
@@ -67,9 +67,18 @@ public sealed class CameraView
         }
     }
 
-    /// <summary>毎フレーム呼ぶ。ズームを目標の段へ近づける。</summary>
+    /// <summary>毎フレーム呼ぶ。WASD キーで動かし、ズームを目標の段へ近づける。</summary>
     public void Process(double delta)
     {
+        // 物理的なキーの位置で見るので、キーボードの配列によらず同じ場所のキーで動く
+        var x = KeyAxis(Key.A, Key.D);
+        var y = KeyAxis(Key.W, Key.S);
+        if (x != 0 || y != 0)
+        {
+            _centerX = CameraZoom.Pan(_centerX, x, _settings.PanSpeed, _zoom, delta);
+            _centerY = CameraZoom.Pan(_centerY, y, _settings.PanSpeed, _zoom, delta);
+            Apply();
+        }
         if (_zoom == _targetZoom)
         {
             return;
@@ -80,6 +89,9 @@ public sealed class CameraView
         _zoom = next;
         Apply();
     }
+
+    private static int KeyAxis(Key negative, Key positive) =>
+        (Input.IsPhysicalKeyPressed(positive) ? 1 : 0) - (Input.IsPhysicalKeyPressed(negative) ? 1 : 0);
 
     private void Apply()
     {

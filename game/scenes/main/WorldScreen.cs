@@ -81,6 +81,11 @@ public sealed class WorldScreen
         _chaosLabel = owner.GetNode<Label>("%ChaosLabel");
         _harmonyLabel = owner.GetNode<Label>("%HarmonyLabel");
         _dogmaList = owner.GetNode<Label>("%DogmaList");
+        // ドグマが増えて欄に収まらなくなったら、ボタンを押し下げずにスクロールさせ、いちばん新しいドグマ（いちばん下）を見せる
+        var dogmaScroll = (ScrollContainer)_dogmaList.GetParent();
+        var dogmaScrollBar = dogmaScroll.GetVScrollBar();
+        // 範囲が変わった直後はスクロールの幅（page）がまだ古いので、並べ終わってから合わせる
+        dogmaScrollBar.Changed += () => Callable.From(() => dogmaScroll.ScrollVertical = (int)dogmaScrollBar.MaxValue).CallDeferred();
         _jumpButton = owner.GetNode<Button>("%JumpButton");
         _autoPlayButton = owner.GetNode<Button>("%AutoPlayButton");
         _pauseButton = owner.GetNode<Button>("%PauseButton");

@@ -55,6 +55,12 @@ public static class CameraZoom
     public static double ZoomAround(double center, double anchorOffset, double fromZoom, double toZoom) =>
         center + anchorOffset / fromZoom - anchorOffset / toZoom;
 
+    /// <summary>キーでカメラを動かした後の中心（1 軸ぶん）。画面の上での速さは、ズームによらず同じ。</summary>
+    /// <param name="direction">−1（左・上）、0、1（右・下）。</param>
+    /// <param name="speed">画面の上での速さ（画面の px / 秒）。</param>
+    public static double Pan(double center, int direction, double speed, double zoom, double deltaSeconds) =>
+        center + direction * speed * deltaSeconds / zoom;
+
     /// <summary>
     /// 範囲の外を見せないようにしたカメラの中心（1 軸ぶん）。見えている幅が範囲以上なら、範囲の中央に置く。
     /// </summary>

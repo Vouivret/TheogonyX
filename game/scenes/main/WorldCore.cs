@@ -19,6 +19,7 @@ public partial class WorldCore : Node2D
     private WorldScreen? _screen;
     private AmbienceView? _ambience;
     private CameraView? _camera;
+    private BuildingView? _buildings;
     private CrowdView? _crowd;
     private DreamView? _dreams;
     private CompanionHost? _companion;
@@ -60,15 +61,16 @@ public partial class WorldCore : Node2D
         var crowdRules = GameDataLoader.ParseCrowd(rulesJson);
         var crowdLook = GameDataLoader.ParseCrowdLook(rulesJson);
         var prophetDreamRules = GameDataLoader.ParseProphetDreams(rulesJson);
+        var civilizationRules = GameDataLoader.ParseCivilization(rulesJson);
 
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
         _saveStore = new SaveStore("user://save", TimeProvider.System);
-        var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, out var loadFailed);
+        var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, out var loadFailed);
 
         // シードはセーブのもの、無ければ起動時の時刻から作り、記録する（同じシードで同じ夢を再現できる）
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
         var dreamSource = new DreamSource(seed, dreamRules, prophetDreamRules);
-        var timeControl = new TimeControl(worldRules, timeSettings.JumpYears);
+        var timeControl = new TimeControl(worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed));
         _timeControl = timeControl;
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
@@ -90,6 +92,8 @@ public partial class WorldCore : Node2D
         _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings);
         _camera = new CameraView(this, cameraSettings);
+        _buildings = new BuildingView(this, timeControl);
+        _screen.TerrainDrawn += _buildings.Refresh;
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         _screen.WorldReset += _crowd.OnWorldReset;
@@ -144,7 +148,8 @@ public partial class WorldCore : Node2D
 
     /// <param name="broken">セーブが壊れていて読めなかったか。</param>
     /// <returns>読めたセーブ。無いか、読めなかったら null。</returns>
-    private static SaveData? LoadSave(SaveStore store, DreamRules dreamRules, ProphetDreamRules rules, out bool broken)
+    private static SaveData? LoadSave(
+        SaveStore store, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, out bool broken)
     {
         broken = false;
         var text = store.Load();
@@ -152,7 +157,7 @@ public partial class WorldCore : Node2D
         {
             return null;
         }
-        if (SaveDataSerializer.TryParse(text, dreamRules, rules, out var data, out var reason))
+        if (SaveDataSerializer.TryParse(text, dreamRules, rules, civilizationRules, out var data, out var reason))
         {
             return data;
         }

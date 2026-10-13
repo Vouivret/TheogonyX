@@ -106,6 +106,29 @@ internal static class TestRules
             new ProphetRequestRule("CHAOS", WorldMetric.ChaosLevel, ThresholdComparison.AtOrAbove, 60f, "SYM_TREE"),
         ]);
 
+    // docs/domain/emergent-progression.md の「受け入れ条件の計算に使った値」。地表は 16 列 × 9 行（Terrain と同じ）なので、地域は 8 個。
+    public static readonly CivilizationRules Civilization = new(
+        regions: new RegionMap(16, 2),
+        rows: 9,
+        prophetColumn: 7,
+        initialTech: 0,
+        initialCulture: 0,
+        naturalGrowthPerYear: 0.01,
+        worshipCulturePerYear: 0.1,
+        destructionTechPerYear: 0.1,
+        tabooGrowthFactor: 0.5,
+        zeroInfluenceDistance: 4,
+        environmentMultipliers: new Dictionary<TileType, double>
+        {
+            [TileType.Scorched] = 0.3,
+            [TileType.Glacier] = 0.3,
+            [TileType.Desert] = 0.6,
+            [TileType.Grassland] = 1.0,
+            [TileType.Jungle] = 1.5,
+            [TileType.Water] = 1.5,
+        },
+        thresholds: [0.2, 0.4, 0.6, 0.8]);
+
     // docs/domain/time-control.md の「100年跳躍ボタン」。
     public const int JumpYears = 100;
 

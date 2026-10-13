@@ -4,7 +4,8 @@ namespace TheogonyX.Core;
 public static class WorldSimulator
 {
     /// <summary>世界を years 年進める。world を書き換える。崩壊したらその年で止まる。</summary>
-    public static void SimulateTimeSkip(WorldState world, IReadOnlyList<Dogma> dogmas, int years, WorldRules rules)
+    /// <param name="afterYear">毎年、環境の値を変えた後に呼ぶ（文明の計算）。崩壊した年には呼ばない。</param>
+    public static void SimulateTimeSkip(WorldState world, IReadOnlyList<Dogma> dogmas, int years, WorldRules rules, Action? afterYear = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(dogmas);
@@ -31,6 +32,7 @@ public static class WorldSimulator
                 world.IsDestroyed = true;
                 break;
             }
+            afterYear?.Invoke();
         }
     }
 

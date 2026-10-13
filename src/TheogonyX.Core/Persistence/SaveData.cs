@@ -7,6 +7,7 @@ namespace TheogonyX.Core.Persistence;
 /// <param name="AnsweredYears">困りごとの ID ごとの、依頼が済んだ年（同じ困りごとを待つ年数の起点）。</param>
 /// <param name="Speed">自動進行の速さ。</param>
 /// <param name="ElapsedSeconds">自動進行の、その年の進み（秒）。</param>
+/// <param name="Civilization">地域の文明の値と建物。</param>
 public sealed record SaveData(
     int Seed,
     int DreamsGenerated,
@@ -18,4 +19,5 @@ public sealed record SaveData(
     IReadOnlyDictionary<string, int> AnsweredYears,
     int LastOracleYear,
     AutoPlaySpeed Speed,
-    double ElapsedSeconds);
+    double ElapsedSeconds,
+    Civilization Civilization);

@@ -64,6 +64,18 @@ public class CameraZoomTests
     }
 
     [Theory]
+    [Trait("TS", "TS-camera-views-007")]
+    [InlineData(1, 1.0, 340.0)] // 画面の上で 1 秒に 100 px なので、1 倍では世界の 100 px
+    [InlineData(1, 2.0, 290.0)] // 2 倍では世界の 50 px
+    [InlineData(1, 0.5, 440.0)] // 0.5 倍では世界の 200 px
+    [InlineData(-1, 1.0, 140.0)]
+    [InlineData(0, 1.0, 240.0)]
+    public void Pan_速さ100で1秒_画面の上で100px動く(int direction, double zoom, double expected)
+    {
+        Assert.Equal(expected, CameraZoom.Pan(240.0, direction, 100.0, zoom, 1.0), Tolerance);
+    }
+
+    [Theory]
     [Trait("TS", "TS-camera-views-005")]
     [InlineData(120.3, 2.0, 120.5)]
     [InlineData(100.2, 3.0, 100.0 + 1.0 / 3)]

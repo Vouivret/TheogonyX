@@ -4,7 +4,7 @@
     "worshipAtOrAbove": 0.6
   },
   "world": {
-    "initial": { "forestAmount": 100.0, "waterAmount": 100.0, "temperature": 15.0, "chaosLevel": 0.0, "harmonyLevel": 50.0 },
+    "initial": { "forestAmount": 50.0, "waterAmount": 100.0, "temperature": 15.0, "chaosLevel": 0.0, "harmonyLevel": 50.0 },
     "min": { "forestAmount": 0.0, "waterAmount": 0.0, "temperature": -50.0, "chaosLevel": 0.0, "harmonyLevel": 0.0 },
     "max": { "forestAmount": 100.0, "waterAmount": 100.0, "temperature": 80.0, "chaosLevel": 100.0, "harmonyLevel": 100.0 },
     "dogmaEffects": [
@@ -77,10 +77,30 @@
     "flickerAmount": 0.2,
     "flickerSpeed": 4.0
   },
+  "civilization": {
+    "columnsPerRegion": 2,
+    "initialTech": 0.0,
+    "initialCulture": 0.0,
+    "naturalGrowthPerYear": 0.0002,
+    "worshipCulturePerYear": 0.001,
+    "destructionTechPerYear": 0.001,
+    "tabooGrowthFactor": 0.5,
+    "zeroInfluenceDistance": 8,
+    "environmentMultipliers": {
+      "Scorched": 0.3,
+      "Glacier": 0.3,
+      "Desert": 0.6,
+      "Grassland": 1.0,
+      "Jungle": 1.5,
+      "Water": 1.5
+    },
+    "thresholds": [0.2, 0.4, 0.6, 0.8]
+  },
   "camera": {
     "zoomSteps": [0.25, 0.5, 0.75, 1.0, 2.0, 3.0, 4.0],
     "startZoom": 0.5,
-    "zoomSmoothing": 12.0
+    "zoomSmoothing": 12.0,
+    "panSpeed": 240.0
   },
   "crowd": {
     "count": 10000,

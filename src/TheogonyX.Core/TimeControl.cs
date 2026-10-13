@@ -23,16 +23,20 @@ public sealed class TimeControl
     private readonly WorldRules _worldRules;
     private readonly int _jumpYears;
     private readonly List<Dogma> _dogmas = [];
+    private readonly CivilizationSetup? _civilizationSetup;
 
     /// <param name="jumpYears">100年跳躍ボタンで進める年数。</param>
-    public TimeControl(WorldRules worldRules, int jumpYears)
+    /// <param name="civilization">地域の文明の計算に使う定義。null なら文明の計算をしない。</param>
+    public TimeControl(WorldRules worldRules, int jumpYears, CivilizationSetup? civilization = null)
     {
         ArgumentNullException.ThrowIfNull(worldRules);
         ArgumentOutOfRangeException.ThrowIfNegative(jumpYears);
 
         _worldRules = worldRules;
         _jumpYears = jumpYears;
+        _civilizationSetup = civilization;
         World = WorldState.CreateInitial(worldRules);
+        Civilization = civilization is null ? null : Civilization.CreateInitial(civilization.Rules);
     }
 
     public TimeControlState State { get; private set; } = TimeControlState.Stopped;
@@ -40,6 +44,9 @@ public sealed class TimeControl
     public WorldState World { get; private set; }
 
     public IReadOnlyList<Dogma> Dogmas => _dogmas;
+
+    /// <summary>地域の文明の値と建物。文明の計算をしないなら null。</summary>
+    public Civilization? Civilization { get; private set; }
 
     public bool CanDo(TimeControlAction action) => Transitions.ContainsKey((State, action));
 
@@ -58,21 +65,25 @@ public sealed class TimeControl
 
     public void Pause() => State = NextState(TimeControlAction.Pause);
 
-    /// <summary>年 0・環境の初期値に戻し、ドグマの一覧を空にして、停止中にする。</summary>
+    /// <summary>年 0・環境と文明の初期値に戻し、ドグマの一覧と建物を空にして、停止中にする。</summary>
     public void Reset()
     {
         var next = NextState(TimeControlAction.Reset);
         World = WorldState.CreateInitial(_worldRules);
+        Civilization = _civilizationSetup is null ? null : Civilization.CreateInitial(_civilizationSetup.Rules);
         _dogmas.Clear();
         State = next;
     }
 
-    /// <summary>セーブから読み込んだ世界とドグマに置き換える。崩壊していれば崩壊、そうでなければ止まった状態にする。</summary>
-    public void Restore(WorldState world, IEnumerable<Dogma> dogmas)
+    /// <summary>セーブから読み込んだ世界・ドグマ・文明に置き換える。崩壊していれば崩壊、そうでなければ止まった状態にする。</summary>
+    /// <param name="civilization">文明の計算をしないなら無視する。</param>
+    public void Restore(WorldState world, IEnumerable<Dogma> dogmas, Civilization civilization)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(dogmas);
+        ArgumentNullException.ThrowIfNull(civilization);
         World = world;
+        Civilization = _civilizationSetup is null ? null : civilization.Copy();
         _dogmas.Clear();
         _dogmas.AddRange(dogmas);
         State = world.IsDestroyed ? TimeControlState.Destroyed : TimeControlState.Stopped;
@@ -81,7 +92,12 @@ public sealed class TimeControl
     private void Skip(TimeControlAction action, int years)
     {
         var next = NextState(action);
-        WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules);
+        var setup = _civilizationSetup;
+        var civilization = Civilization;
+        Action? afterYear = setup is null || civilization is null
+            ? null
+            : () => CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed);
+        WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules, afterYear);
         State = World.IsDestroyed ? TimeControlState.Destroyed : next;
     }
 
@@ -90,3 +106,7 @@ public sealed class TimeControl
             ? next
             : throw new InvalidOperationException($"この状態ではできない操作: state={State} action={action}");
 }
+
+/// <summary>地域の文明の計算に使う定義と乱数のシード。</summary>
+/// <param name="Terrain">毎年のタイル種別（建てられる場所と環境の倍率）を求めるのに使う。</param>
+public sealed record CivilizationSetup(CivilizationRules Rules, TerrainRules Terrain, int Seed);

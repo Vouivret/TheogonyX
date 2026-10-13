@@ -115,12 +115,40 @@ public static class GameDataLoader
                 && (i == 0 || steps[i] > steps[i - 1])
                 && (steps[i] <= 1 || steps[i] == Math.Floor(steps[i]));
         }
-        if (!stepsValid || !steps.Contains(camera.StartZoom) || !double.IsFinite(camera.ZoomSmoothing) || camera.ZoomSmoothing <= 0)
+        if (!stepsValid || !steps.Contains(camera.StartZoom) || !double.IsFinite(camera.ZoomSmoothing) || camera.ZoomSmoothing <= 0
+            || !double.IsFinite(camera.PanSpeed) || camera.PanSpeed <= 0)
         {
             throw new InvalidDataException(
-                $"カメラの定義の値が範囲外: file=rules.json zoomSteps={string.Join(',', steps)} startZoom={camera.StartZoom} zoomSmoothing={camera.ZoomSmoothing}");
+                $"カメラの定義の値が範囲外: file=rules.json zoomSteps={string.Join(',', steps)} startZoom={camera.StartZoom} zoomSmoothing={camera.ZoomSmoothing} panSpeed={camera.PanSpeed}");
         }
-        return new CameraSettings(steps, camera.StartZoom, camera.ZoomSmoothing);
+        return new CameraSettings(steps, camera.StartZoom, camera.ZoomSmoothing, camera.PanSpeed);
+    }
+
+    public static CivilizationRules ParseCivilization(string rulesJson)
+    {
+        var rules = Parse<RulesFile>(rulesJson, "rules.json");
+        var civilization = rules.Civilization
+            ?? throw new InvalidDataException("文明の定義が無い: file=rules.json key=civilization");
+        try
+        {
+            return new CivilizationRules(
+                new RegionMap(rules.Terrain.Columns, civilization.ColumnsPerRegion),
+                rules.Terrain.Rows,
+                rules.Prophet.Column - 1, // rules.json の列は 1 から数える
+                civilization.InitialTech,
+                civilization.InitialCulture,
+                civilization.NaturalGrowthPerYear,
+                civilization.WorshipCulturePerYear,
+                civilization.DestructionTechPerYear,
+                civilization.TabooGrowthFactor,
+                civilization.ZeroInfluenceDistance,
+                civilization.EnvironmentMultipliers ?? [],
+                civilization.Thresholds ?? []);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException($"文明の定義の値が範囲外: file=rules.json value={civilization}", ex);
+        }
     }
 
     public static ProphetDreamRules ParseProphetDreams(string rulesJson)
@@ -192,7 +220,19 @@ public static class GameDataLoader
 
     private sealed record CampfireFile(int Column, string Color, float Energy, float RadiusTiles, float FlickerAmount, float FlickerSpeed);
 
-    private sealed record CameraFile(IReadOnlyList<double>? ZoomSteps, double StartZoom, double ZoomSmoothing);
+    private sealed record CameraFile(IReadOnlyList<double>? ZoomSteps, double StartZoom, double ZoomSmoothing, double PanSpeed);
+
+    private sealed record CivilizationFile(
+        int ColumnsPerRegion,
+        double InitialTech,
+        double InitialCulture,
+        double NaturalGrowthPerYear,
+        double WorshipCulturePerYear,
+        double DestructionTechPerYear,
+        double TabooGrowthFactor,
+        int ZeroInfluenceDistance,
+        Dictionary<TileType, double>? EnvironmentMultipliers,
+        IReadOnlyList<double>? Thresholds);
 
     private sealed record CrowdFile(
         int Count,
@@ -221,6 +261,7 @@ public static class GameDataLoader
         AmbienceFile Ambience,
         ProphetSettings Prophet,
         CampfireFile? Campfire,
+        CivilizationFile? Civilization,
         CameraFile? Camera,
         CrowdFile? Crowd,
         DreamFile Dream,

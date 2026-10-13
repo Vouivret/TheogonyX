@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 2;
+    public const int SaveVersion = 3;
 
     /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
     public const int MaxDreamsGenerated = 1_000_000;
@@ -26,6 +26,12 @@ public static class SaveDataSerializer
         [AutoPlaySpeed.Normal] = "NORMAL",
         [AutoPlaySpeed.Fast] = "FAST",
         [AutoPlaySpeed.RealTime] = "REAL_TIME",
+    };
+
+    private static readonly Dictionary<BuildingType, string> BuildingTypeNames = new()
+    {
+        [BuildingType.Workshop] = "WORKSHOP",
+        [BuildingType.Shrine] = "SHRINE",
     };
 
     public static string Write(SaveData data)
@@ -62,16 +68,37 @@ public static class SaveDataSerializer
             answeredYears = data.AnsweredYears,
             lastOracleYear = data.LastOracleYear,
             autoPlay = new { speed = SpeedNames[data.Speed], elapsedSeconds = data.ElapsedSeconds },
+            civilization = new
+            {
+                regions = data.Civilization.Regions.Select(region => new
+                {
+                    tech = region.Tech,
+                    culture = region.Culture,
+                    techStage = region.TechStage,
+                    cultureStage = region.CultureStage,
+                }),
+                buildings = data.Civilization.Buildings.Select(building => new
+                {
+                    id = building.Id,
+                    type = BuildingTypeNames[building.Type],
+                    region = building.Region,
+                    column = building.Column,
+                    row = building.Row,
+                }),
+                nextBuildingId = data.Civilization.NextBuildingId,
+            },
         });
     }
 
     /// <param name="data">成功したときの中身。失敗したときは null。</param>
     /// <param name="reason">失敗したときの理由（ログの <c>reason</c>）。成功したときは空文字。</param>
-    public static bool TryParse(string text, DreamRules dreamRules, ProphetDreamRules rules, out SaveData? data, out string reason)
+    public static bool TryParse(
+        string text, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, out SaveData? data, out string reason)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(dreamRules);
         ArgumentNullException.ThrowIfNull(rules);
+        ArgumentNullException.ThrowIfNull(civilizationRules);
         data = null;
 
         JsonDocument document;
@@ -89,7 +116,7 @@ public static class SaveDataSerializer
         {
             try
             {
-                data = Read(document.RootElement, dreamRules, rules);
+                data = Read(document.RootElement, dreamRules, rules, civilizationRules);
             }
             catch (InvalidSaveDataException ex)
             {
@@ -102,7 +129,7 @@ public static class SaveDataSerializer
         return true;
     }
 
-    private static SaveData Read(JsonElement root, DreamRules dreamRules, ProphetDreamRules rules)
+    private static SaveData Read(JsonElement root, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules)
     {
         if (root.ValueKind != JsonValueKind.Object)
         {
@@ -192,8 +219,74 @@ public static class SaveDataSerializer
             throw new InvalidSaveDataException("invalid_number");
         }
 
+        var civilization = ReadCivilization(Property(root, "civilization", JsonValueKind.Object), civilizationRules);
+
         return new SaveData(
-            seed, dreamsGenerated, world, dogmas, dreamState.Key, dream, requestId, answeredYears, lastOracleYear, speed.Key, elapsedSeconds);
+            seed, dreamsGenerated, world, dogmas, dreamState.Key, dream, requestId, answeredYears, lastOracleYear, speed.Key, elapsedSeconds,
+            civilization);
+    }
+
+    // 地域の数・値の範囲・建物の場所（地域の中の 2 × 2 の枠）と ID を、定義と照らして検証する
+    private static Civilization ReadCivilization(JsonElement element, CivilizationRules rules)
+    {
+        var regions = Property(element, "regions", JsonValueKind.Array).EnumerateArray()
+            .Select(region => ReadRegion(region, rules))
+            .ToList();
+        if (regions.Count != rules.Regions.Count)
+        {
+            throw new InvalidSaveDataException("invalid_civilization");
+        }
+
+        var nextBuildingId = ReadInt(element, "nextBuildingId");
+        var ids = new HashSet<int>();
+        var slots = new HashSet<(int Column, int Row)>();
+        var buildings = new List<Building>();
+        foreach (var building in Property(element, "buildings", JsonValueKind.Array).EnumerateArray())
+        {
+            if (building.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidSaveDataException("invalid_field");
+            }
+            var id = ReadInt(building, "id");
+            var typeName = ReadString(building, "type");
+            var type = BuildingTypeNames.FirstOrDefault(pair => pair.Value == typeName);
+            var region = ReadInt(building, "region");
+            var column = ReadInt(building, "column");
+            var row = ReadInt(building, "row");
+            if (type.Value is null || id < 0 || id >= nextBuildingId || !ids.Add(id)
+                || region < 0 || region >= rules.Regions.Count || !IsSlot(column, row, region, rules) || !slots.Add((column, row)))
+            {
+                throw new InvalidSaveDataException("invalid_civilization");
+            }
+            buildings.Add(new Building(id, type.Key, region, column, row));
+        }
+        return new Civilization(regions, buildings, nextBuildingId);
+    }
+
+    private static RegionCivilization ReadRegion(JsonElement element, CivilizationRules rules)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidSaveDataException("invalid_field");
+        }
+        var tech = ReadDouble(element, "tech");
+        var culture = ReadDouble(element, "culture");
+        var techStage = ReadInt(element, "techStage");
+        var cultureStage = ReadInt(element, "cultureStage");
+        if (tech is < 0 or > 1 || culture is < 0 or > 1
+            || techStage < 0 || techStage > rules.Thresholds.Count || cultureStage < 0 || cultureStage > rules.Thresholds.Count)
+        {
+            throw new InvalidSaveDataException("invalid_civilization");
+        }
+        return new RegionCivilization(tech, culture, techStage, cultureStage);
+    }
+
+    // 地域の中の、2 × 2 の枠の左上のマス
+    private static bool IsSlot(int column, int row, int region, CivilizationRules rules)
+    {
+        var offset = column - rules.Regions.FirstColumn(region);
+        return offset >= 0 && offset + 1 < rules.Regions.ColumnsPerRegion && offset % 2 == 0
+            && row >= 0 && row + 1 < rules.Rows && row % 2 == 0;
     }
 
     private static Dogma ReadDogma(JsonElement element, HashSet<string> symbolIds)
