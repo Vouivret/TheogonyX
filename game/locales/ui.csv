@@ -36,7 +36,7 @@ HISTORY_NOTABLE_DIED,{0} 年　{1}が死んだ,Year {0}: {1} died
 HISTORY_WORLD_DESTROYED,{0} 年　星が崩壊した,Year {0}: The star collapsed
 HISTORY_WORLD_RECREATED,{0} 年　世界が再創生された,Year {0}: The world was recreated
 HISTORY_CHAPTER,{0}〜{1} 年の章（カオス度 {2:F0} → {3:F0}）,Years {0}-{1} (chaos {2:F0} to {3:F0})
-HISTORY_CHAPTER_MYTH,{0}〜{1} 年の章「{2}」　{3},"Years {0}-{1}: ""{2}"" {3}"
+HISTORY_CHAPTER_MYTH,{0}〜{1} 年の章「{2}」,"Years {0}-{1}: ""{2}"""
 BUTTON_LAYER_SURFACE,地上,Surface
 BUTTON_LAYER_UNDERGROUND,地下 {0} 層,Underground {0}
 BUTTON_RESET_SESSIONS,全セッションリセット,Reset All Sessions

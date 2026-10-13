@@ -2,7 +2,7 @@
 
 決まっていないこと、人間の手作業が要ることの一覧。解消したら行を消し、決まった内容は該当する仕様書・ルールに書く。
 
-最終更新: 2026-10-13（M5 の住人・家・つがいと子供・年表・夜空の星を作った後）
+最終更新: 2026-10-13（M5 の住人・家・つがいと子供・年表・夜空の星・予言者の誤解・歴史の神話化を作った後）
 
 ## 人間の手作業
 
@@ -13,7 +13,7 @@
 | 崩壊の見た目の確認 | TS-time-control-009 の手順 5 と TS-ambience-006 の手順 5。夢の改ざんで崩壊を起こせるようになったので、確認できる | [実施記録](test/results/2026-10-11-feat-m1-screen.md) |
 | 手動テスト TS-strata-008・TS-emergent-progression-010・TS-visual-effects-006・TS-visual-effects-007 | M4 で作った廃墟と建て増し・地下の表示、建物の見た目、焚き火、予言者と建物の陰影と落ち影。手順どおりに確かめたら `docs/test/results/` に記録する | [strata](test/strata.md)・[emergent-progression](test/emergent-progression.md)・[visual-effects](test/visual-effects.md) |
 | 手動テスト TS-agent-needs-011 | 住人の絵・家が建つこと・子供と並んで寝るつがい・昼に歩き夜に建物のそばで横になること・クリックの欄（パートナー）・墓と記録・世界再創生で消えること。ヘッドレスで、住人・墓・家・つがい・子供のあるセーブを読み込んで動かし、エラーが無いことだけは確認済み | [agent-needs](test/agent-needs.md) |
-| 手動テスト TS-ai-presentation-006 | 実際の Ollama で、神託の吹き出し・年表の見出し・止めたときの定型文。頼みの文は curl で `gemma2:9b` に送り、3 秒ほどで形の合った文が返ることを確かめた（ほかのアプリが別のモデルを使っていると、読み込み直しで 60 秒を超えることがある）。Godot の画面では未確認 | [ai-presentation](test/ai-presentation.md) |
+| 手動テスト TS-ai-presentation-006 | 実際の Ollama で、神託の吹き出し・年表の見出し・止めたときの定型文。頼みの文は curl で `gemma2:9b` に送り、3 秒ほどで形の合った文が返ることを確かめた（ほかのアプリが別のモデルを使っていると、読み込み直しで 60 秒を超えることがある）。神託の吹き出し（神託のボタンを押す流れ）と、止めたときの定型文は、Godot の画面では未確認。歴史の神話化（章の神話の文）は、2026-10-13 に Godot で確かめた（[実施記録](test/results/2026-10-13-feat-m5-chronicle-myth.md)） | [ai-presentation](test/ai-presentation.md) |
 | 手動テスト TS-history-008・TS-visual-effects-008 | 年表の欄の開け閉めと行の並び、夜空の星と空の色。Godot の動画の書き出し（`--write-movie`）で、年表の欄（欄を開いた状態に一時的に書き換えて）と夜の星の 1 コマを見て、表示されることだけは確認済み。クリックの操作と周期を通した見た目は未確認 | [history](test/history.md)・[visual-effects](test/visual-effects.md) |
 | 手動テスト TS-camera-views-006 | ホイールのズーム・ドラッグ・HUD が動かないこと・詳細の視点でドットの幅がそろうこと | [docs/test/camera-views.md](test/camera-views.md) |
 | 手動テスト TS-prophet-request-006 | 依頼の吹き出し（予言者の右）が出て、画面に収まり、神託で消えること。TS-dream-tampering-008 は合格（[実施記録](test/results/2026-10-12-feat-m2-dream-tampering.md)） | [dream-tampering](test/dream-tampering.md)・[prophet-request](test/prophet-request.md) |
@@ -34,7 +34,9 @@
 | 推奨スペックの PC | [nfr.md](nfr.md) の性能の目標は「例」のまま。群衆の計測（10,000 人で GPU 版 約 1,000 fps、開発者の PC）を目安に、目標と推奨スペックを決める | 配布する前 |
 | 「狂乱」の言葉の重なり | 群衆の `CrowdMode.Frenzy`（聖地へ押し寄せる）と、住人の精神崩壊の `BreakdownKind.Rampage`（建物を壊す）が、どちらも「狂乱」。どちらかの言葉を変えるか | 急がない |
 | 住人のログのキー | `residentId`・`region`・`name`・`breakdown`・`partnerId` を `project.md` 7 章のキーの表に足す（ルールファイルは人間が直す） | 次に住人を変える前 |
-| AI が仮に置いた規則と値（`TODO(AI_UNSURE)`） | 2026-10-13 に「仮置きして進める」として作ったもの。[星の年表](domain/history.md)の「未決」すべて（残す出来事・上限 200 行・再創生で消さない・欄の置き場所）、称号「街を包む者」の軒数（2）と建てた人の決め方（[agent-needs](domain/agent-needs.md)）、夜空の星の数・大きさ・瞬き・空の地の色（[visual-effects](domain/visual-effects.md)）。予言者の誤解の待つ秒数（60）・吹き出しの秒数（20）・文字数の上限（30・80）（[ai-presentation](domain/ai-presentation.md)）。コードの `TODO(AI_UNSURE)` は `History.cs`・`ResidentSimulator.cs`・`SkyView.cs`・`OracleProphecy.cs` にある。人間が決め直すまで、`project.md` 2.1 によりマージしない扱い | 次に年表・称号・空を変える前 |
+| 住人の人数と増え方 | ドグマ無しで、住人は 100 年で約 500 人まで増える（子供の確率 0.2・家の定員 4 の結果。2026-10-13 に確認）。画面で見て多すぎないか、動作が重くないかを確かめ、確率・定員を決め直すか。[agent-needs](domain/agent-needs.md)の未決にも書いてある | 次に住人を変える前 |
+| カオス度の自然な減少 | 毎年 0.2（2026-10-13 に決定）。ドグマで上げたカオス度にも効くので、遊んで確かめて、ドグマの効果の値（`rules.json` の `dogmaEffects`）を決め直すか。[time-skip](domain/time-skip.md) | 次にドグマの効果を変える前 |
+| AI が仮に置いた規則と値（`TODO(AI_UNSURE)`） | 2026-10-13 に「仮置きして進める」として作ったもの。[星の年表](domain/history.md)の「未決」すべて（残す出来事・上限 200 行・再創生で消さない・欄の置き場所）、称号「街を包む者」の軒数（2）と建てた人の決め方（[agent-needs](domain/agent-needs.md)）、夜空の星の数・大きさ・瞬き・空の地の色（[visual-effects](domain/visual-effects.md)）。予言者の誤解の待つ秒数（60）・吹き出しの秒数（20）・文字数の上限（30・80）、歴史の神話化の文字数の上限（見出し 30・本文 200）・頼みに入れる行の数（20）と前の見出しの数（3）（[ai-presentation](domain/ai-presentation.md)）。コードの `TODO(AI_UNSURE)` は `History.cs`・`ResidentSimulator.cs`・`SkyView.cs`・`OracleProphecy.cs`・`MythChronicle.cs`・`MythView.cs` にある。人間が決め直すまで、`project.md` 2.1 によりマージしない扱い | 次に年表・称号・空を変える前 |
 | 用語集への追加 | タイル種別・自動進行・世界再創生・環境光・昼夜の周期、ペアリング・ワンタイムトークン・`sessionToken`・画面の配信、神託・依頼（祈り）・困りごとを [用語集](domain/glossary.md) に足すか | 急がない |
 | 画面の配信の仕様書の承認 | [frame-stream.md](domain/frame-stream.md) は `draft` のまま | 次に配信を変える前 |
 | 夢の改ざん・依頼の仕様書の承認 | [dream-tampering.md](domain/dream-tampering.md)・[prophet-request.md](domain/prophet-request.md) は `draft` のまま（スマホでの操作も足した）。M2 は 2026-10-12 に閉じたので、人間が承認する | 次に夢・依頼を変える前 |

@@ -28,7 +28,7 @@ public static class ChronicleText
             HistoryEventType.ChapterEnded when entry.Myth is null => string.Format(
                 culture, Tr("HISTORY_CHAPTER"), entry.FromYear, entry.Year, entry.ChaosFrom, entry.ChaosTo),
             HistoryEventType.ChapterEnded => string.Format(
-                culture, Tr("HISTORY_CHAPTER_MYTH"), entry.FromYear, entry.Year, entry.Myth.Heading, entry.Myth.Body),
+                culture, Tr("HISTORY_CHAPTER_MYTH"), entry.FromYear, entry.Year, entry.Myth.Heading),
             _ => string.Format(culture, Tr("HISTORY_WORLD_RECREATED"), entry.Year),
         };
     }
