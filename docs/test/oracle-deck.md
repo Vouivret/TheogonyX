@@ -15,7 +15,7 @@
 | TS-oracle-deck-004 | AC-oracle-deck-004, 010 | 同じシード・同じ操作を繰り返すと、引く順が一致する | 受け入れ条件のとおり | 20 回の神託を 2 回再生する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleDeckTests.cs` |
 | TS-oracle-deck-005 | AC-oracle-deck-015 | 手札に無い記号での改ざんは受け付けない（`card_not_in_hand`） | 受け入れ条件のとおり | 改ざんする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleDeckTests.cs` |
 | TS-oracle-deck-006 | AC-oracle-deck-016 | 改ざん済みで世界再創生をすると、使ったカードは手札に残る | 受け入れ条件のとおり | 世界再創生をする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleDeckTests.cs` |
-| TS-oracle-deck-007 | AC-oracle-deck-008 | デッキの状態（山札の並び・手札・捨札・使ったカード・シャッフルの回数）が、保存して読み込むと戻る。壊れたデッキは読めない（`invalid_deck`） | 受け入れ条件のとおり | 保存して読み込む、壊れたセーブを読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleDeckTests.cs`、`SaveDataTests.cs` |
+| TS-oracle-deck-007 | AC-oracle-deck-008 | デッキの状態（山札の並び・手札・捨札・使ったカード・シャッフルの回数）が、保存して読み込むと戻る。壊れたデッキは読めない（`invalid_deck`） | 受け入れ条件のとおり | 保存して読み込む、壊れたセーブを読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-oracle-deck-008 | AC-oracle-deck-011, 012, 015 | PC の画面とスマホの手札が、デッキの手札と一致し、神託を下すと入れ替わる | Godot 4.7.2 で動かす。スマホはペアリング済み | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順

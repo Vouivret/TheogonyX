@@ -7,6 +7,5 @@ public enum CompanionMessageType
     Resume,
     StartStream,
     StopStream,
-    Tamper,
     Pronounce,
 }

@@ -78,9 +78,8 @@ public partial class WorldCore : Node2D
         _saveStore = new SaveStore("user://save", TimeProvider.System);
         var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, needsRules, out var loadFailed);
 
-        // シードはセーブのもの、無ければ起動時の時刻から作り、記録する（同じシードで同じ夢を再現できる）
+        // シードはセーブのもの、無ければ起動時の時刻から作り、記録する（同じシードで同じデッキの並びを再現できる）
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
-        var dreamSource = new DreamSource(seed, dreamRules, prophetDreamRules);
         var timeControl = new TimeControl(
             worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules), historyRules);
         _timeControl = timeControl;
@@ -91,17 +90,18 @@ public partial class WorldCore : Node2D
             [AutoPlaySpeed.RealTime] = timeSettings.RealTimeSecondsPerYear,
         });
         var deck = new OracleDeck(seed, GameDataLoader.ParseDeck(rulesJson, dreamRules));
-        var prophet = new ProphetDreams(timeControl, dreamRules, prophetDreamRules, dreamSource.Next, deck);
+        // 夢は見ない（神託は手札のルーンの組で下す）ので、夢の作り方は使わない
+        var prophet = new ProphetDreams(timeControl, dreamRules, prophetDreamRules, () => [], deck, GameDataLoader.ParseOracleRules(rulesJson, dreamRules));
         if (saved is not null)
         {
-            SaveGame.Apply(saved, timeControl, prophet, dreamSource, clock);
+            SaveGame.Apply(saved, timeControl, prophet, clock);
             GD.Print($"event=game_loaded seed={seed} year={timeControl.World.Year}");
         }
         else
         {
             GD.Print($"event=game_started seed={seed}");
         }
-        _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, dreamSource, clock));
+        _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, seed, clock));
         _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings, lightingSettings);
         _sky = new SkyView(this, _ambience, civilizationRules, seed);
@@ -117,7 +117,7 @@ public partial class WorldCore : Node2D
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         _screen.WorldReset += _crowd.OnWorldReset;
-        _dreams = new DreamView(this, prophet, new OracleCommandQueue(prophet, timeControl, dreamRules), timeControl, dreamRules);
+        _dreams = new DreamView(this, prophet, new OracleCommandQueue(prophet, timeControl, dreamRules), timeControl);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;
         _screen.WorldReset += _dreams.OnWorldReset;
         _dreams.OraclePronounced += _screen.Refresh;

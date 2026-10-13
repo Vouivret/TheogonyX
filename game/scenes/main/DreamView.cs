@@ -9,83 +9,56 @@ using TheogonyX.Core.Protocol;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// 予言者の夢の欄と依頼の吹き出しを描き、改ざん・神託の操作をコアの <see cref="ProphetDreams"/> につなぐ
-/// （docs/domain/dream-tampering.md、prophet-request.md）。
-/// 地表の下の帯の 1 段目に今の状態の案内、2 段目に夢のコマと「神託を下す」を出す。
-/// コマを選んでいるあいだは、2 段目を手札と「やめる」に替える。
-/// スマホ（<see cref="CompanionHost"/>）からの改ざん・神託も、ここを通す。
+/// 神託の欄と依頼の吹き出しを描き、神託を下す操作をコアの <see cref="ProphetDreams"/> につなぐ
+/// （docs/domain/oracle-pair.md、prophet-request.md）。
+/// 地表の下の帯の 1 段目に今の状態の案内と神威、2 段目に「神託を下す」、3 段目に手札を出す。
+/// 手札のカードを 1 枚目・2 枚目の順に押して 2 枚を選び、「神託を下す」で神託にする。
+/// スマホ（<see cref="CompanionHost"/>）からの神託も、ここを通す。
 /// </summary>
 public sealed class DreamView
 {
     private readonly ProphetDreams _prophet;
     private readonly OracleCommandQueue _commands;
     private readonly TimeControl _timeControl;
-    private readonly DreamRules _dreamRules;
     private readonly Label _dreamGuide;
     private readonly HBoxContainer _dreamRow;
-    private readonly HBoxContainer _dreamNodes;
     private readonly Button _oracleButton;
     private readonly HBoxContainer _dreamCards;
     private readonly Label _requestBubble;
 
-    // 夢のコマのボタン。作り直すと、押してから離すまでのあいだに時間が進んだときにクリックが消えるので、使い回す。
-    private readonly List<Button> _nodeButtons = [];
-
-    // 改ざんするために選んだ夢ノードの位置。選んでいなければ -1。
-    private int _selectedIndex = -1;
+    // 選んだ手札の番号（1 枚目・2 枚目の順）。
+    private readonly List<int> _selected = [];
     private string[] _handShown = [];
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public DreamView(Node owner, ProphetDreams prophet, OracleCommandQueue commands, TimeControl timeControl, DreamRules dreamRules)
+    public DreamView(Node owner, ProphetDreams prophet, OracleCommandQueue commands, TimeControl timeControl)
     {
         _prophet = prophet;
         _commands = commands;
         _timeControl = timeControl;
-        _dreamRules = dreamRules;
         _dreamGuide = owner.GetNode<Label>("%DreamGuide");
         _dreamRow = owner.GetNode<HBoxContainer>("%DreamRow");
-        _dreamNodes = owner.GetNode<HBoxContainer>("%DreamNodes");
         _oracleButton = owner.GetNode<Button>("%OracleButton");
         _dreamCards = owner.GetNode<HBoxContainer>("%DreamCards");
         _requestBubble = owner.GetNode<Label>("%RequestBubble");
 
-        RebuildCards();
-        _oracleButton.Pressed += () => TryPronounce();
+        // 夢のコマは無い（神託は手札のルーンの組で作る）。コマの段には「神託を下す」だけを残す。
+        owner.GetNode<HBoxContainer>("%DreamNodes").Visible = false;
+        _dreamRow.Visible = true;
+        _dreamCards.Visible = true;
+        _oracleButton.Pressed += OnOracleButtonPressed;
 
-        LogDream("dream_created");
         Redraw();
-    }
-
-    // 手札のカードのボタンと「やめる」を作り直す。手札は神託を下すたびに変わる
-    private void RebuildCards()
-    {
-        foreach (var child in _dreamCards.GetChildren())
-        {
-            _dreamCards.RemoveChild(child);
-            child.QueueFree();
-        }
-        foreach (var symbolId in _prophet.Hand)
-        {
-            var card = new Button { Text = Tr($"SYMBOL_{symbolId}") };
-            var id = symbolId;
-            card.Pressed += () => OnCardChosen(id);
-            _dreamCards.AddChild(card);
-        }
-        var cancel = new Button { Text = Tr("BUTTON_CANCEL") };
-        cancel.Pressed += () => OnNodePressed(_selectedIndex);
-        _dreamCards.AddChild(cancel);
-        _handShown = [.. _prophet.Hand];
     }
 
     /// <summary>神託を下したとき。HUD のドグマの一覧と、時間のボタンを描き直すのに使う。</summary>
     public event Action? OraclePronounced;
 
-    /// <summary>描き直したとき。夢・依頼・できる操作が変わったかもしれない。</summary>
+    /// <summary>描き直したとき。手札・神威・依頼・できる操作が変わったかもしれない。</summary>
     public event Action? Changed;
 
-    /// <summary>スマホに送る、今の夢と依頼（<c>DREAM_STATE</c>）。</summary>
-    public string StateMessage() => HostMessageWriter.DreamState(
-        _prophet, _prophet.Hand.Select(id => _dreamRules.Symbols.First(symbol => symbol.Id == id)), _timeControl.World.IsDestroyed);
+    /// <summary>スマホに送る、今の手札・神威・依頼（<c>ORACLE_STATE</c>）。</summary>
+    public string StateMessage() => HostMessageWriter.OracleState(_prophet, _timeControl.World.IsDestroyed);
 
     /// <summary>100 年跳躍の後と、自動進行の 1 年ごとに呼ぶ。</summary>
     public void OnTimeAdvanced()
@@ -96,13 +69,9 @@ public sealed class DreamView
         {
             GD.Print(FormattableString.Invariant($"event=prophet_prayed year={year} requestType={request.Id}"));
         }
-        if (update.HasNewDream)
-        {
-            LogDream("dream_created");
-        }
         if (update.PausedAutoPlay)
         {
-            GD.Print(FormattableString.Invariant($"event=auto_play_paused year={year} reason=prophet_dream"));
+            GD.Print(FormattableString.Invariant($"event=auto_play_paused year={year} reason=prophet_prayer"));
         }
         Redraw();
     }
@@ -111,55 +80,19 @@ public sealed class DreamView
     public void OnWorldReset()
     {
         _prophet.Reset();
-        _selectedIndex = -1;
-        LogDream("dream_created");
+        _selected.Clear();
         Redraw();
     }
 
-    // 同じコマをもう一度押すか「やめる」で、選ぶのをやめる
-    private void OnNodePressed(int index)
-    {
-        if (!_prophet.CanTamper)
-        {
-            return;
-        }
-        _selectedIndex = _selectedIndex == index ? -1 : index;
-        Redraw();
-    }
-
-    private void OnCardChosen(string symbolId)
-    {
-        if (_selectedIndex >= 0)
-        {
-            TryTamper(_selectedIndex, symbolId);
-        }
-    }
-
-    /// <summary>夢の <paramref name="index"/> 番目を改ざんする。スマホから届いた値も受ける。</summary>
-    /// <returns>改ざんできなかったときの理由（ログの <c>reason</c>）。できたら null。</returns>
-    public string? TryTamper(int index, string symbolId)
-    {
-        var outcome = _commands.SubmitTamper(index, symbolId);
-        if (!outcome.Accepted)
-        {
-            return outcome.RejectedReason;
-        }
-
-        _selectedIndex = -1;
-        LogDream("dream_tampered");
-        Redraw();
-        return null;
-    }
-
-    /// <summary>神託を下す。スマホからも呼ぶ。</summary>
-    /// <returns>下せたか。</returns>
-    public bool TryPronounce()
+    /// <summary>手札の <paramref name="first"/> 番・<paramref name="second"/> 番のルーンで神託を下す。スマホからも呼ぶ。</summary>
+    /// <returns>下せなかったときの理由（ログの <c>reason</c>）。下せたら null。</returns>
+    public string? TryPronouncePair(int first, int second)
     {
         var year = _timeControl.World.Year;
-        var outcome = _commands.SubmitPronounce();
+        var outcome = _commands.SubmitPronouncePair(first, second);
         if (outcome.Result is not { } result)
         {
-            return false;
+            return outcome.RejectedReason ?? "cannot_pronounce";
         }
 
         if (result.Dogma is { } dogma)
@@ -171,56 +104,82 @@ public sealed class DreamView
         {
             GD.Print(FormattableString.Invariant($"event=prayer_answered year={year} requestType={request.Id}"));
         }
+        if (result.OverloadCount > 0)
+        {
+            GD.Print(FormattableString.Invariant(
+                $"event=oracle_overload year={year} count={result.OverloadCount} chaosLevel={_timeControl.World.ChaosLevel}"));
+        }
         if (result.ResumedAutoPlay)
         {
             GD.Print(FormattableString.Invariant($"event=auto_play_resumed year={year} reason=oracle_pronounced"));
         }
-        _selectedIndex = -1;
+        _selected.Clear();
         Redraw();
         OraclePronounced?.Invoke();
-        return true;
+        return null;
+    }
+
+    private void OnOracleButtonPressed()
+    {
+        if (_selected.Count == 2)
+        {
+            TryPronouncePair(_selected[0], _selected[1]);
+        }
+    }
+
+    // 同じカードをもう一度押すと選びを外す。3 枚目を押したら、1 枚目を外して 2 枚目と 3 枚目にする
+    private void OnCardPressed(int index)
+    {
+        if (!_selected.Remove(index))
+        {
+            if (_selected.Count == 2)
+            {
+                _selected.RemoveAt(0);
+            }
+            _selected.Add(index);
+        }
+        Redraw();
+    }
+
+    // 手札のカードのボタンを作り直す。手札は神託を下すたびに変わる
+    private void RebuildCards()
+    {
+        foreach (var child in _dreamCards.GetChildren())
+        {
+            _dreamCards.RemoveChild(child);
+            child.QueueFree();
+        }
+        for (var i = 0; i < _prophet.Hand.Count; i++)
+        {
+            var card = new Button();
+            var index = i;
+            card.Pressed += () => OnCardPressed(index);
+            _dreamCards.AddChild(card);
+        }
+        _handShown = [.. _prophet.Hand];
     }
 
     private void Redraw()
     {
-        var canTamper = _prophet.CanTamper;
-        if (!canTamper)
-        {
-            _selectedIndex = -1;
-        }
-
-        while (_nodeButtons.Count < _prophet.Dream.Count)
-        {
-            var index = _nodeButtons.Count;
-            var button = new Button();
-            button.Pressed += () => OnNodePressed(index);
-            _dreamNodes.AddChild(button);
-            _nodeButtons.Add(button);
-        }
-        for (var i = 0; i < _nodeButtons.Count; i++)
-        {
-            var button = _nodeButtons[i];
-            button.Visible = i < _prophet.Dream.Count;
-            if (!button.Visible)
-            {
-                continue;
-            }
-            var node = _prophet.Dream[i];
-            button.Text = Tr($"SYMBOL_{node.SymbolId}");
-            button.TooltipText = string.Format(CultureInfo.CurrentCulture, Tr("DREAM_NODE_TOOLTIP"), node.Weight);
-            button.Disabled = !canTamper;
-        }
-
         if (!_prophet.Hand.SequenceEqual(_handShown))
         {
+            _selected.Clear();
             RebuildCards();
         }
+        _selected.RemoveAll(index => index >= _prophet.Hand.Count);
 
-        var isChoosing = _selectedIndex >= 0;
-        _dreamRow.Visible = !isChoosing;
-        _dreamCards.Visible = isChoosing;
-        _oracleButton.Disabled = !_prophet.CanPronounce;
-        _dreamGuide.Text = Tr(GuideKey(isChoosing));
+        var buttons = _dreamCards.GetChildren().OfType<Button>().ToList();
+        for (var i = 0; i < buttons.Count && i < _prophet.Hand.Count; i++)
+        {
+            // 選んだ順に「①」「②」を付ける
+            var order = _selected.IndexOf(i);
+            var mark = order == 0 ? "① " : order == 1 ? "② " : string.Empty;
+            buttons[i].Text = mark + Tr($"SYMBOL_{_prophet.Hand[i]}");
+            buttons[i].Disabled = _timeControl.World.IsDestroyed;
+        }
+
+        _oracleButton.Disabled = !(_selected.Count == 2 && _prophet.CanPronouncePair);
+        _dreamGuide.Text = GuideText();
 
         if (_prophet.ActiveRequest is { } request)
         {
@@ -236,35 +195,21 @@ public sealed class DreamView
         Changed?.Invoke();
     }
 
-    // 今の状態の案内の文言のキー
-    private string GuideKey(bool isChoosing)
+    // 今の状態の案内と、神威（今の量 / 上限）
+    private string GuideText()
     {
         if (_timeControl.World.IsDestroyed)
         {
-            return "DREAM_GUIDE_DESTROYED";
+            return Tr("ORACLE_GUIDE_DESTROYED");
         }
-        if (isChoosing)
-        {
-            return "DREAM_GUIDE_CHOOSE_CARD";
-        }
-        return _prophet.State switch
-        {
-            ProphetDreamState.Untampered => _timeControl.State == TimeControlState.AutoPlaying
-                ? "DREAM_GUIDE_UNTAMPERED"
-                : "DREAM_GUIDE_UNTAMPERED_PAUSED",
-            ProphetDreamState.Tampered => "DREAM_GUIDE_TAMPERED",
-            _ => "DREAM_NONE",
-        };
-    }
 
-    private void LogDream(string eventName)
-    {
-        if (_prophet.Dream.Count == 0)
-        {
-            return;
-        }
-        var nodes = string.Join(",", _prophet.Dream.Select(node => FormattableString.Invariant($"{node.SymbolId}:{node.Weight:F2}")));
-        GD.Print($"event={eventName} year={_timeControl.World.Year} dreamNodes={nodes}");
+        var faith = _prophet.Faith!;
+        var key = _prophet.Hand.Count < 2 ? "ORACLE_GUIDE_NO_CARDS"
+            : !faith.CanAfford ? "ORACLE_GUIDE_NO_FAITH"
+            : _selected.Count == 2 ? "ORACLE_GUIDE_READY"
+            : "ORACLE_GUIDE_CHOOSE";
+        return string.Format(
+            CultureInfo.CurrentCulture, Tr("ORACLE_GUIDE_FAITH"), Tr(key), faith.Value, faith.Max);
     }
 
     private static string Tr(string key) => TranslationServer.Translate(key).ToString();

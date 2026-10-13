@@ -1,5 +1,5 @@
 // コンパニオンの画面。ペアリング・再接続・画面の配信の受け取り（docs/domain/companion-pairing.md・frame-stream.md）と、
-// 夢の改ざん・神託・依頼の吹き出し（dream-tampering.md・prophet-request.md）。
+// 手札から 2 枚を選ぶ神託・神威・依頼の吹き出し（oracle-pair.md・prophet-request.md）。
 // トークンの値はログに出さない。
 
 import * as protocol from "./protocol.js";
@@ -13,12 +13,8 @@ const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")
 const statusLine = /** @type {HTMLElement} */ (document.getElementById("status"));
 const requestBubble = /** @type {HTMLElement} */ (document.getElementById("request-bubble"));
 const dreamGuide = /** @type {HTMLElement} */ (document.getElementById("dream-guide"));
-const dreamRow = /** @type {HTMLElement} */ (document.getElementById("dream-row"));
-const dreamNodes = /** @type {HTMLElement} */ (document.getElementById("dream-nodes"));
 const oracleButton = /** @type {HTMLButtonElement} */ (document.getElementById("oracle-button"));
-const dreamCards = /** @type {HTMLElement} */ (document.getElementById("dream-cards"));
 const cardButtons = /** @type {HTMLElement} */ (document.getElementById("card-buttons"));
-const cancelButton = /** @type {HTMLButtonElement} */ (document.getElementById("cancel-button"));
 
 /** @type {Record<string, string>} */
 let texts = {};
@@ -31,10 +27,11 @@ let reconnectAllowed = true;
 /** @type {ArrayBuffer | null} 描くのを待っている最新のコマ */
 let pendingFrame = null;
 let isDrawing = false;
-/** @type {import("./protocol.js").DreamStateMessage | null} ホストから最後に受け取った夢の状態 */
-let dreamState = null;
-/** 改ざんするために選んだ夢ノードの位置。選んでいなければ -1。 */
-let selectedIndex = -1;
+/** @type {import("./protocol.js").OracleStateMessage | null} ホストから最後に受け取った神託の状態 */
+let oracleState = null;
+/** 選んだ手札の番号（1 枚目・2 枚目の順）。 */
+/** @type {number[]} */
+let selected = [];
 
 context.imageSmoothingEnabled = false;
 
@@ -99,7 +96,7 @@ function connect() {
   socket.addEventListener("close", () => {
     socket = null;
     isPaired = false;
-    renderDream();
+    renderOracle();
     if (!reconnectAllowed) {
       return; // ERROR の文言を残す
     }
@@ -131,9 +128,9 @@ function handleText(data) {
     return;
   }
 
-  if (message.type === protocol.MESSAGE_TYPE.DREAM_STATE) {
-    dreamState = message;
-    renderDream();
+  if (message.type === protocol.MESSAGE_TYPE.ORACLE_STATE) {
+    oracleState = message;
+    renderOracle();
     return;
   }
 
@@ -212,34 +209,21 @@ const format = (key, ...values) => text(key).replace(/\{(\d+)\}/g, (match, index
 /** @param {string} symbolId */
 const symbolName = (symbolId) => text(`SYMBOL_${symbolId}`);
 
-// 夢の欄と依頼の吹き出しを、最後に受け取った状態で描き直す。切断しているあいだは押せなくする。
-function renderDream() {
-  const state = isPaired ? dreamState : null;
-  const canTamper = state?.canTamper ?? false;
-  if (!canTamper || selectedIndex >= (state?.nodes.length ?? 0)) {
-    selectedIndex = -1;
-  }
-  const isChoosing = selectedIndex >= 0;
+// 神託の欄と依頼の吹き出しを、最後に受け取った状態で描き直す。切断しているあいだは押せなくする。
+function renderOracle() {
+  const state = isPaired ? oracleState : null;
+  const hand = state?.hand ?? oracleState?.hand ?? [];
+  // 手札が変わっていたら、選びを外す
+  selected = selected.filter((index) => index < hand.length);
 
-  const nodes = state?.nodes ?? dreamState?.nodes ?? [];
-  syncButtons(dreamNodes, nodes.length, onNodePressed).forEach((button, index) => {
-    const name = document.createElement("span");
-    name.textContent = symbolName(nodes[index].symbolId);
-    const weight = document.createElement("span");
-    weight.className = "dream-node-weight";
-    weight.textContent = format("DREAM_NODE_WEIGHT", nodes[index].weight.toFixed(2));
-    button.replaceChildren(name, weight);
-    button.disabled = !canTamper;
+  syncButtons(cardButtons, hand.length, onCardPressed).forEach((button, index) => {
+    const order = selected.indexOf(index);
+    const mark = order === 0 ? "① " : order === 1 ? "② " : "";
+    button.textContent = mark + symbolName(hand[index]);
+    button.disabled = state === null || state.isDestroyed;
   });
-  oracleButton.disabled = !(state?.canPronounce ?? false);
-
-  const cards = state?.cards ?? [];
-  syncButtons(cardButtons, cards.length, (index) => onCardChosen(dreamState?.cards[index])).forEach((button, index) => {
-    button.textContent = symbolName(cards[index]);
-  });
-  dreamRow.hidden = isChoosing;
-  dreamCards.hidden = !isChoosing;
-  dreamGuide.textContent = text(guideKey(state, isChoosing));
+  oracleButton.disabled = !(selected.length === 2 && (state?.canPronounce ?? false));
+  dreamGuide.textContent = guideText(state);
 
   const request = state?.request ?? null;
   requestBubble.hidden = request === null;
@@ -249,52 +233,46 @@ function renderDream() {
 }
 
 /**
- * @param {import("./protocol.js").DreamStateMessage | null} state
- * @param {boolean} isChoosing
+ * 今の状態の案内と、神威（今の量 / 上限）。
+ * @param {import("./protocol.js").OracleStateMessage | null} state
  */
-function guideKey(state, isChoosing) {
+function guideText(state) {
   if (state === null) {
-    return "DREAM_GUIDE_OFFLINE";
+    return text("ORACLE_GUIDE_OFFLINE");
   }
   if (state.isDestroyed) {
-    return "DREAM_GUIDE_DESTROYED";
+    return text("ORACLE_GUIDE_DESTROYED");
   }
-  if (isChoosing) {
-    return "DREAM_GUIDE_CHOOSE_CARD";
+  let key = "ORACLE_GUIDE_CHOOSE";
+  if (state.hand.length < 2) {
+    key = "ORACLE_GUIDE_NO_CARDS";
+  } else if (state.faith.value + 1e-6 < state.faith.cost) {
+    key = "ORACLE_GUIDE_NO_FAITH";
+  } else if (selected.length === 2) {
+    key = "ORACLE_GUIDE_READY";
   }
-  switch (state.state) {
-    case protocol.DREAM_STATE.UNTAMPERED:
-      return "DREAM_GUIDE_UNTAMPERED";
-    case protocol.DREAM_STATE.TAMPERED:
-      return "DREAM_GUIDE_TAMPERED";
-    default:
-      return "DREAM_NONE";
-  }
+  return format("ORACLE_GUIDE_FAITH", text(key), state.faith.value.toFixed(1), state.faith.max.toFixed(1));
 }
 
-// 同じコマをもう一度押すか「やめる」で、選ぶのをやめる
+// 同じカードをもう一度押すと選びを外す。3 枚目を押したら、1 枚目を外して 2 枚目と 3 枚目にする
 /** @param {number} index */
-function onNodePressed(index) {
-  selectedIndex = selectedIndex === index ? -1 : index;
-  renderDream();
-}
-
-// 送った後はホストの DREAM_STATE で描き直す。PC が先に改ざんしていたら、ホストが今の状態を送り直す
-/** @param {string | undefined} symbolId */
-function onCardChosen(symbolId) {
-  if (selectedIndex >= 0 && isPaired && symbolId !== undefined) {
-    socket?.send(protocol.tamper(selectedIndex, symbolId));
+function onCardPressed(index) {
+  if (selected.includes(index)) {
+    selected = selected.filter((value) => value !== index);
+  } else {
+    selected = selected.length === 2 ? [selected[1], index] : [...selected, index];
   }
-  selectedIndex = -1;
-  renderDream();
+  renderOracle();
 }
 
+// 送った後はホストの ORACLE_STATE で描き直す。PC が先に下していたら、ホストが今の状態を送り直す
 oracleButton.addEventListener("click", () => {
-  if (isPaired) {
-    socket?.send(protocol.pronounce());
+  if (isPaired && selected.length === 2) {
+    socket?.send(protocol.pronounce(selected[0], selected[1]));
+    selected = [];
+    renderOracle();
   }
 });
-cancelButton.addEventListener("click", () => onNodePressed(selectedIndex));
 
 document.addEventListener("visibilitychange", () => {
   if (!isPaired || socket === null) {
@@ -309,5 +287,5 @@ try {
 } catch (error) {
   console.warn(`event=locale_load_failed error=${error instanceof Error ? error.message : "unknown"}`);
 }
-renderDream();
+renderOracle();
 connect();

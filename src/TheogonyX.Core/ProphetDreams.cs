@@ -113,6 +113,10 @@ public sealed class ProphetDreams
 
     public bool CanPronounce => CanDo(DreamTrigger.Pronounce);
 
+    /// <summary>ルーンの組で神託を下せるか。崩壊しておらず、手札が 2 枚以上あり、神威がコスト以上ある。</summary>
+    public bool CanPronouncePair =>
+        Deck is not null && Faith is not null && !_timeControl.World.IsDestroyed && Deck.Hand.Count >= 2 && Faith.CanAfford;
+
     /// <summary>時間が進んだ後に呼ぶ。依頼を出すか、夢を見るかを決める。</summary>
     public DreamUpdate OnTimeAdvanced()
     {
@@ -141,7 +145,8 @@ public sealed class ProphetDreams
         }
 
         var isDue = newRequest is not null || world.Year - _lastOracleYear >= _rules.YearsBetweenDreams;
-        var hasNewDream = isDue && StartDream();
+        // ルーンの組モードでは、夢を見ない（神託は手札からいつでも下せる）
+        var hasNewDream = isDue && _oracleRules is null && StartDream();
 
         var paused = false;
         if ((hasNewDream || newRequest is not null) && _timeControl.CanDo(TimeControlAction.Pause))
@@ -293,9 +298,24 @@ public sealed class ProphetDreams
         _pausedForDream = false;
         _lastOracleYear = _timeControl.World.Year;
         Deck?.ClearUsed();
-        State = DreamTransitions[(State, DreamTrigger.Reset)];
+        State = _oracleRules is null ? DreamTransitions[(State, DreamTrigger.Reset)] : ProphetDreamState.None;
         _dream.Clear();
-        _dream.AddRange(_createDream());
+        if (_oracleRules is null)
+        {
+            _dream.AddRange(_createDream());
+        }
+    }
+
+    /// <summary>セーブから読み込んだ神威と直近の神託の年に置き換える。神威を最後に見た年は、今の年に合わせる（一気に溜まらないように）。</summary>
+    public void RestoreFaith(double value, IEnumerable<int> recentYears)
+    {
+        ArgumentNullException.ThrowIfNull(recentYears);
+        if (Faith is null)
+        {
+            throw new InvalidOperationException("神威を持たない");
+        }
+        Faith.Restore(value, recentYears);
+        _faithYear = _timeControl.World.Year;
     }
 
     /// <summary>

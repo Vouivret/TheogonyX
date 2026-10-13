@@ -48,7 +48,7 @@ public sealed class CompanionHost : IDisposable
     private bool _captureFailureLogged;
     private bool _unpairedLimitLogged;
 
-    // 最後に送った DREAM_STATE。同じ内容は送らない。ペアリングした接続が無ければ null。
+    // 最後に送った ORACLE_STATE。同じ内容は送らない。ペアリングした接続が無ければ null。
     private string? _lastDreamState;
 
     public CompanionHost(Node owner, CompanionSettings settings, string companionDirectory, DreamView dreams)
@@ -267,11 +267,8 @@ public sealed class CompanionHost : IDisposable
             case PairingOutcome.Ignored:
                 WarnMessageRejected(client, "already_paired");
                 break;
-            case PairingOutcome.Accepted when message.Type is CompanionMessageType.Tamper:
-                RejectDreamOperation(client, _dreams.TryTamper(message.Index, message.SymbolId));
-                break;
             case PairingOutcome.Accepted when message.Type is CompanionMessageType.Pronounce:
-                RejectDreamOperation(client, _dreams.TryPronounce() ? null : "cannot_pronounce");
+                RejectDreamOperation(client, _dreams.TryPronouncePair(message.First, message.Second));
                 break;
             case PairingOutcome.Accepted:
                 HandleStreamMessage(client, message.Type);

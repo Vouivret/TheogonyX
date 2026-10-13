@@ -18,8 +18,8 @@
 | TS-dream-tampering-007 | — | 状態遷移表で「不可」の操作（夢なしでの改ざん・神託、改ざん済みでの改ざん）は受け付けない | 各状態 | 操作する | 例外になり、状態・夢・ドグマは変わらない | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
 | TS-dream-tampering-009 | AC-dream-tampering-013, 014 | 夢で自動進行が止まり、神託で再開する。止まっていたなら止まったまま。自分で再開していたら神託では何もしない | 受け入れ条件のとおり | 年を進める・神託を下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
 | TS-dream-tampering-008 | AC-dream-tampering-012 | PC の画面での改ざんと神託 | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 手動 | — |
-| TS-dream-tampering-010 | AC-dream-tampering-015, 016 | `TAMPER`・`PRONOUNCE` の検証（`index` が負・小数・文字列、`symbolId` が空・長すぎる・文字列でない、項目が無い） | 受け入れ条件のとおり | パースする | 失敗し、理由が `invalid_tamper` | 自動 | `tests/TheogonyX.Core.Tests/CompanionMessageParserTests.cs` |
-| TS-dream-tampering-011 | AC-dream-tampering-015, 016 | `DREAM_STATE` に、状態・夢ノード・手札・できる操作・崩壊・依頼が入る | 夢あり（改ざん前・改ざん済み）、夢なし、依頼あり、崩壊 | 書き出す | messages.md の形のとおり | 自動 | `tests/TheogonyX.Core.Tests/HostMessageWriterTests.cs` |
+| TS-dream-tampering-010 | AC-dream-tampering-015, 016 | `TAMPER`・`PRONOUNCE` の検証（`index` が負・小数・文字列、`symbolId` が空・長すぎる・文字列でない、項目が無い） | 受け入れ条件のとおり | パースする | 失敗し、理由が `invalid_tamper` | 廃止 | — |
+| TS-dream-tampering-011 | AC-dream-tampering-015, 016 | `DREAM_STATE` に、状態・夢ノード・手札・できる操作・崩壊・依頼が入る | 夢あり（改ざん前・改ざん済み）、夢なし、依頼あり、崩壊 | 書き出す | messages.md の形のとおり | 廃止 | — |
 | TS-dream-tampering-012 | AC-dream-tampering-015, 016 | スマホからの改ざんと神託、PC との同時の操作 | ホストとコンパニオンが動き、ペアリングしている | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順

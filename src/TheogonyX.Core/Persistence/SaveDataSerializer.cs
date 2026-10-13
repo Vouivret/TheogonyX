@@ -9,17 +9,10 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 11;
+    public const int SaveVersion = 12;
 
-    /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
-    public const int MaxDreamsGenerated = 1_000_000;
-
-    private static readonly Dictionary<ProphetDreamState, string> DreamStateNames = new()
-    {
-        [ProphetDreamState.None] = "NONE",
-        [ProphetDreamState.Untampered] = "UNTAMPERED",
-        [ProphetDreamState.Tampered] = "TAMPERED",
-    };
+    /// <summary>受け付ける「直近の神託の年」の数の上限。</summary>
+    public const int MaxRecentOracleYears = 1000;
 
     private static readonly Dictionary<AutoPlaySpeed, string> SpeedNames = new()
     {
@@ -74,7 +67,6 @@ public static class SaveDataSerializer
         {
             saveVersion = SaveVersion,
             seed = data.Seed,
-            dreamsGenerated = data.DreamsGenerated,
             world = new
             {
                 year = world.Year,
@@ -91,14 +83,8 @@ public static class SaveDataSerializer
                 dogmaType = dogma.Type.ToString(),
                 intensity = dogma.Intensity,
             }),
-            dream = new
-            {
-                state = DreamStateNames[data.DreamState],
-                nodes = data.Dream.Select(node => new { symbolId = node.SymbolId, weight = node.Weight }),
-            },
             request = data.RequestId,
             answeredYears = data.AnsweredYears,
-            lastOracleYear = data.LastOracleYear,
             autoPlay = new { speed = SpeedNames[data.Speed], elapsedSeconds = data.ElapsedSeconds },
             civilization = new
             {
@@ -196,16 +182,14 @@ public static class SaveDataSerializer
                 myth = entry.Myth is null ? null : new { heading = entry.Myth.Heading, body = entry.Myth.Body },
             }),
             historyChapterStart = new { year = data.Chapter.Year, chaos = data.Chapter.ChaosLevel },
-            deck = data.Deck is null
-                ? null
-                : new
-                {
-                    drawPile = data.Deck.DrawPile,
-                    hand = data.Deck.Hand,
-                    discardPile = data.Deck.DiscardPile,
-                    usedSymbolId = data.Deck.UsedSymbolId,
-                    shuffleCount = data.Deck.ShuffleCount,
-                },
+            deck = new
+            {
+                drawPile = data.Deck.DrawPile,
+                hand = data.Deck.Hand,
+                discardPile = data.Deck.DiscardPile,
+                shuffleCount = data.Deck.ShuffleCount,
+            },
+            faith = new { value = data.Faith.Value, recentYears = data.Faith.RecentYears },
         });
     }
 
@@ -263,11 +247,6 @@ public static class SaveDataSerializer
         }
 
         var seed = ReadInt(root, "seed");
-        var dreamsGenerated = ReadInt(root, "dreamsGenerated");
-        if (dreamsGenerated is < 0 or > MaxDreamsGenerated)
-        {
-            throw new InvalidSaveDataException("invalid_dreams_generated");
-        }
 
         var worldElement = Property(root, "world", JsonValueKind.Object);
         var world = new WorldState
@@ -290,22 +269,6 @@ public static class SaveDataSerializer
             .Select(element => ReadDogma(element, symbolIds))
             .ToList();
 
-        var dreamElement = Property(root, "dream", JsonValueKind.Object);
-        var stateName = ReadString(dreamElement, "state");
-        var dreamState = DreamStateNames.FirstOrDefault(pair => pair.Value == stateName);
-        if (dreamState.Value is null)
-        {
-            throw new InvalidSaveDataException("invalid_dream");
-        }
-        var dream = Property(dreamElement, "nodes", JsonValueKind.Array).EnumerateArray()
-            .Select(element => ReadDreamNode(element, symbolIds, rules))
-            .ToList();
-        var expectedNodes = dreamState.Key == ProphetDreamState.None ? 0 : rules.NodeCount;
-        if (dream.Count != expectedNodes)
-        {
-            throw new InvalidSaveDataException("invalid_dream");
-        }
-
         string? requestId = null;
         var requestElement = Property(root, "request", null);
         if (requestElement.ValueKind != JsonValueKind.Null)
@@ -326,7 +289,6 @@ public static class SaveDataSerializer
             }
             answeredYears[property.Name] = ReadYearUpTo(property.Value, world.Year);
         }
-        var lastOracleYear = ReadYearUpTo(Property(root, "lastOracleYear", JsonValueKind.Number), world.Year);
 
         var autoPlayElement = Property(root, "autoPlay", JsonValueKind.Object);
         var speedName = ReadString(autoPlayElement, "speed");
@@ -350,25 +312,16 @@ public static class SaveDataSerializer
         var chapter = new ChapterStart(
             ReadYearUpTo(Property(chapterElement, "year", JsonValueKind.Number), world.Year), ReadChaos(chapterElement, "chaos", "invalid_number"));
 
-        var deck = ReadDeck(Property(root, "deck", null), symbolIds, dreamState.Key);
+        var deck = ReadDeck(Property(root, "deck", JsonValueKind.Object), symbolIds);
+        var faith = ReadFaith(Property(root, "faith", JsonValueKind.Object), world.Year);
 
         return new SaveData(
-            seed, dreamsGenerated, world, dogmas, dreamState.Key, dream, requestId, answeredYears, lastOracleYear, speed.Key, elapsedSeconds,
-            civilization, residents, history, chapter, deck);
+            seed, world, dogmas, requestId, answeredYears, speed.Key, elapsedSeconds, civilization, residents, history, chapter, deck, faith);
     }
 
-    // 神託のデッキ。持たないセーブ（null）も読める。カードは定義にある記号で、使ったカードは手札にあり、夢が改ざん済みのときだけある
-    private static OracleDeckState? ReadDeck(JsonElement element, HashSet<string> symbolIds, ProphetDreamState dreamState)
+    // 神託のデッキ。カードは定義にある記号。シャッフルの回数は 0 以上
+    private static OracleDeckState ReadDeck(JsonElement element, HashSet<string> symbolIds)
     {
-        if (element.ValueKind == JsonValueKind.Null)
-        {
-            return null;
-        }
-        if (element.ValueKind != JsonValueKind.Object)
-        {
-            throw new InvalidSaveDataException("invalid_deck");
-        }
-
         List<string> ReadCards(string name) => Property(element, name, JsonValueKind.Array).EnumerateArray()
             .Select(card => card.ValueKind == JsonValueKind.String && card.GetString() is { } id && symbolIds.Contains(id)
                 ? id
@@ -379,21 +332,29 @@ public static class SaveDataSerializer
         var hand = ReadCards("hand");
         var discardPile = ReadCards("discardPile");
         var shuffleCount = ReadInt(element, "shuffleCount");
-        string? usedSymbolId = null;
-        var usedElement = Property(element, "usedSymbolId", null);
-        if (usedElement.ValueKind != JsonValueKind.Null)
-        {
-            usedSymbolId = usedElement.ValueKind == JsonValueKind.String ? usedElement.GetString() : null;
-            if (usedSymbolId is null || !hand.Contains(usedSymbolId) || dreamState != ProphetDreamState.Tampered)
-            {
-                throw new InvalidSaveDataException("invalid_deck");
-            }
-        }
         if (shuffleCount < 0)
         {
             throw new InvalidSaveDataException("invalid_deck");
         }
-        return new OracleDeckState(drawPile, hand, discardPile, usedSymbolId, shuffleCount);
+        return new OracleDeckState(drawPile, hand, discardPile, null, shuffleCount);
+    }
+
+    // 神威（0 以上）と、直近の神託を下した年（0 以上、今の年以下。古い順）
+    private static OracleFaithState ReadFaith(JsonElement element, int currentYear)
+    {
+        var value = ReadFloat(element, "value");
+        if (value < 0)
+        {
+            throw new InvalidSaveDataException("invalid_faith");
+        }
+        var years = Property(element, "recentYears", JsonValueKind.Array).EnumerateArray()
+            .Select(year => ReadYearUpTo(year, currentYear))
+            .ToList();
+        if (years.Count > MaxRecentOracleYears || years.Zip(years.Skip(1), (a, b) => a > b).Any(descending => descending))
+        {
+            throw new InvalidSaveDataException("invalid_faith");
+        }
+        return new OracleFaithState(value, years);
     }
 
     // 年表の行。世界再創生の前の行は今の年より後になりうるので、年は 0 以上だけを見る。種類ごとに、使う項目があり、使わない項目は null
@@ -791,25 +752,6 @@ public static class SaveDataSerializer
             throw new InvalidSaveDataException("unknown_dogma_type");
         }
         return new Dogma(symbolId, Enum.Parse<DogmaType>(typeName), ReadFloat(element, "intensity"));
-    }
-
-    private static DreamNode ReadDreamNode(JsonElement element, HashSet<string> symbolIds, ProphetDreamRules rules)
-    {
-        if (element.ValueKind != JsonValueKind.Object)
-        {
-            throw new InvalidSaveDataException("invalid_field");
-        }
-        var symbolId = ReadString(element, "symbolId");
-        if (!symbolIds.Contains(symbolId))
-        {
-            throw new InvalidSaveDataException("unknown_symbol");
-        }
-        var weight = ReadFloat(element, "weight");
-        if (weight < rules.MinWeight || weight > rules.MaxWeight)
-        {
-            throw new InvalidSaveDataException("invalid_dream");
-        }
-        return new DreamNode(symbolId, weight);
     }
 
     // 0 以上、今の年以下の年

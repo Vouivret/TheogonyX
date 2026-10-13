@@ -77,32 +77,42 @@ public class CompanionMessageParserTests
     }
 
     [Fact]
-    [Trait("TS", "TS-dream-tampering-010")]
-    public void TryParse_TAMPERとPRONOUNCE_位置と記号が取り出せる()
+    [Trait("TS", "TS-oracle-pair-010")]
+    public void TryParse_PRONOUNCE_手札の番号2つが取り出せる()
     {
-        CompanionMessageParser.TryParse("""{ "type": "TAMPER", "version": 1, "index": 1, "symbolId": "SYM_BLOOD" }""", out var tamper, out _);
-        CompanionMessageParser.TryParse("""{ "type": "PRONOUNCE", "version": 1 }""", out var pronounce, out _);
+        var ok = CompanionMessageParser.TryParse("""{ "type": "PRONOUNCE", "version": 2, "first": 3, "second": 0 }""", out var message, out _);
 
-        Assert.Equal(new CompanionMessage(CompanionMessageType.Tamper, Index: 1, SymbolId: "SYM_BLOOD"), tamper);
-        Assert.Equal(new CompanionMessage(CompanionMessageType.Pronounce), pronounce);
+        Assert.True(ok);
+        Assert.Equal(new CompanionMessage(CompanionMessageType.Pronounce, First: 3, Second: 0), message);
     }
 
     [Theory]
-    [Trait("TS", "TS-dream-tampering-010")]
-    [InlineData("""{ "type": "TAMPER", "version": 1, "symbolId": "SYM_BLOOD" }""")]
-    [InlineData("""{ "type": "TAMPER", "version": 1, "index": -1, "symbolId": "SYM_BLOOD" }""")]
-    [InlineData("""{ "type": "TAMPER", "version": 1, "index": 1.5, "symbolId": "SYM_BLOOD" }""")]
-    [InlineData("""{ "type": "TAMPER", "version": 1, "index": "1", "symbolId": "SYM_BLOOD" }""")]
-    [InlineData("""{ "type": "TAMPER", "version": 1, "index": 1 }""")]
-    [InlineData("""{ "type": "TAMPER", "version": 1, "index": 1, "symbolId": "" }""")]
-    [InlineData("""{ "type": "TAMPER", "version": 1, "index": 1, "symbolId": 3 }""")]
-    [InlineData("""{ "type": "TAMPER", "version": 1, "index": 1, "symbolId": "SYM_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" }""")]
-    public void TryParse_TAMPERの位置か記号がおかしい_失敗する(string text)
+    [Trait("TS", "TS-oracle-pair-010")]
+    [InlineData("""{ "type": "PRONOUNCE", "version": 2 }""")]
+    [InlineData("""{ "type": "PRONOUNCE", "version": 2, "first": 1 }""")]
+    [InlineData("""{ "type": "PRONOUNCE", "version": 2, "first": -1, "second": 0 }""")]
+    [InlineData("""{ "type": "PRONOUNCE", "version": 2, "first": 1.5, "second": 0 }""")]
+    [InlineData("""{ "type": "PRONOUNCE", "version": 2, "first": "1", "second": 0 }""")]
+    [InlineData("""{ "type": "PRONOUNCE", "version": 2, "first": 1, "second": null }""")]
+    public void TryParse_PRONOUNCEの番号がおかしい_失敗する(string text)
     {
         var ok = CompanionMessageParser.TryParse(text, out var message, out var reason);
 
         Assert.False(ok);
         Assert.Null(message);
-        Assert.Equal("invalid_tamper", reason);
+        Assert.Equal("invalid_pronounce", reason);
+    }
+
+    [Theory]
+    [Trait("TS", "TS-oracle-pair-010")]
+    [InlineData("""{ "type": "PRONOUNCE", "version": 1 }""")]
+    [InlineData("""{ "type": "TAMPER", "version": 1, "index": 1, "symbolId": "SYM_BLOOD" }""")]
+    public void TryParse_廃止した形のメッセージ_知らない種別と版として失敗する(string text)
+    {
+        var ok = CompanionMessageParser.TryParse(text, out var message, out var reason);
+
+        Assert.False(ok);
+        Assert.Null(message);
+        Assert.Equal("unknown_type_or_version", reason);
     }
 }

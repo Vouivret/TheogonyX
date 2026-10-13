@@ -9,14 +9,12 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 11, "seed": 42, "dreamsGenerated": 2,
+          "saveVersion": 12, "seed": 42,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
-          "dream": { "state": "TAMPERED", "nodes": [{ "symbolId": "SYM_TREE", "weight": 0.5 }, { "symbolId": "SYM_BLOOD", "weight": 0.6 }, { "symbolId": "SYM_FIRE", "weight": 0.4 }] },
           "request": "THIRST",
           "answeredYears": { "FAMINE": 250 },
-          "lastOracleYear": 250,
           "autoPlay": { "speed": "REAL_TIME", "elapsedSeconds": 3600 },
           "civilization": {
             "regions": [
@@ -49,7 +47,8 @@ public class SaveDataTests
           },
           "historyChapterStart": { "year": 300, "chaos": 12.5 },
           "deck": { "drawPile": ["SYM_TREE", "SYM_RAIN"], "hand": ["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_RAIN"],
-                    "discardPile": ["SYM_FIRE"], "usedSymbolId": "SYM_BLOOD", "shuffleCount": 2 },
+                    "discardPile": ["SYM_FIRE"], "shuffleCount": 2 },
+          "faith": { "value": 1.5, "recentYears": [300, 310] },
           "history": [
             { "year": 200, "type": "DOGMA_FORMED", "symbolId": "SYM_TREE", "dogmaType": "Taboo", "name": null, "epithet": null, "breakdown": null,
               "oracle": { "heading": "木に触れるな", "intent": "神は木を憎んでおられる。", "doctrine": "木を見た者は目を閉じよ。" },
@@ -70,85 +69,75 @@ public class SaveDataTests
         }
         """;
 
-    private sealed record Game(TimeControl Time, ProphetDreams Prophet, DreamSource Dreams, AutoPlayClock Clock);
+    private sealed record Game(TimeControl Time, ProphetDreams Prophet, AutoPlayClock Clock);
 
     private static Game CreateGame()
     {
         var time = new TimeControl(
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
-        var dreams = new DreamSource(Seed, TestRules.Dream, TestRules.ProphetDreams);
-        var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, dreams.Next);
+        var prophet = new ProphetDreams(
+            time, TestRules.Dream, TestRules.ProphetDreams, () => [], new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
             [AutoPlaySpeed.Normal] = 1.0,
             [AutoPlaySpeed.Fast] = 0.1,
             [AutoPlaySpeed.RealTime] = 86400.0,
         });
-        return new Game(time, prophet, dreams, clock);
+        return new Game(time, prophet, clock);
     }
 
     // 書き出して読み戻し、新しく作ったゲームに当てはめる
     private static Game RoundTrip(Game game)
     {
-        var json = SaveDataSerializer.Write(SaveGame.Capture(game.Time, game.Prophet, game.Dreams, game.Clock));
+        var json = SaveDataSerializer.Write(SaveGame.Capture(game.Time, game.Prophet, Seed, game.Clock));
         Assert.True(SaveDataSerializer.TryParse(json, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, out var data, out var reason), reason);
         var loaded = CreateGame();
-        SaveGame.Apply(data!, loaded.Time, loaded.Prophet, loaded.Dreams, loaded.Clock);
+        SaveGame.Apply(data!, loaded.Time, loaded.Prophet, loaded.Clock);
         return loaded;
     }
 
     [Fact]
     [Trait("TS", "TS-save-data-001")]
-    public void RoundTrip_依頼中で改ざん済み_同じ状態に戻る()
+    [Trait("TS", "TS-oracle-deck-007")]
+    public void RoundTrip_依頼中で神託を1回下した後_同じ状態に戻る()
     {
         var game = CreateGame();
         game.Time.AddDogma(new Dogma("SYM_TREE", DogmaType.Taboo, 0.74f));
-        // 年 250 で飢えの依頼に応え、年 312 で渇きの依頼を受けて夢を改ざんした
+        // 年 250 で飢えの依頼に応え、年 312 で渇きの依頼を受けた
         game.Time.World.Year = 250;
         game.Time.World.ForestAmount = 10f;
         game.Prophet.OnTimeAdvanced();
-        game.Prophet.Pronounce();
+        game.Prophet.PronouncePair(0, 1);
         game.Time.World.Year = 312;
         game.Time.World.ForestAmount = 50f;
         game.Time.World.WaterAmount = 10f;
         game.Prophet.OnTimeAdvanced();
-        game.Prophet.Tamper(1, "SYM_BLOOD");
-        var dreamBefore = game.Prophet.Dream.ToList();
         var dogmasBefore = game.Time.Dogmas.ToList();
+        var handBefore = game.Prophet.Deck!.Hand.ToList();
+        var pileBefore = game.Prophet.Deck.DrawPile.ToList();
+        var discardBefore = game.Prophet.Deck.DiscardPile.ToList();
+        var faithBefore = game.Prophet.Faith!.Value;
 
         var loaded = RoundTrip(game);
 
         Assert.Equal(312, loaded.Time.World.Year);
         Assert.Equal(50f, loaded.Time.World.ForestAmount);
         Assert.Equal(10f, loaded.Time.World.WaterAmount);
-        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Taboo, 0.74f), loaded.Time.Dogmas[0]);
         Assert.Equal(dogmasBefore, loaded.Time.Dogmas);
-        Assert.Equal(ProphetDreamState.Tampered, loaded.Prophet.State);
-        Assert.Equal(dreamBefore, loaded.Prophet.Dream);
-        Assert.Equal("SYM_BLOOD", loaded.Prophet.Dream[1].SymbolId);
         Assert.Equal("THIRST", loaded.Prophet.ActiveRequest?.Id);
         Assert.Equal(new Dictionary<string, int> { ["FAMINE"] = 250 }, loaded.Prophet.AnsweredYears);
-        Assert.Equal(250, loaded.Prophet.LastOracleYear);
-        Assert.Equal(2, loaded.Dreams.DreamsGenerated);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-save-data-001")]
-    public void RoundTrip_夢なし_夢なしのまま()
-    {
-        var game = CreateGame();
-        game.Prophet.Pronounce();
-
-        var loaded = RoundTrip(game);
-
+        Assert.Equal(handBefore, loaded.Prophet.Deck!.Hand);
+        Assert.Equal(pileBefore, loaded.Prophet.Deck.DrawPile);
+        Assert.Equal(discardBefore, loaded.Prophet.Deck.DiscardPile);
+        Assert.Equal(faithBefore, loaded.Prophet.Faith!.Value, 6);
+        Assert.Equal([250], loaded.Prophet.Faith.RecentYears);
         Assert.Equal(ProphetDreamState.None, loaded.Prophet.State);
         Assert.Empty(loaded.Prophet.Dream);
-        Assert.Null(loaded.Prophet.ActiveRequest);
     }
 
     [Fact]
     [Trait("TS", "TS-save-data-001")]
-    public void RoundTrip_崩壊している_崩壊していて操作できない()
+    public void RoundTrip_崩壊している_崩壊していて神託を下せない()
     {
         var game = CreateGame();
         game.Time.World.IsDestroyed = true;
@@ -157,8 +146,7 @@ public class SaveDataTests
 
         Assert.True(loaded.Time.World.IsDestroyed);
         Assert.Equal(TimeControlState.Destroyed, loaded.Time.State);
-        Assert.False(loaded.Prophet.CanTamper);
-        Assert.False(loaded.Prophet.CanPronounce);
+        Assert.False(loaded.Prophet.CanPronouncePair);
     }
 
     [Fact]
@@ -175,23 +163,36 @@ public class SaveDataTests
 
     [Fact]
     [Trait("TS", "TS-save-data-003")]
-    public void RoundTrip_夢を2つ見た後_次の夢は保存しなかった場合の3つ目と同じ()
+    public void RoundTrip_山札を使い切る途中で保存_続けた結果が保存しなかった場合と同じ()
     {
-        var reference = new DreamSource(Seed, TestRules.Dream, TestRules.ProphetDreams);
-        reference.Next();
-        reference.Next();
-        var third = reference.Next();
+        static Game Start()
+        {
+            var game = CreateGame();
+            for (var i = 0; i < 3; i++)
+            {
+                game.Prophet.PronouncePair(0, 1);
+                game.Time.World.Year += 50;
+                game.Prophet.OnTimeAdvanced();
+            }
+            return game;
+        }
+        var reference = Start();
+        var loaded = RoundTrip(Start());
 
-        var game = CreateGame();
-        game.Prophet.Pronounce();
-        game.Time.World.Year = 100;
-        game.Prophet.OnTimeAdvanced();
-        game.Prophet.Pronounce();
-        var loaded = RoundTrip(game);
-        loaded.Time.World.Year = 200;
-        loaded.Prophet.OnTimeAdvanced();
+        for (var i = 0; i < 4; i++)
+        {
+            reference.Prophet.PronouncePair(0, 1);
+            loaded.Prophet.PronouncePair(0, 1);
+            reference.Time.World.Year += 50;
+            loaded.Time.World.Year += 50;
+            reference.Prophet.OnTimeAdvanced();
+            loaded.Prophet.OnTimeAdvanced();
+        }
 
-        Assert.Equal(third, loaded.Prophet.Dream);
+        Assert.Equal(reference.Prophet.Deck!.Hand, loaded.Prophet.Deck!.Hand);
+        Assert.Equal(reference.Prophet.Deck.DrawPile, loaded.Prophet.Deck.DrawPile);
+        Assert.Equal(reference.Prophet.Deck.DiscardPile, loaded.Prophet.Deck.DiscardPile);
+        Assert.Equal(reference.Time.Dogmas, loaded.Time.Dogmas);
     }
 
     [Fact]
@@ -286,11 +287,12 @@ public class SaveDataTests
         Assert.True(ok, reason);
         Assert.Equal(312, data!.World.Year);
         Assert.Equal("THIRST", data.RequestId);
-        Assert.Equal(["SYM_TREE", "SYM_RAIN"], data.Deck!.DrawPile);
+        Assert.Equal(["SYM_TREE", "SYM_RAIN"], data.Deck.DrawPile);
         Assert.Equal(["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_RAIN"], data.Deck.Hand);
         Assert.Equal(["SYM_FIRE"], data.Deck.DiscardPile);
-        Assert.Equal("SYM_BLOOD", data.Deck.UsedSymbolId);
         Assert.Equal(2, data.Deck.ShuffleCount);
+        Assert.Equal(1.5, data.Faith.Value, 6);
+        Assert.Equal([300, 310], data.Faith.RecentYears);
         Assert.Equal(new RegionCivilization(0.25, 0.1, 1, 0), data.Civilization.Regions[0]);
         Assert.Equal(
             [new Building(0, BuildingType.Workshop, 3, 6, 2, 500), new Building(3, BuildingType.HouseTimber, 3, 6, 0, 600)],
@@ -365,26 +367,18 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 11", "\"saveVersion\": 10", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 11, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 12", "\"saveVersion\": 11", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 12, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
-    [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": -1", "invalid_dreams_generated")]
-    [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": 1000001", "invalid_dreams_generated")]
     [InlineData("\"year\": 312", "\"year\": -1", "invalid_year")]
     [InlineData("\"forestAmount\": 50", "\"forestAmount\": 1e999", "invalid_number")]
     [InlineData("\"isDestroyed\": false", "\"isDestroyed\": 0", "invalid_field")]
     [InlineData("\"targetSymbolId\": \"SYM_TREE\"", "\"targetSymbolId\": \"SYM_STONE\"", "unknown_symbol")]
     [InlineData("\"dogmaType\": \"Taboo\"", "\"dogmaType\": \"0\"", "unknown_dogma_type")]
-    [InlineData("\"symbolId\": \"SYM_BLOOD\"", "\"symbolId\": \"SYM_STONE\"", "unknown_symbol")]
-    [InlineData("\"weight\": 0.6", "\"weight\": 1.5", "invalid_dream")]
-    [InlineData("\"state\": \"TAMPERED\"", "\"state\": \"NONE\"", "invalid_dream")]
-    [InlineData("\"state\": \"TAMPERED\"", "\"state\": \"DREAMING\"", "invalid_dream")]
-    [InlineData(", { \"symbolId\": \"SYM_FIRE\", \"weight\": 0.4 }", "", "invalid_dream")]
+    [InlineData("\"hand\": [\"SYM_BLOOD\"", "\"hand\": [\"SYM_STONE\"", "invalid_deck")] // 手札に定義に無い記号
     [InlineData("\"request\": \"THIRST\"", "\"request\": \"BOREDOM\"", "unknown_request_type")]
     [InlineData("\"FAMINE\": 250", "\"BOREDOM\": 250", "unknown_request_type")]
     [InlineData("\"FAMINE\": 250", "\"FAMINE\": 400", "invalid_year")]
-    [InlineData("\"lastOracleYear\": 250", "\"lastOracleYear\": 313", "invalid_year")]
-    [InlineData("\"lastOracleYear\": 250", "\"lastOracle\": 250", "invalid_field")]
     [InlineData("\"speed\": \"REAL_TIME\"", "\"speed\": \"SLOW\"", "unknown_speed")]
     [InlineData("\"elapsedSeconds\": 3600", "\"elapsedSeconds\": -1", "invalid_number")]
     [InlineData("\"elapsedSeconds\": 3600", "\"elapsedSeconds\": 1e999", "invalid_number")]
@@ -436,10 +430,11 @@ public class SaveDataTests
     [InlineData("\"historyChapterStart\": { \"year\": 300", "\"historyChapterStart\": { \"year\": 400", "invalid_year")]
     [InlineData("\"chaos\": 12.5", "\"chaos\": -1", "invalid_number")]
     [InlineData("\"drawPile\": [\"SYM_TREE\"", "\"drawPile\": [\"SYM_STONE\"", "invalid_deck")] // 定義に無い記号のカード
-    [InlineData("\"usedSymbolId\": \"SYM_BLOOD\"", "\"usedSymbolId\": \"SYM_STONE\"", "invalid_deck")]
-    [InlineData("\"hand\": [\"SYM_BLOOD\", ", "\"hand\": [\"SYM_TREE\", ", "invalid_deck")] // 使ったカードが手札に無い
-    [InlineData("\"state\": \"TAMPERED\"", "\"state\": \"UNTAMPERED\"", "invalid_deck")] // 夢が改ざん済みでないのに、使ったカードがある
     [InlineData("\"shuffleCount\": 2", "\"shuffleCount\": -1", "invalid_deck")]
+    [InlineData("\"value\": 1.5", "\"value\": -1", "invalid_faith")]
+    [InlineData("\"recentYears\": [300, 310]", "\"recentYears\": [300, 313]", "invalid_year")] // 今の年より後
+    [InlineData("\"recentYears\": [300, 310]", "\"recentYears\": [310, 300]", "invalid_faith")] // 古い順でない
+    [InlineData("\"recentYears\": [300, 310]", "\"recentYears\": \"none\"", "invalid_field")]
     [InlineData("\"symbolId\": \"SYM_TREE\", \"dogmaType\": \"Taboo\"", "\"symbolId\": \"SYM_STONE\", \"dogmaType\": \"Taboo\"", "invalid_history")]
     [InlineData("\"dogmaType\": \"Taboo\", \"name\"", "\"dogmaType\": \"Love\", \"name\"", "invalid_history")]
     [InlineData("\"epithet\": { \"id\": \"EPITHET_BUILDER\", \"symbolId\": null }, \"breakdown\": null", "\"epithet\": null, \"breakdown\": null", "invalid_history")] // 称号の無い住人の死は残さない

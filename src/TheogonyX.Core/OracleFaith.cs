@@ -1,5 +1,10 @@
 namespace TheogonyX.Core;
 
+/// <summary>セーブに残す神威の状態。</summary>
+/// <param name="Value">神威の量。</param>
+/// <param name="RecentYears">直近の神託を下した年（古い順）。</param>
+public sealed record OracleFaithState(double Value, IReadOnlyList<int> RecentYears);
+
 /// <summary>
 /// 神威と神の歪み（docs/domain/oracle-pair.md の「神威の代償」）。神威は年が進むと溜まり、神託を下すたびに消費する。
 /// 短い年数のうちに神託を重ねすぎたら、超えた回数を返す（世界への影響は呼び出し側が与える）。
@@ -51,6 +56,23 @@ public sealed class OracleFaith
         _recentYears.Add(year);
         return Math.Max(0, _recentYears.Count - _overload.FreeCount);
     }
+
+    /// <summary>セーブから読み込んだ状態に置き換える。神威は 0〜上限に収める。値の検証は読み込む側で済ませておく。</summary>
+    public void Restore(double value, IEnumerable<int> recentYears)
+    {
+        ArgumentNullException.ThrowIfNull(recentYears);
+        Value = Math.Clamp(value, 0, _faith.Max);
+        _recentYears.Clear();
+        _recentYears.AddRange(recentYears);
+    }
+
+    /// <summary>神威の上限。</summary>
+    public float Max => _faith.Max;
+
+    /// <summary>神託 1 回のコスト。</summary>
+    public float Cost => _faith.Cost;
+
+    public OracleFaithState Capture() => new(Value, [.. _recentYears]);
 
     /// <summary>世界再創生: 神威を最初の量に戻し、数えた神託を捨てる。</summary>
     public void Reset()

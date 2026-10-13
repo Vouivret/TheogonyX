@@ -11,7 +11,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | TS-save-data-001 | AC-save-data-001, 002, 003 | 書き出して読み戻すと同じ状態になる | 受け入れ条件のとおり | 書き出して読み戻す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-save-data-002 | AC-save-data-004 | 読み込んだ後は止まっている | 自動進行中 | 書き出して読み戻す | 止まっている | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
-| TS-save-data-003 | AC-save-data-005 | 読み込んだ後も、同じシードからの夢の続きになる | 受け入れ条件のとおり | 書き出して読み戻し、夢を見る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
+| TS-save-data-003 | AC-save-data-005 | 読み込んだ後も、同じシードからのデッキの続き（引く順・シャッフル）になる | 受け入れ条件のとおり | 書き出して読み戻し、神託を下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-save-data-004 | AC-save-data-006 | 壊れたセーブを読まない | 受け入れ条件の各入力 | 読む | 失敗し、理由が分かる | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-save-data-006 | AC-save-data-010, 011 | 自動進行の速さとその年の進みの読み戻しと、古い形・不正な値を読まないこと | 受け入れ条件のとおり | 書き出して読み戻す・読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-save-data-007 | AC-save-data-012, 013, 014 | 地域の文明の値・建物・廃墟・遺物の読み戻しと、定義と合わない値を読まないこと | 受け入れ条件のとおり | 書き出して読み戻す・読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |

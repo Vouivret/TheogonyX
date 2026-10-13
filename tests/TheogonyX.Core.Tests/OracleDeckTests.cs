@@ -1,5 +1,4 @@
 using TheogonyX.Core;
-using TheogonyX.Core.Persistence;
 
 namespace TheogonyX.Core.Tests;
 
@@ -192,29 +191,5 @@ public class OracleDeckTests
         Assert.Null(deck.UsedSymbolId);
         Assert.Empty(deck.DiscardPile);
         Assert.Equal(ProphetDreamState.Untampered, prophet.State);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-deck-007")]
-    public void RoundTrip_デッキを持つセーブ_山札と手札と捨札と使ったカードが戻る()
-    {
-        var (prophet, time, deck) = CreateGame();
-        prophet.Tamper(0, deck.Hand[0]);
-        prophet.Pronounce();
-        time.World.Year += 100;
-        prophet.OnTimeAdvanced();
-        prophet.Tamper(1, deck.Hand[0]); // 改ざん済みで保存する（使ったカードが手札に残る）
-        var dreams = new DreamSource(Seed, TestRules.Dream, TestRules.ProphetDreams);
-        var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double> { [AutoPlaySpeed.Normal] = 1.0, [AutoPlaySpeed.Fast] = 0.1, [AutoPlaySpeed.RealTime] = 86400.0 });
-        var expected = deck.Capture();
-
-        var json = SaveDataSerializer.Write(SaveGame.Capture(time, prophet, dreams, clock));
-        Assert.True(SaveDataSerializer.TryParse(json, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, out var data, out var reason), reason);
-        var (loadedProphet, loadedTime, loadedDeck) = CreateGame();
-        SaveGame.Apply(data!, loadedTime, loadedProphet, new DreamSource(Seed, TestRules.Dream, TestRules.ProphetDreams), clock);
-
-        AssertSameDeck(expected, loadedDeck.Capture());
-        Assert.NotNull(loadedDeck.UsedSymbolId);
-        Assert.Equal(ProphetDreamState.Tampered, loadedProphet.State);
     }
 }

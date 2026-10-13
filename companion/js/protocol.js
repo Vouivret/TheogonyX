@@ -13,17 +13,12 @@ export const MESSAGE_TYPE = Object.freeze({
   ERROR: "ERROR",
   START_STREAM: "START_STREAM",
   STOP_STREAM: "STOP_STREAM",
-  DREAM_STATE: "DREAM_STATE",
-  TAMPER: "TAMPER",
+  ORACLE_STATE: "ORACLE_STATE",
   PRONOUNCE: "PRONOUNCE",
 });
 
-/** DREAM_STATE の state（予言者の夢の状態） */
-export const DREAM_STATE = Object.freeze({
-  NONE: "NONE",
-  UNTAMPERED: "UNTAMPERED",
-  TAMPERED: "TAMPERED",
-});
+/** PRONOUNCE のバージョン。TAMPER を廃止し、手札の番号 2 つを持たせた（version 2） */
+export const PRONOUNCE_VERSION = 2;
 
 export const ERROR_REASON = Object.freeze({
   MAX_CONNECTIONS_REACHED: "MAX_CONNECTIONS_REACHED",
@@ -39,11 +34,11 @@ export const FRAME_HEADER_LENGTH = 2;
 /**
  * @typedef {{ type: "PAIRED", version: 1, sessionToken: string }} PairedMessage
  * @typedef {{ type: "ERROR", version: 1, reason: string }} ErrorMessage
- * @typedef {{ symbolId: string, weight: number }} DreamNode
  * @typedef {{ requestType: string, symbolId: string }} ProphetRequest
- * @typedef {{ type: "DREAM_STATE", version: 1, state: string, nodes: DreamNode[], cards: string[],
- *   canTamper: boolean, canPronounce: boolean, isDestroyed: boolean, request: ProphetRequest | null }} DreamStateMessage
- * @typedef {PairedMessage | ErrorMessage | DreamStateMessage} HostMessage
+ * @typedef {{ value: number, max: number, cost: number }} Faith
+ * @typedef {{ type: "ORACLE_STATE", version: 1, hand: string[], faith: Faith,
+ *   canPronounce: boolean, isDestroyed: boolean, request: ProphetRequest | null }} OracleStateMessage
+ * @typedef {PairedMessage | ErrorMessage | OracleStateMessage} HostMessage
  */
 
 /** @param {string} token */
@@ -58,26 +53,21 @@ export const startStream = () => JSON.stringify({ type: MESSAGE_TYPE.START_STREA
 export const stopStream = () => JSON.stringify({ type: MESSAGE_TYPE.STOP_STREAM, version: MESSAGE_VERSION });
 
 /**
- * @param {number} index 夢の何番目か（0 から）
- * @param {string} symbolId 入れ替えるカードの記号 ID
+ * @param {number} first 1 枚目（ドグマの対象）の手札の番号（0 から）
+ * @param {number} second 2 枚目の手札の番号（1 枚目と違う番号）
  */
-export const tamper = (index, symbolId) =>
-  JSON.stringify({ type: MESSAGE_TYPE.TAMPER, version: MESSAGE_VERSION, index, symbolId });
-
-export const pronounce = () => JSON.stringify({ type: MESSAGE_TYPE.PRONOUNCE, version: MESSAGE_VERSION });
+export const pronounce = (first, second) =>
+  JSON.stringify({ type: MESSAGE_TYPE.PRONOUNCE, version: PRONOUNCE_VERSION, first, second });
 
 /** @param {unknown} value */
 const isText = (value) => typeof value === "string" && value !== "";
 
 /** @param {any} message */
-function isDreamState(message) {
-  return Object.values(DREAM_STATE).includes(message.state)
-    && Array.isArray(message.nodes)
-    && message.nodes.every((/** @type {any} */ node) =>
-      node !== null && typeof node === "object" && isText(node.symbolId) && Number.isFinite(node.weight))
-    && Array.isArray(message.cards)
-    && message.cards.every(isText)
-    && typeof message.canTamper === "boolean"
+function isOracleState(message) {
+  return Array.isArray(message.hand)
+    && message.hand.every(isText)
+    && message.faith !== null && typeof message.faith === "object"
+    && Number.isFinite(message.faith.value) && Number.isFinite(message.faith.max) && Number.isFinite(message.faith.cost)
     && typeof message.canPronounce === "boolean"
     && typeof message.isDestroyed === "boolean"
     && (message.request === null
@@ -105,7 +95,7 @@ export function parseHostMessage(text) {
   if (message.type === MESSAGE_TYPE.ERROR && typeof message.reason === "string") {
     return message;
   }
-  if (message.type === MESSAGE_TYPE.DREAM_STATE && isDreamState(message)) {
+  if (message.type === MESSAGE_TYPE.ORACLE_STATE && isOracleState(message)) {
     return message;
   }
   return null;

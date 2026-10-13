@@ -6,7 +6,7 @@ status: draft   # draft | approved | as-is
 
 - テスト仕様書: [docs/test/oracle-pair.md](../test/oracle-pair.md)
 - 関連ADR: なし
-- 通信: 変わる（`TAMPER` をやめ、`PRONOUNCE` に 2 枚のカードを持たせる。実装のときに [messages.md](../protocol/messages.md) を更新する。[未決](#未決)）
+- 通信: [messages.md](../protocol/messages.md) の `ORACLE_STATE`・`PRONOUNCE`（version 2。`DREAM_STATE`・`TAMPER` は廃止）
 - 画面デザイン: なし
 - 出典: 2026-10-14 のチャットでの決定（人間が「夢のコマが不要では」と指摘し、案 B「ルーンの組」を選んだ）。**値のうち指示書に無いものは AI が仮に置いたもの（`TODO(AI_UNSURE)`）で、人間が決め直す。**
 - 関連: [神託のデッキ](oracle-deck.md)・[神託の伝達メディア](oracle-delivery.md)・[多人数プレイ](multiplayer.md)・[予言者の依頼](prophet-request.md)
@@ -22,7 +22,7 @@ status: draft   # draft | approved | as-is
 | 段階 | 内容 | 状態 |
 | :--- | :--- | :--- |
 | A. 追加 | コアに、ルーンの組・神威・歪みを追加する（旧い夢の方式は残す。画面・通信・セーブは変えない） | 実装済み |
-| B. 切り替え | 画面・スマホ・通信・セーブを新方式にする（`saveVersion` 12） | 未 |
+| B. 切り替え | 画面・スマホ・通信・セーブを新方式にする（`saveVersion` 12） | 実装済み（手動テストは未） |
 | C. 削除 | 夢ノード・夢の生成・`TAMPER`・旧テストを消す | 未 |
 
 ## 置き換えるもの

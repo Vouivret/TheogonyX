@@ -199,6 +199,16 @@
     "dotColor": "#D2AA99",
     "useGpu": true
   },
+  "oracle": {
+    "runeWeights": [
+      { "symbolId": "SYM_TREE", "weight": 0.7 },
+      { "symbolId": "SYM_RAIN", "weight": 0.7 },
+      { "symbolId": "SYM_BLOOD", "weight": 0.7 },
+      { "symbolId": "SYM_FIRE", "weight": 0.7 }
+    ],
+    "faith": { "max": 3.0, "perYear": 0.1, "cost": 1.0, "initial": 3.0 },
+    "overload": { "windowYears": 10, "freeCount": 2, "sanityLoss": 20.0, "chaosGain": 5.0 }
+  },
   "deck": {
     "initialRunes": [
       { "symbolId": "SYM_TREE", "count": 3 },

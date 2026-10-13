@@ -9,11 +9,6 @@
   "ERROR_MAX_CONNECTIONS_REACHED": "同時に見られるのは 2 台までです。ほかの端末を閉じてから、もう一度開いてください。",
   "ERROR_SESSION_REPLACED": "別の画面で開かれたため、こちらの接続を切りました。",
   "BUTTON_ORACLE": "神託を下す",
-  "BUTTON_CANCEL": "やめる",
-  "DREAM_NONE": "予言者は眠っている",
-  "DREAM_GUIDE_CHOOSE_CARD": "入れ替えるカードを選べ",
-  "DREAM_GUIDE_TAMPERED": "夢を改ざんした。神託を下せ",
-  "DREAM_GUIDE_DESTROYED": "星は滅びた",
   "REQUEST_BUBBLE": "{0}に苦しんでいます。{1}をお恵みください",
   "SYMBOL_SYM_TREE": "木",
   "SYMBOL_SYM_RAIN": "恵みの雨",
@@ -24,7 +19,11 @@
   "TROUBLE_HEAT": "暑さ",
   "TROUBLE_COLD": "寒さ",
   "TROUBLE_CHAOS": "混乱",
-  "DREAM_GUIDE_UNTAMPERED": "夢を見た。コマを選べ（入れ替えは1回）",
-  "DREAM_GUIDE_OFFLINE": "PC とつながると、ここで夢を改ざんできます。",
-  "DREAM_NODE_WEIGHT": "重み {0}"
+  "ORACLE_GUIDE_CHOOSE": "手札から 2 枚を選べ（1 枚目が対象）",
+  "ORACLE_GUIDE_READY": "神託を下せ",
+  "ORACLE_GUIDE_NO_FAITH": "神威が足りない",
+  "ORACLE_GUIDE_NO_CARDS": "手札が足りない",
+  "ORACLE_GUIDE_DESTROYED": "星は滅びた",
+  "ORACLE_GUIDE_FAITH": "{0}　神威 {1} / {2}",
+  "ORACLE_GUIDE_OFFLINE": "PC とつながると、ここで神託を下せます。"
 }

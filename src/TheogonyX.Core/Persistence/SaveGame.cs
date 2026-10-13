@@ -3,16 +3,16 @@ namespace TheogonyX.Core.Persistence;
 /// <summary>コアの今の状態とセーブデータを行き来する（docs/domain/save-data.md）。</summary>
 public static class SaveGame
 {
-    public static SaveData Capture(TimeControl timeControl, ProphetDreams prophet, DreamSource dreams, AutoPlayClock clock)
+    public static SaveData Capture(TimeControl timeControl, ProphetDreams prophet, int seed, AutoPlayClock clock)
     {
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(timeControl);
         ArgumentNullException.ThrowIfNull(prophet);
-        ArgumentNullException.ThrowIfNull(dreams);
+        var deck = prophet.Deck ?? throw new InvalidOperationException("セーブには神託のデッキが要る");
+        var faith = prophet.Faith ?? throw new InvalidOperationException("セーブには神威が要る");
         var world = timeControl.World;
         return new SaveData(
-            dreams.Seed,
-            dreams.DreamsGenerated,
+            seed,
             new WorldState
             {
                 Year = world.Year,
@@ -24,43 +24,35 @@ public static class SaveGame
                 IsDestroyed = world.IsDestroyed,
             },
             [.. timeControl.Dogmas],
-            prophet.State,
-            [.. prophet.Dream],
             prophet.ActiveRequest?.Id,
             new Dictionary<string, int>(prophet.AnsweredYears),
-            prophet.LastOracleYear,
             clock.Speed,
             clock.ElapsedSeconds,
             timeControl.Civilization?.Copy() ?? new Civilization([], [], [], [], 0),
             timeControl.Residents?.Copy() ?? Residents.CreateInitial(),
             [.. timeControl.History?.Entries ?? []],
             timeControl.History?.Chapter ?? new ChapterStart(world.Year, world.ChaosLevel),
-            prophet.Deck?.Capture());
+            deck.Capture(),
+            faith.Capture());
     }
 
     /// <summary>
-    /// セーブデータの状態に戻す。<paramref name="dreams"/> は、セーブデータと同じシードで作ったもの。
-    /// 読み込んだ後は止まった状態（崩壊していれば崩壊）になる。
+    /// セーブデータの状態に戻す。読み込んだ後は止まった状態（崩壊していれば崩壊）になる。
+    /// デッキの手札・山札・捨札と神威も、セーブのとおりに戻す。
     /// </summary>
-    public static void Apply(SaveData data, TimeControl timeControl, ProphetDreams prophet, DreamSource dreams, AutoPlayClock clock)
+    public static void Apply(SaveData data, TimeControl timeControl, ProphetDreams prophet, AutoPlayClock clock)
     {
         ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(timeControl);
         ArgumentNullException.ThrowIfNull(prophet);
-        ArgumentNullException.ThrowIfNull(dreams);
-        if (dreams.Seed != data.Seed)
-        {
-            throw new ArgumentException($"シードが違う: dreams={dreams.Seed} data={data.Seed}", nameof(dreams));
-        }
+        var deck = prophet.Deck ?? throw new InvalidOperationException("セーブには神託のデッキが要る");
 
         timeControl.Restore(data.World, data.Dogmas, data.Civilization, data.Residents, data.History, data.Chapter);
-        prophet.Restore(data.DreamState, data.Dream, data.RequestId, data.AnsweredYears, data.LastOracleYear);
-        if (data.Deck is not null)
-        {
-            prophet.Deck?.Restore(data.Deck);
-        }
-        dreams.Rewind(data.DreamsGenerated);
+        // ルーンの組モードでは夢を見ない。最後の神託の年は、依頼の待ちに使わないので今の年にしておく
+        prophet.Restore(ProphetDreamState.None, [], data.RequestId, data.AnsweredYears, data.World.Year);
+        deck.Restore(data.Deck);
+        prophet.RestoreFaith(data.Faith.Value, data.Faith.RecentYears);
         clock.Restore(data.Speed, data.ElapsedSeconds);
     }
 }

@@ -11,9 +11,6 @@ public static class CompanionMessageParser
     /// <summary>トークンとして受け付ける最大の文字数。ホストが作るトークンより十分に長い。</summary>
     public const int MaxTokenLength = 128;
 
-    /// <summary><c>TAMPER</c> の <c>symbolId</c> として受け付ける最大の文字数。</summary>
-    public const int MaxSymbolIdLength = 64;
-
     // docs/protocol/messages.md の表と1対1。値は（種類, 必須の文字列の項目。無ければ null）。
     private static readonly Dictionary<(string Type, int Version), (CompanionMessageType Type, string? TokenField)> Messages = new()
     {
@@ -21,8 +18,7 @@ public static class CompanionMessageParser
         [("RESUME", 1)] = (CompanionMessageType.Resume, "sessionToken"),
         [("START_STREAM", 1)] = (CompanionMessageType.StartStream, null),
         [("STOP_STREAM", 1)] = (CompanionMessageType.StopStream, null),
-        [("TAMPER", 1)] = (CompanionMessageType.Tamper, null),
-        [("PRONOUNCE", 1)] = (CompanionMessageType.Pronounce, null),
+        [("PRONOUNCE", 2)] = (CompanionMessageType.Pronounce, null),
     };
 
     /// <param name="message">成功したときのメッセージ。失敗したときは null。</param>
@@ -83,21 +79,16 @@ public static class CompanionMessageParser
                 token = value;
             }
 
-            if (definition.Type == CompanionMessageType.Tamper)
+            if (definition.Type == CompanionMessageType.Pronounce)
             {
-                if (!root.TryGetProperty("index", out var indexElement)
-                    || indexElement.ValueKind != JsonValueKind.Number
-                    || !indexElement.TryGetInt32(out var index)
-                    || index < 0
-                    || !root.TryGetProperty("symbolId", out var symbolElement)
-                    || symbolElement.ValueKind != JsonValueKind.String
-                    || symbolElement.GetString() is not { Length: > 0 and <= MaxSymbolIdLength } symbolId)
+                // 手札の番号 2 つ（0 以上の整数）。同じ番号や手札の範囲外は、ゲームの側で「下せない」にする
+                if (!TryReadHandIndex(root, "first", out var first) || !TryReadHandIndex(root, "second", out var second))
                 {
-                    reason = "invalid_tamper";
+                    reason = "invalid_pronounce";
                     return false;
                 }
 
-                message = new CompanionMessage(definition.Type, Index: index, SymbolId: symbolId);
+                message = new CompanionMessage(definition.Type, First: first, Second: second);
             }
             else
             {
@@ -107,5 +98,14 @@ public static class CompanionMessageParser
 
         reason = string.Empty;
         return true;
+    }
+
+    private static bool TryReadHandIndex(JsonElement root, string name, out int index)
+    {
+        index = 0;
+        return root.TryGetProperty(name, out var element)
+            && element.ValueKind == JsonValueKind.Number
+            && element.TryGetInt32(out index)
+            && index >= 0;
     }
 }
