@@ -31,7 +31,8 @@ public static class SaveGame
             prophet.LastOracleYear,
             clock.Speed,
             clock.ElapsedSeconds,
-            timeControl.Civilization?.Copy() ?? new Civilization([], [], [], [], 0));
+            timeControl.Civilization?.Copy() ?? new Civilization([], [], [], [], 0),
+            timeControl.Residents?.Copy() ?? Residents.CreateInitial());
     }
 
     /// <summary>
@@ -50,7 +51,7 @@ public static class SaveGame
             throw new ArgumentException($"シードが違う: dreams={dreams.Seed} data={data.Seed}", nameof(dreams));
         }
 
-        timeControl.Restore(data.World, data.Dogmas, data.Civilization);
+        timeControl.Restore(data.World, data.Dogmas, data.Civilization, data.Residents);
         prophet.Restore(data.DreamState, data.Dream, data.RequestId, data.AnsweredYears, data.LastOracleYear);
         dreams.Rewind(data.DreamsGenerated);
         clock.Restore(data.Speed, data.ElapsedSeconds);

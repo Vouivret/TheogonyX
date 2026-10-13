@@ -123,7 +123,8 @@ public class StrataTests
                 [new Building(1, BuildingType.Workshop, Region, Column, 0, 400), new Building(2, BuildingType.Shrine, Region, Column, 4, 400)],
                 [new Ruin(0, BuildingType.Shrine, Region, Column, 0, 250)],
                 [new Relic(5, BuildingType.Workshop, Region, Column, 0, 1, 100, 0.1, 0.1, 0, [])],
-                nextId: 6));
+                nextId: 6),
+            Residents.CreateInitial());
 
         time.Reset();
 

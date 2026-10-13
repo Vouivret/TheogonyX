@@ -8,6 +8,7 @@ namespace TheogonyX.Core.Persistence;
 /// <param name="Speed">自動進行の速さ。</param>
 /// <param name="ElapsedSeconds">自動進行の、その年の進み（秒）。</param>
 /// <param name="Civilization">地域の文明の値と建物。</param>
+/// <param name="Residents">住人と墓。</param>
 public sealed record SaveData(
     int Seed,
     int DreamsGenerated,
@@ -20,4 +21,5 @@ public sealed record SaveData(
     int LastOracleYear,
     AutoPlaySpeed Speed,
     double ElapsedSeconds,
-    Civilization Civilization);
+    Civilization Civilization,
+    Residents Residents);

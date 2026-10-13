@@ -17,6 +17,13 @@ public static class GameDataLoader
         Converters = { new JsonStringEnumConverter() },
     };
 
+    // コンストラクタの引数をすべて必須にする（既定値で読まない）
+    private static readonly JsonSerializerOptions StrictOptions = new(Options)
+    {
+        RespectRequiredConstructorParameters = true,
+        RespectNullableAnnotations = true,
+    };
+
     public static DreamRules ParseDreamRules(string symbolsJson, string rulesJson)
     {
         var symbols = Parse<SymbolsFile>(symbolsJson, "symbols.json");
@@ -170,6 +177,29 @@ public static class GameDataLoader
         }
     }
 
+    public static NeedsRules ParseNeeds(string rulesJson)
+    {
+        // 項目が抜けていたら既定値（0）で読まずに失敗にする
+        var section = Parse<NeedsSection>(rulesJson, "rules.json").Needs
+            ?? throw new InvalidDataException("欲求と健康の定義が無い: file=rules.json key=needs");
+        NeedsRules needs;
+        try
+        {
+            needs = section.Deserialize<NeedsRules>(StrictOptions)
+                ?? throw new InvalidDataException("欲求と健康の定義が空: file=rules.json key=needs");
+            needs.Validate();
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("欲求と健康の定義を読めない: file=rules.json key=needs", ex);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("欲求と健康の定義の値が範囲外: file=rules.json key=needs", ex);
+        }
+        return needs;
+    }
+
     public static ProphetDreamRules ParseProphetDreams(string rulesJson)
     {
         var rules = Parse<RulesFile>(rulesJson, "rules.json");
@@ -252,6 +282,8 @@ public static class GameDataLoader
         int ZeroInfluenceDistance,
         Dictionary<TileType, double>? EnvironmentMultipliers,
         IReadOnlyList<double>? Thresholds);
+
+    private sealed record NeedsSection(JsonElement? Needs);
 
     private sealed record StrataFile(int LifespanMin, int LifespanMax, int RuinBurialYears, int MaxDepth);
 

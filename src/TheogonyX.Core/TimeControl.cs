@@ -37,6 +37,7 @@ public sealed class TimeControl
         _civilizationSetup = civilization;
         World = WorldState.CreateInitial(worldRules);
         Civilization = civilization is null ? null : Civilization.CreateInitial(civilization.Rules);
+        Residents = civilization?.Needs is null ? null : Residents.CreateInitial();
     }
 
     public TimeControlState State { get; private set; } = TimeControlState.Stopped;
@@ -47,6 +48,12 @@ public sealed class TimeControl
 
     /// <summary>地域の文明の値と建物。文明の計算をしないなら null。</summary>
     public Civilization? Civilization { get; private set; }
+
+    /// <summary>住人と墓。住人の計算をしないなら null。</summary>
+    public Residents? Residents { get; private set; }
+
+    /// <summary>直前の跳躍・1 年の進みで、住人に起きた出来事（ログに出す）。</summary>
+    public IReadOnlyList<ResidentEvent> ResidentEvents { get; private set; } = [];
 
     public bool CanDo(TimeControlAction action) => Transitions.ContainsKey((State, action));
 
@@ -68,25 +75,32 @@ public sealed class TimeControl
     /// <summary>
     /// 年 0・環境と文明の初期値に戻し、ドグマの一覧を空にして、停止中にする。
     /// 地上の建物と廃墟は、そのときの値と一緒に地下 1 層目に沈めて残す（docs/domain/strata.md）。
+    /// 住人と墓は消し、次の住人の ID だけを残す（docs/domain/agent-needs.md）。
     /// </summary>
     public void Reset()
     {
         var next = NextState(TimeControlAction.Reset);
         Civilization = _civilizationSetup is null ? null : Civilization?.Recreate(World, _dogmas, _civilizationSetup.Rules);
+        Residents = Residents?.Recreate();
+        ResidentEvents = [];
         World = WorldState.CreateInitial(_worldRules);
         _dogmas.Clear();
         State = next;
     }
 
-    /// <summary>セーブから読み込んだ世界・ドグマ・文明に置き換える。崩壊していれば崩壊、そうでなければ止まった状態にする。</summary>
+    /// <summary>セーブから読み込んだ世界・ドグマ・文明・住人に置き換える。崩壊していれば崩壊、そうでなければ止まった状態にする。</summary>
     /// <param name="civilization">文明の計算をしないなら無視する。</param>
-    public void Restore(WorldState world, IEnumerable<Dogma> dogmas, Civilization civilization)
+    /// <param name="residents">住人の計算をしないなら無視する。</param>
+    public void Restore(WorldState world, IEnumerable<Dogma> dogmas, Civilization civilization, Residents residents)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(dogmas);
         ArgumentNullException.ThrowIfNull(civilization);
+        ArgumentNullException.ThrowIfNull(residents);
         World = world;
         Civilization = _civilizationSetup is null ? null : civilization.Copy();
+        Residents = _civilizationSetup?.Needs is null ? null : residents.Copy();
+        ResidentEvents = [];
         _dogmas.Clear();
         _dogmas.AddRange(dogmas);
         State = world.IsDestroyed ? TimeControlState.Destroyed : TimeControlState.Stopped;
@@ -97,10 +111,21 @@ public sealed class TimeControl
         var next = NextState(action);
         var setup = _civilizationSetup;
         var civilization = Civilization;
+        var residents = Residents;
+        var events = new List<ResidentEvent>();
         Action? afterYear = setup is null || civilization is null
             ? null
-            : () => CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed);
+            : () =>
+            {
+                CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed);
+                if (residents is not null && setup.Needs is not null)
+                {
+                    events.AddRange(ResidentSimulator.AdvanceYear(
+                        residents, civilization, World, _dogmas, setup.Needs, setup.Rules, _worldRules, setup.Seed));
+                }
+            };
         WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules, afterYear);
+        ResidentEvents = events;
         State = World.IsDestroyed ? TimeControlState.Destroyed : next;
     }
 
@@ -110,6 +135,7 @@ public sealed class TimeControl
             : throw new InvalidOperationException($"この状態ではできない操作: state={State} action={action}");
 }
 
-/// <summary>地域の文明の計算に使う定義と乱数のシード。</summary>
+/// <summary>地域の文明（と住人）の計算に使う定義と乱数のシード。</summary>
 /// <param name="Terrain">毎年のタイル種別（建てられる場所と環境の倍率）を求めるのに使う。</param>
-public sealed record CivilizationSetup(CivilizationRules Rules, TerrainRules Terrain, int Seed);
+/// <param name="Needs">住人の欲求と健康の定義。null なら住人の計算をしない。</param>
+public sealed record CivilizationSetup(CivilizationRules Rules, TerrainRules Terrain, int Seed, NeedsRules? Needs = null);

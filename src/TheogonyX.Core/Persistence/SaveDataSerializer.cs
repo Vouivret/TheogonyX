@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 4;
+    public const int SaveVersion = 5;
 
     /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
     public const int MaxDreamsGenerated = 1_000_000;
@@ -33,6 +33,25 @@ public static class SaveDataSerializer
         [BuildingType.Workshop] = "WORKSHOP",
         [BuildingType.Shrine] = "SHRINE",
     };
+
+    private static readonly Dictionary<BreakdownKind, string> BreakdownNames = new()
+    {
+        [BreakdownKind.Rampage] = "RAMPAGE",
+        [BreakdownKind.Catatonia] = "CATATONIA",
+    };
+
+    private static readonly Dictionary<ResidentTask, string> TaskNames = new()
+    {
+        [ResidentTask.Idle] = "IDLE",
+        [ResidentTask.SeekFood] = "SEEK_FOOD",
+        [ResidentTask.SeekShelter] = "SEEK_SHELTER",
+        [ResidentTask.Gather] = "GATHER",
+        [ResidentTask.Pray] = "PRAY",
+        [ResidentTask.Research] = "RESEARCH",
+        [ResidentTask.Breakdown] = "BREAKDOWN",
+    };
+
+    private static readonly string[] EpithetIds = [Epithets.Bloodless, Epithets.Witness, Epithets.Elder];
 
     public static string Write(SaveData data)
     {
@@ -116,18 +135,50 @@ public static class SaveDataSerializer
                 }),
                 nextBuildingId = data.Civilization.NextBuildingId,
             },
+            residents = new
+            {
+                people = data.Residents.People.Select(person => new
+                {
+                    id = person.Id,
+                    region = person.Region,
+                    birthYear = person.BirthYear,
+                    hunger = person.Hunger,
+                    shelter = person.Shelter,
+                    social = person.Social,
+                    esteem = person.Esteem,
+                    actualization = person.Actualization,
+                    health = person.Health,
+                    sanity = person.Sanity,
+                    breakdown = person.Breakdown is { } kind ? BreakdownNames[kind] : null,
+                    breakdownYear = person.BreakdownYear,
+                    task = TaskNames[person.Task],
+                    name = WriteName(person.Name),
+                    epithet = WriteEpithet(person.Epithet),
+                }),
+                graves = data.Residents.Graves.Select(grave => new
+                {
+                    residentId = grave.ResidentId,
+                    region = grave.Region,
+                    deathYear = grave.DeathYear,
+                    name = WriteName(grave.Name),
+                    epithet = WriteEpithet(grave.Epithet),
+                }),
+                nextResidentId = data.Residents.NextResidentId,
+            },
         });
     }
 
     /// <param name="data">成功したときの中身。失敗したときは null。</param>
     /// <param name="reason">失敗したときの理由（ログの <c>reason</c>）。成功したときは空文字。</param>
     public static bool TryParse(
-        string text, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, out SaveData? data, out string reason)
+        string text, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, NeedsRules needsRules,
+        out SaveData? data, out string reason)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(dreamRules);
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(civilizationRules);
+        ArgumentNullException.ThrowIfNull(needsRules);
         data = null;
 
         JsonDocument document;
@@ -145,7 +196,7 @@ public static class SaveDataSerializer
         {
             try
             {
-                data = Read(document.RootElement, dreamRules, rules, civilizationRules);
+                data = Read(document.RootElement, dreamRules, rules, civilizationRules, needsRules);
             }
             catch (InvalidSaveDataException ex)
             {
@@ -158,7 +209,8 @@ public static class SaveDataSerializer
         return true;
     }
 
-    private static SaveData Read(JsonElement root, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules)
+    private static SaveData Read(
+        JsonElement root, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, NeedsRules needsRules)
     {
         if (root.ValueKind != JsonValueKind.Object)
         {
@@ -249,10 +301,134 @@ public static class SaveDataSerializer
         }
 
         var civilization = ReadCivilization(Property(root, "civilization", JsonValueKind.Object), civilizationRules, world.Year, symbolIds);
+        var residents = ReadResidents(Property(root, "residents", JsonValueKind.Object), needsRules, civilizationRules, world.Year, symbolIds);
 
         return new SaveData(
             seed, dreamsGenerated, world, dogmas, dreamState.Key, dream, requestId, answeredYears, lastOracleYear, speed.Key, elapsedSeconds,
-            civilization);
+            civilization, residents);
+    }
+
+    private static object WriteName(ResidentName name) => new
+    {
+        firstPrefix = name.FirstPrefix,
+        firstSuffix = name.FirstSuffix,
+        lineagePrefix = name.LineagePrefix,
+        lineageSuffix = name.LineageSuffix,
+    };
+
+    private static object? WriteEpithet(ResidentEpithet? epithet) =>
+        epithet is null ? null : new { id = epithet.Id, symbolId = epithet.SymbolId };
+
+    // 地域・値の範囲・年・名前のパーツ・称号を、定義と照らして検証する。ID は住人と墓を通して重ならない
+    private static Residents ReadResidents(
+        JsonElement element, NeedsRules rules, CivilizationRules civilizationRules, int year, HashSet<string> symbolIds)
+    {
+        var nextResidentId = ReadInt(element, "nextResidentId");
+        if (nextResidentId < 0)
+        {
+            throw new InvalidSaveDataException("invalid_residents");
+        }
+        var ids = new HashSet<int>();
+        void CheckIdentity(int id, int region)
+        {
+            if (id < 0 || id >= nextResidentId || !ids.Add(id) || region < 0 || region >= civilizationRules.Regions.Count)
+            {
+                throw new InvalidSaveDataException("invalid_residents");
+            }
+        }
+
+        var people = new List<Resident>();
+        foreach (var item in Property(element, "people", JsonValueKind.Array).EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidSaveDataException("invalid_field");
+            }
+            var id = ReadInt(item, "id");
+            var region = ReadInt(item, "region");
+            CheckIdentity(id, region);
+            var birthYear = ReadInt(item, "birthYear");
+            double[] needs =
+            [
+                ReadDouble(item, "hunger"), ReadDouble(item, "shelter"), ReadDouble(item, "social"), ReadDouble(item, "esteem"),
+                ReadDouble(item, "actualization"),
+            ];
+            var health = ReadDouble(item, "health");
+            var sanity = ReadDouble(item, "sanity");
+            var breakdownElement = Property(item, "breakdown", null);
+            BreakdownKind? breakdown = null;
+            if (breakdownElement.ValueKind != JsonValueKind.Null)
+            {
+                var breakdownName = breakdownElement.ValueKind == JsonValueKind.String ? breakdownElement.GetString() : null;
+                var kind = BreakdownNames.FirstOrDefault(pair => pair.Value == breakdownName);
+                breakdown = kind.Value is null ? throw new InvalidSaveDataException("invalid_residents") : kind.Key;
+            }
+            var breakdownYear = ReadInt(item, "breakdownYear");
+            var taskName = ReadString(item, "task");
+            var task = TaskNames.FirstOrDefault(pair => pair.Value == taskName);
+            if (birthYear > year || needs.Any(value => value is < 0 or > 1) || health <= 0 || health > rules.MaxHealth
+                || sanity < 0 || sanity > rules.MaxSanity || (breakdown is not null && (breakdownYear < 0 || breakdownYear > year))
+                || task.Value is null)
+            {
+                throw new InvalidSaveDataException("invalid_residents");
+            }
+            people.Add(new Resident(
+                id, region, birthYear, needs[0], needs[1], needs[2], needs[3], needs[4], health, sanity, breakdown, breakdownYear, task.Key,
+                ReadName(Property(item, "name", JsonValueKind.Object), rules), ReadEpithet(Property(item, "epithet", null), symbolIds)));
+        }
+
+        var graves = new List<Grave>();
+        foreach (var item in Property(element, "graves", JsonValueKind.Array).EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidSaveDataException("invalid_field");
+            }
+            var id = ReadInt(item, "residentId");
+            var region = ReadInt(item, "region");
+            CheckIdentity(id, region);
+            var deathYear = ReadInt(item, "deathYear");
+            if (deathYear < 0 || deathYear > year)
+            {
+                throw new InvalidSaveDataException("invalid_residents");
+            }
+            graves.Add(new Grave(
+                id, region, deathYear, ReadName(Property(item, "name", JsonValueKind.Object), rules),
+                ReadEpithet(Property(item, "epithet", null), symbolIds)));
+        }
+        return new Residents(people.OrderBy(person => person.Id), graves, nextResidentId);
+    }
+
+    private static ResidentName ReadName(JsonElement element, NeedsRules rules)
+    {
+        string Part(string key, IReadOnlyList<string> parts)
+        {
+            var value = ReadString(element, key);
+            return parts.Contains(value) ? value : throw new InvalidSaveDataException("invalid_residents");
+        }
+        return new ResidentName(
+            Part("firstPrefix", rules.NamePrefixes), Part("firstSuffix", rules.NameSuffixes),
+            Part("lineagePrefix", rules.NamePrefixes), Part("lineageSuffix", rules.NameSuffixes));
+    }
+
+    // 証人の称号だけが記号を持つ
+    private static ResidentEpithet? ReadEpithet(JsonElement element, HashSet<string> symbolIds)
+    {
+        if (element.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidSaveDataException("invalid_field");
+        }
+        var id = ReadString(element, "id");
+        var symbolElement = Property(element, "symbolId", null);
+        var symbolId = symbolElement.ValueKind == JsonValueKind.String ? symbolElement.GetString() : null;
+        var valid = EpithetIds.Contains(id) && (id == Epithets.Witness
+            ? symbolId is not null && symbolIds.Contains(symbolId)
+            : symbolElement.ValueKind == JsonValueKind.Null);
+        return valid ? new ResidentEpithet(id, symbolId) : throw new InvalidSaveDataException("invalid_residents");
     }
 
     // 地域の数・値の範囲・建物・廃墟・遺物の場所（地域の中の 2 × 2 の枠）と ID を、定義と照らして検証する。

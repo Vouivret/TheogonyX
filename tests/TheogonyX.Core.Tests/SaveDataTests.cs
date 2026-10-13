@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 4, "seed": 42, "dreamsGenerated": 2,
+          "saveVersion": 5, "seed": 42, "dreamsGenerated": 2,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -31,6 +31,16 @@ public class SaveDataTests
             "relics": [{ "id": 2, "type": "SHRINE", "region": 3, "column": 6, "row": 6, "depth": 1, "buriedYear": 280,
                          "tech": 0.3, "culture": 0.2, "chaos": 0.1, "dogmas": [{ "targetSymbolId": "SYM_FIRE", "dogmaType": "Worship", "intensity": 0.5 }] }],
             "nextBuildingId": 3
+          },
+          "residents": {
+            "people": [{ "id": 4, "region": 3, "birthYear": 280, "hunger": 0.1, "shelter": 0.1, "social": 0.4, "esteem": 0.3, "actualization": 0.2,
+                         "health": 90, "sanity": 0, "breakdown": "RAMPAGE", "breakdownYear": 311, "task": "BREAKDOWN",
+                         "name": { "firstPrefix": "NAME_PREFIX_ART", "firstSuffix": "NAME_SUFFIX_ORIUS", "lineagePrefix": "NAME_PREFIX_ILIO", "lineageSuffix": "NAME_SUFFIX_A" },
+                         "epithet": { "id": "EPITHET_BLOODLESS", "symbolId": null } }],
+            "graves": [{ "residentId": 2, "region": 1, "deathYear": 305,
+                         "name": { "firstPrefix": "NAME_PREFIX_VAL", "firstSuffix": "NAME_SUFFIX_US", "lineagePrefix": "NAME_PREFIX_EL", "lineageSuffix": "NAME_SUFFIX_GIS" },
+                         "epithet": { "id": "EPITHET_WITNESS", "symbolId": "SYM_RAIN" } }],
+            "nextResidentId": 5
           }
         }
         """;
@@ -39,7 +49,7 @@ public class SaveDataTests
 
     private static Game CreateGame()
     {
-        var time = new TimeControl(TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed));
+        var time = new TimeControl(TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs));
         var dreams = new DreamSource(Seed, TestRules.Dream, TestRules.ProphetDreams);
         var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, dreams.Next);
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
@@ -55,7 +65,7 @@ public class SaveDataTests
     private static Game RoundTrip(Game game)
     {
         var json = SaveDataSerializer.Write(SaveGame.Capture(game.Time, game.Prophet, game.Dreams, game.Clock));
-        Assert.True(SaveDataSerializer.TryParse(json, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, out var data, out var reason), reason);
+        Assert.True(SaveDataSerializer.TryParse(json, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, out var data, out var reason), reason);
         var loaded = CreateGame();
         SaveGame.Apply(data!, loaded.Time, loaded.Prophet, loaded.Dreams, loaded.Clock);
         return loaded;
@@ -243,7 +253,7 @@ public class SaveDataTests
     [Trait("TS", "TS-save-data-004")]
     public void TryParse_正しいセーブ_読める()
     {
-        var ok = SaveDataSerializer.TryParse(ValidSave, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, out var data, out var reason);
+        var ok = SaveDataSerializer.TryParse(ValidSave, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, out var data, out var reason);
 
         Assert.True(ok, reason);
         Assert.Equal(312, data!.World.Year);
@@ -254,13 +264,50 @@ public class SaveDataTests
         Assert.Equal(
             new Relic(2, BuildingType.Shrine, 3, 6, 6, 1, 280, 0.3, 0.2, 0.1, [new Dogma("SYM_FIRE", DogmaType.Worship, 0.5f)]),
             Assert.Single(data.Civilization.Relics));
+        Assert.Equal(
+            new Resident(
+                4, 3, 280, 0.1, 0.1, 0.4, 0.3, 0.2, 90, 0, BreakdownKind.Rampage, 311, ResidentTask.Breakdown,
+                new ResidentName("NAME_PREFIX_ART", "NAME_SUFFIX_ORIUS", "NAME_PREFIX_ILIO", "NAME_SUFFIX_A"), new ResidentEpithet(Epithets.Bloodless)),
+            Assert.Single(data.Residents.People));
+        Assert.Equal(
+            new Grave(
+                2, 1, 305, new ResidentName("NAME_PREFIX_VAL", "NAME_SUFFIX_US", "NAME_PREFIX_EL", "NAME_SUFFIX_GIS"),
+                new ResidentEpithet(Epithets.Witness, "SYM_RAIN")),
+            Assert.Single(data.Residents.Graves));
+        Assert.Equal(5, data.Residents.NextResidentId);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-save-data-009")]
+    public void RoundTrip_住人と墓がある_続けた結果が保存しなかった場合と同じ()
+    {
+        static Game Start()
+        {
+            var game = CreateGame();
+            game.Time.World.ForestAmount = 50f;
+            game.Time.AddDogma(new Dogma("SYM_TREE", DogmaType.Destruction, 0.2f));
+            game.Time.Jump();
+            return game;
+        }
+        var reference = Start();
+        reference.Time.Jump();
+
+        var loaded = RoundTrip(Start());
+        loaded.Time.Jump();
+
+        Assert.NotEmpty(reference.Time.Residents!.People);
+        Assert.NotEmpty(reference.Time.Residents.Graves);
+        Assert.Equal(reference.Time.Residents.People, loaded.Time.Residents!.People);
+        Assert.Equal(reference.Time.Residents.Graves, loaded.Time.Residents.Graves);
+        Assert.Equal(reference.Time.Residents.NextResidentId, loaded.Time.Residents.NextResidentId);
+        Assert.Equal(reference.Time.World.ChaosLevel, loaded.Time.World.ChaosLevel);
     }
 
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 4", "\"saveVersion\": 3", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 4, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 5", "\"saveVersion\": 4", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 5, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": -1", "invalid_dreams_generated")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": 1000001", "invalid_dreams_generated")]
@@ -300,12 +347,27 @@ public class SaveDataTests
     [InlineData("\"ruins\": [", "\"ruin\": [", "invalid_field")]
     [InlineData("\"intensity\": 0.5", "\"intensity\": \"0.5\"", "invalid_field")]
     [InlineData("\"nextBuildingId\": 3", "\"nextBuilding\": 3", "invalid_field")]
+    [InlineData("\"hunger\": 0.1", "\"hunger\": 1.5", "invalid_residents")]
+    [InlineData("\"health\": 90", "\"health\": 0", "invalid_residents")] // 体力 0 の住人は死んでいる
+    [InlineData("\"sanity\": 0", "\"sanity\": 101", "invalid_residents")]
+    [InlineData("\"breakdown\": \"RAMPAGE\"", "\"breakdown\": \"CULT_LEADER\"", "invalid_residents")]
+    [InlineData("\"breakdownYear\": 311", "\"breakdownYear\": 313", "invalid_residents")]
+    [InlineData("\"task\": \"BREAKDOWN\"", "\"task\": \"BUILD\"", "invalid_residents")]
+    [InlineData("\"birthYear\": 280", "\"birthYear\": 313", "invalid_residents")]
+    [InlineData("\"firstPrefix\": \"NAME_PREFIX_ART\"", "\"firstPrefix\": \"NAME_PREFIX_DAGO\"", "invalid_residents")]
+    [InlineData("\"id\": \"EPITHET_BLOODLESS\"", "\"id\": \"EPITHET_BUILDER\"", "invalid_residents")]
+    [InlineData("\"symbolId\": \"SYM_RAIN\"", "\"symbolId\": \"SYM_STONE\"", "invalid_residents")]
+    [InlineData("\"residentId\": 2", "\"residentId\": 4", "invalid_residents")] // 住人と墓で ID が重なる
+    [InlineData("\"nextResidentId\": 5", "\"nextResidentId\": 4", "invalid_residents")] // 次の ID 以上
+    [InlineData("\"region\": 1", "\"region\": 8", "invalid_residents")] // 地域の外
+    [InlineData("\"deathYear\": 305", "\"deathYear\": 313", "invalid_residents")]
+    [InlineData("\"graves\": [", "\"grave\": [", "invalid_field")]
     public void TryParse_壊れたセーブ_失敗して理由が分かる(string original, string replacement, string expectedReason)
     {
         Assert.Contains(original, ValidSave);
         var text = original == "{" ? "{" : ValidSave.Replace(original, replacement, StringComparison.Ordinal);
 
-        var ok = SaveDataSerializer.TryParse(text, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, out var data, out var reason);
+        var ok = SaveDataSerializer.TryParse(text, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, out var data, out var reason);
 
         Assert.False(ok);
         Assert.Null(data);

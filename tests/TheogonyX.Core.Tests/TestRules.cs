@@ -131,6 +131,45 @@ internal static class TestRules
         // docs/domain/strata.md の「M4 で作る範囲と値」の仮の値
         strata: new StrataRules(lifespanMin: 200, lifespanMax: 400, ruinBurialYears: 150, maxDepth: 3));
 
+    // docs/domain/agent-needs.md の「M5 で作る最初の範囲と値」の値の表と、名前のパーツ（陸の人の 6 × 6）。
+    public static readonly NeedsRules Needs = new(
+        ImmigrantAge: 20,
+        BaseCapacity: 2,
+        CapacityPerBuilding: 4,
+        FamineAtOrBelow: 30f,
+        HungerFamine: 0.9,
+        HungerNormal: 0.1,
+        HungerCatatonia: 1.0,
+        ShelterEnough: 0.1,
+        ShelterLacking: 0.8,
+        SocialPerYear: 0.2,
+        EsteemPerYear: 0.1,
+        ActualizationPerYear: 0.05,
+        TaskRelief: 0.5,
+        LowerNeedsBelow: 0.6,
+        SocialAtOrAbove: 0.6,
+        EsteemAtOrAbove: 0.6,
+        ActualizationAtOrAbove: 0.5,
+        MaxHealth: 100,
+        HealthLoss: 20,
+        HealthRecovery: 10,
+        AgingStartAge: 50,
+        AgingLossPerYear: 2,
+        MaxSanity: 100,
+        SanityChaosDivisor: 10,
+        SanityLossPerDeath: 10,
+        SanityRecovery: 5,
+        RampageProbability: 0.5,
+        BreakdownYears: 3,
+        RecoveredSanity: 30,
+        RampageChaos: 5f,
+        GraveYears: 10,
+        WitnessAge: 21,
+        WitnessIntensityAtOrAbove: 0.8f,
+        ElderAge: 81,
+        NamePrefixes: ["NAME_PREFIX_ART", "NAME_PREFIX_VAL", "NAME_PREFIX_ILIO", "NAME_PREFIX_EL", "NAME_PREFIX_SELE", "NAME_PREFIX_OR"],
+        NameSuffixes: ["NAME_SUFFIX_ORIUS", "NAME_SUFFIX_US", "NAME_SUFFIX_PHIA", "NAME_SUFFIX_GIS", "NAME_SUFFIX_MION", "NAME_SUFFIX_A"]);
+
     // docs/domain/time-control.md の「100年跳躍ボタン」。
     public const int JumpYears = 100;
 

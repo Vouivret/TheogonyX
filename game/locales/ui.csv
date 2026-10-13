@@ -39,3 +39,24 @@ TROUBLE_HEAT,暑さ,heat
 TROUBLE_COLD,寒さ,cold
 TROUBLE_CHAOS,混乱,chaos
 SAVE_LOAD_FAILED,セーブを読めなかったので、新しい星で始めました,Could not read the save. Started a new planet.
+NAME_PREFIX_ART,アルト,Art
+NAME_PREFIX_VAL,ヴァル,Val
+NAME_PREFIX_ILIO,イリオ,Ilio
+NAME_PREFIX_EL,エル,El
+NAME_PREFIX_SELE,セレ,Sele
+NAME_PREFIX_OR,オル,Or
+NAME_SUFFIX_ORIUS,トリウス,orius
+NAME_SUFFIX_US,ウス,us
+NAME_SUFFIX_PHIA,フィア,phia
+NAME_SUFFIX_GIS,ギス,gis
+NAME_SUFFIX_MION,ミオン,mion
+NAME_SUFFIX_A,ア,a
+RESIDENT_NAME_PART,{0}{1},{0}{1}
+RESIDENT_NAME,{0}・{1},{0} {1}
+RESIDENT_NAME_WITH_EPITHET,{0}・{1} の {2},{0} {1} the {2}
+EPITHET_BLOODLESS,血を恐れぬ者,Unafraid of Blood
+EPITHET_WITNESS,{0}の証人,Witness of {0}
+EPITHET_ELDER,長き日を見た者,One Who Saw Long Days
+RESIDENT_INFO_LOWER_NEEDS,空腹 {0:F2}　住居 {1:F2},Hunger {0:F2}  Shelter {1:F2}
+RESIDENT_INFO_UPPER_NEEDS,交流 {0:F2}　承認 {1:F2}　自己実現 {2:F2},Social {0:F2}  Esteem {1:F2}  Actualization {2:F2}
+RESIDENT_INFO_BODY,体力 {0:F0}　SAN 値 {1:F0},Health {0:F0}  Sanity {1:F0}

@@ -12,6 +12,7 @@
 | 手動テスト TS-ambience-006 | 昼夜の色・予言者の位置とアニメーション・崩壊とリセットの見た目を確かめ、`docs/test/results/` に記録する。地表・予言者・環境光を `SubViewport` の下に移したので、見た目が変わっていないことも確かめる | [docs/test/ambience.md](test/ambience.md) |
 | 崩壊の見た目の確認 | TS-time-control-009 の手順 5 と TS-ambience-006 の手順 5。夢の改ざんで崩壊を起こせるようになったので、確認できる | [実施記録](test/results/2026-10-11-feat-m1-screen.md) |
 | 手動テスト TS-strata-008・TS-emergent-progression-010・TS-visual-effects-006・TS-visual-effects-007 | M4 で作った廃墟と建て増し・地下の表示、建物の見た目、焚き火、予言者と建物の陰影と落ち影。手順どおりに確かめたら `docs/test/results/` に記録する | [strata](test/strata.md)・[emergent-progression](test/emergent-progression.md)・[visual-effects](test/visual-effects.md) |
+| 手動テスト TS-agent-needs-011 | 住人の絵・昼に歩き夜に建物のそばで横になること・クリックの欄・墓と記録・世界再創生で消えること。ヘッドレスで、住人と墓のあるセーブを読み込んで動かし、エラーが無いことだけは確認済み | [agent-needs](test/agent-needs.md) |
 | 手動テスト TS-camera-views-006 | ホイールのズーム・ドラッグ・HUD が動かないこと・詳細の視点でドットの幅がそろうこと | [docs/test/camera-views.md](test/camera-views.md) |
 | 手動テスト TS-prophet-request-006 | 依頼の吹き出し（予言者の右）が出て、画面に収まり、神託で消えること。TS-dream-tampering-008 は合格（[実施記録](test/results/2026-10-12-feat-m2-dream-tampering.md)） | [dream-tampering](test/dream-tampering.md)・[prophet-request](test/prophet-request.md) |
 | 手動テスト TS-time-control-009 の手順 3 | 速さのボタンが 通常 → 高速 → 現実同期 → 通常 と回ること。TS-time-control-011 は合格（[実施記録](test/results/2026-10-12-feat-m2-real-time-sync.md)） | [plan](../plan/feat-m2-real-time-sync.md) |
@@ -26,9 +27,11 @@
 | 項目 | 内容 | 期限 |
 | :--- | :--- | :--- |
 | 予言者の絵の出典 | 生成 AI のツール名と、利用規約で商用利用・ゲームへの組み込みが認められているか。分かったら [credits.md](credits.md) に書く | 配布する前 |
-| 英語の文言 | `game/locales/ui.csv` の `en` の列は仮の訳。`companion/locales/en.json` は 2026-10-12 に確定した訳を当てたが、`TITLE`・`CARDS_*`・`STATUS_SCAN_QR`・`STATUS_RECONNECTING`・`ERROR_SESSION_REPLACED` はまだ仮の訳 | 英語版を出す前 |
+| 英語の文言 | `game/locales/ui.csv` の `en` の列は仮の訳。住人の名前のパーツ・称号・情報の欄（`NAME_*`・`EPITHET_*`・`RESIDENT_*`）も仮の訳。`companion/locales/en.json` は 2026-10-12 に確定した訳を当てたが、`TITLE`・`CARDS_*`・`STATUS_SCAN_QR`・`STATUS_RECONNECTING`・`ERROR_SESSION_REPLACED` はまだ仮の訳 | 英語版を出す前 |
 | 群衆の仕様書の承認 | [crowd.md](domain/crowd.md) は `draft` のまま。湖を足した [planet-display.md](domain/planet-display.md) も `draft` | 次に群衆・地表を変える前 |
 | 推奨スペックの PC | [nfr.md](nfr.md) の性能の目標は「例」のまま。群衆の計測（10,000 人で GPU 版 約 1,000 fps、開発者の PC）を目安に、目標と推奨スペックを決める | 配布する前 |
+| 「狂乱」の言葉の重なり | 群衆の `CrowdMode.Frenzy`（聖地へ押し寄せる）と、住人の精神崩壊の `BreakdownKind.Rampage`（建物を壊す）が、どちらも「狂乱」。どちらかの言葉を変えるか | 急がない |
+| 住人のログのキー | `residentId`・`region`・`name`・`breakdown` を `project.md` 7 章のキーの表に足す（ルールファイルは人間が直す） | 次に住人を変える前 |
 | 用語集への追加 | タイル種別・自動進行・世界再創生・環境光・昼夜の周期、ペアリング・ワンタイムトークン・`sessionToken`・画面の配信、神託・依頼（祈り）・困りごとを [用語集](domain/glossary.md) に足すか | 急がない |
 | 画面の配信の仕様書の承認 | [frame-stream.md](domain/frame-stream.md) は `draft` のまま | 次に配信を変える前 |
 | 夢の改ざん・依頼の仕様書の承認 | [dream-tampering.md](domain/dream-tampering.md)・[prophet-request.md](domain/prophet-request.md) は `draft` のまま（スマホでの操作も足した）。M2 は 2026-10-12 に閉じたので、人間が承認する | 次に夢・依頼を変える前 |
@@ -36,7 +39,7 @@
 | 地層の仕様の未決 | [strata.md](domain/strata.md) の「未決」（建物が崩れるきっかけ、大災害、ミクロ沈下の年数・マクロ沈下の条件、発掘と二次誤解の表、用語など） | 地層の発掘・二次誤解・マクロ沈下に着手する前 |
 | カメラの視点の仕様の未決 | [camera-views.md](domain/camera-views.md) の「未決」（輪に見せる大陸の視点、詳細の視点の絵、画面の効果との関係、スマホへの配信など） | 3 段階のカメラの視点に着手する前 |
 | 文明の創発的な発展の仕様の未決 | [emergent-progression.md](domain/emergent-progression.md) の「未決」（地域の環境の決め方、技術・文化の伸びの量と倍率、イベントの確率と種類、禁忌の規則、建物の種類と置き場所の残り、変種技術の表と足りない記号、極秘研究の一覧、パラドックスの条件、スマホへのログ、用語など） | 文明の発展の残りに着手する前 |
-| 人の欲求と健康の仕様の未決 | [agent-needs.md](domain/agent-needs.md) の「未決」。M5 の最初の範囲（住人）は 2026-10-13 に決め、受け入れ条件も書いた。残りは後に回した仕組み（異端の教祖と人が唱えるドグマ、つがいと世代交代の確率・家名、変異、負傷・疾患、住居の建物、歴史の記録）、建物と戦争の称号、住人の絵 | 後に回した仕組みに着手する前 |
+| 人の欲求と健康の仕様の未決 | [agent-needs.md](domain/agent-needs.md) の「未決」。M5 の最初の範囲（住人）は 2026-10-13 に決め、受け入れ条件も書いた。残りは後に回した仕組み（異端の教祖と人が唱えるドグマ、つがいと世代交代の確率・家名、変異、負傷・疾患、住居の建物、歴史の記録）、建物と戦争の称号 | 後に回した仕組みに着手する前 |
 | 地域間の戦争の仕様の未決 | [warfare.md](domain/warfare.md) の「未決」（戦争に入る条件と関係の向きの食い違い、状態遷移表の空き、地域と国、攻め込める先、兵の数、スマホの提案、地域ごとの資源・記号など先に要るもの、値など） | 地域間の戦争（人の欲求と健康の後）に着手する前 |
 | 画面の効果の仕様の未決 | [visual-effects.md](domain/visual-effects.md) の「未決」（光の向き・焚き火と星の置き場所・ぼかしやグローの強さ・粒子の切り替えの境目などの値、効果を切る設定の置き場所、法線マップのツールのライセンス、性能） | 画面の効果の残りに着手する前 |
 

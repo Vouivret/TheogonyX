@@ -27,6 +27,12 @@
 | 狂乱 | `CrowdMode.Frenzy` | 群衆の動きの状態の 1 つ。カオス度が閾値以上のとき、聖地へ押し寄せる | Frenzy | 暴走、パニック |
 | 聖地 | | 狂乱した群衆が押し寄せる場所。予言者の足元 | Holy site | 神殿 |
 | ポテンシャルフィールド | `PotentialField` | 地表のタイル種別から作る、人を引き寄せる力・遠ざける力の場 | Potential field | ベクトル場、力場 |
+| 住人 | `Resident` | 地域に属し、欲求と健康を持つ少数の人。群衆とは別で、死と精神崩壊でシミュレーションの結果を変える（[人の欲求と健康](agent-needs.md)） | Resident | 村人、NPC（画面上） |
+| 欲求 | `Hunger`・`Shelter`・`Social`・`Esteem`・`Actualization` | 住人の空腹・住居・交流・承認・自己実現。0.0（満たされている）〜 1.0（切実） | Need | |
+| SAN 値 | `Sanity` | 住人の精神の健康（0〜100）。0 になると精神崩壊する | Sanity | 正気度 |
+| 精神崩壊 | `BreakdownKind` | SAN 値が 0 になった住人の状態。狂乱（`Rampage`）か自閉・絶望（`Catatonia`）で、3 年続く | Breakdown | 発狂 |
+| 称号 | `ResidentEpithet` | 住人が行いで得る呼び名（例: 血を恐れぬ者）。1 人 1 つで、最初に得たものを残す | Epithet | 二つ名 |
+| 家名 | `ResidentName.LineagePrefix`・`LineageSuffix` | 住人の名前の 2 つ目の部分 | Lineage | 苗字 |
 | ホスト | | シミュレーションと描画を行う PC 側のゲーム | Host | サーバー（画面上） |
 | コンパニオン | | ホストに接続するモバイルの神託インターフェース | Companion | リモコン |
 

@@ -21,6 +21,7 @@ public partial class WorldCore : Node2D
     private CameraView? _camera;
     private BuildingView? _buildings;
     private StrataView? _strata;
+    private ResidentView? _residents;
     private CrowdView? _crowd;
     private DreamView? _dreams;
     private CompanionHost? _companion;
@@ -64,15 +65,16 @@ public partial class WorldCore : Node2D
         var crowdLook = GameDataLoader.ParseCrowdLook(rulesJson);
         var prophetDreamRules = GameDataLoader.ParseProphetDreams(rulesJson);
         var civilizationRules = GameDataLoader.ParseCivilization(rulesJson);
+        var needsRules = GameDataLoader.ParseNeeds(rulesJson);
 
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
         _saveStore = new SaveStore("user://save", TimeProvider.System);
-        var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, out var loadFailed);
+        var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, needsRules, out var loadFailed);
 
         // シードはセーブのもの、無ければ起動時の時刻から作り、記録する（同じシードで同じ夢を再現できる）
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
         var dreamSource = new DreamSource(seed, dreamRules, prophetDreamRules);
-        var timeControl = new TimeControl(worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed));
+        var timeControl = new TimeControl(worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules));
         _timeControl = timeControl;
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
@@ -98,6 +100,9 @@ public partial class WorldCore : Node2D
         _screen.TerrainDrawn += _buildings.Refresh;
         _strata = new StrataView(this, timeControl, civilizationRules);
         _screen.TerrainDrawn += _strata.Refresh;
+        _residents = new ResidentView(this, timeControl, civilizationRules, _ambience, seed);
+        _screen.TerrainDrawn += _residents.Refresh;
+        _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         _screen.WorldReset += _crowd.OnWorldReset;
@@ -129,13 +134,14 @@ public partial class WorldCore : Node2D
         }
         _ambience?.Process(delta);
         _camera?.Process(delta);
+        _residents?.Process(delta);
         _crowd?.Process(delta);
         _companion?.Process(delta);
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (_camera?.HandleInput(@event) == true)
+        if (_residents?.HandleInput(@event) == true || _camera?.HandleInput(@event) == true)
         {
             GetViewport().SetInputAsHandled();
         }
@@ -153,7 +159,8 @@ public partial class WorldCore : Node2D
     /// <param name="broken">セーブが壊れていて読めなかったか。</param>
     /// <returns>読めたセーブ。無いか、読めなかったら null。</returns>
     private static SaveData? LoadSave(
-        SaveStore store, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, out bool broken)
+        SaveStore store, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, NeedsRules needsRules,
+        out bool broken)
     {
         broken = false;
         var text = store.Load();
@@ -161,7 +168,7 @@ public partial class WorldCore : Node2D
         {
             return null;
         }
-        if (SaveDataSerializer.TryParse(text, dreamRules, rules, civilizationRules, out var data, out var reason))
+        if (SaveDataSerializer.TryParse(text, dreamRules, rules, civilizationRules, needsRules, out var data, out var reason))
         {
             return data;
         }
@@ -170,6 +177,29 @@ public partial class WorldCore : Node2D
         broken = true;
         store.KeepBroken();
         return null;
+    }
+
+    // 死と精神崩壊はゲーム上の主要な出来事なので Info、移り住むのは毎年あるので開発時だけ出す
+    private static void LogResidentEvents(IReadOnlyList<ResidentEvent> events)
+    {
+        foreach (var residentEvent in events)
+        {
+            var person = residentEvent.Resident;
+            var name = $"{person.Name.FirstPrefix}+{person.Name.FirstSuffix}/{person.Name.LineagePrefix}+{person.Name.LineageSuffix}";
+            switch (residentEvent.Type)
+            {
+                case ResidentEventType.Died:
+                    GD.Print($"event=resident_died year={residentEvent.Year} residentId={person.Id} region={person.Region} name={name}");
+                    break;
+                case ResidentEventType.BrokeDown:
+                    var breakdown = person.Breakdown == BreakdownKind.Rampage ? "rampage" : "catatonia";
+                    GD.Print($"event=resident_breakdown year={residentEvent.Year} residentId={person.Id} region={person.Region} breakdown={breakdown}");
+                    break;
+                case ResidentEventType.Arrived when OS.IsDebugBuild():
+                    GD.Print($"event=resident_arrived year={residentEvent.Year} residentId={person.Id} region={person.Region}");
+                    break;
+            }
+        }
     }
 
     private void Save()

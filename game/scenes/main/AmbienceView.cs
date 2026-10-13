@@ -79,6 +79,9 @@ public sealed class AmbienceView
         Process(0);
     }
 
+    /// <summary>焚き火が灯っている間（夕方から明け方）。住人が眠る時刻に使う。</summary>
+    public bool IsNight => CampfireLight.Brightness(_cycleSeconds, _timeControl.World, _rules) > 0f;
+
     /// <summary>毎フレーム呼ぶ。ログは出さない。</summary>
     public void Process(double delta)
     {

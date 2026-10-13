@@ -16,6 +16,7 @@
 | TS-save-data-006 | AC-save-data-010, 011 | 自動進行の速さとその年の進みの読み戻しと、古い形・不正な値を読まないこと | 受け入れ条件のとおり | 書き出して読み戻す・読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-save-data-007 | AC-save-data-012, 013, 014 | 地域の文明の値・建物・廃墟・遺物の読み戻しと、定義と合わない値を読まないこと | 受け入れ条件のとおり | 書き出して読み戻す・読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-save-data-008 | AC-save-data-015 | 世界再創生をはさんだ廃墟・遺物の読み戻しと、続きの決定性 | 受け入れ条件のとおり | 保存して読み込み、続ける | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
+| TS-save-data-009 | AC-save-data-016, 017 | 住人と墓の読み戻しと続きの決定性、定義と合わない住人・墓を読まない | 受け入れ条件のとおり | 書き出して読み戻す、読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-save-data-005 | AC-save-data-007, 008, 009 | 起動時の続き・壊れたセーブ・強制終了 | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順
