@@ -34,7 +34,8 @@ public static class SaveGame
             timeControl.Civilization?.Copy() ?? new Civilization([], [], [], [], 0),
             timeControl.Residents?.Copy() ?? Residents.CreateInitial(),
             [.. timeControl.History?.Entries ?? []],
-            timeControl.History?.Chapter ?? new ChapterStart(world.Year, world.ChaosLevel));
+            timeControl.History?.Chapter ?? new ChapterStart(world.Year, world.ChaosLevel),
+            prophet.Deck?.Capture());
     }
 
     /// <summary>
@@ -55,6 +56,10 @@ public static class SaveGame
 
         timeControl.Restore(data.World, data.Dogmas, data.Civilization, data.Residents, data.History, data.Chapter);
         prophet.Restore(data.DreamState, data.Dream, data.RequestId, data.AnsweredYears, data.LastOracleYear);
+        if (data.Deck is not null)
+        {
+            prophet.Deck?.Restore(data.Deck);
+        }
         dreams.Rewind(data.DreamsGenerated);
         clock.Restore(data.Speed, data.ElapsedSeconds);
     }

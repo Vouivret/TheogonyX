@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 10, "seed": 42, "dreamsGenerated": 2,
+          "saveVersion": 11, "seed": 42, "dreamsGenerated": 2,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -48,6 +48,8 @@ public class SaveDataTests
             "nextResidentId": 5
           },
           "historyChapterStart": { "year": 300, "chaos": 12.5 },
+          "deck": { "drawPile": ["SYM_TREE", "SYM_RAIN"], "hand": ["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_RAIN"],
+                    "discardPile": ["SYM_FIRE"], "usedSymbolId": "SYM_BLOOD", "shuffleCount": 2 },
           "history": [
             { "year": 200, "type": "DOGMA_FORMED", "symbolId": "SYM_TREE", "dogmaType": "Taboo", "name": null, "epithet": null, "breakdown": null,
               "oracle": { "heading": "木に触れるな", "intent": "神は木を憎んでおられる。", "doctrine": "木を見た者は目を閉じよ。" },
@@ -284,6 +286,11 @@ public class SaveDataTests
         Assert.True(ok, reason);
         Assert.Equal(312, data!.World.Year);
         Assert.Equal("THIRST", data.RequestId);
+        Assert.Equal(["SYM_TREE", "SYM_RAIN"], data.Deck!.DrawPile);
+        Assert.Equal(["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_RAIN"], data.Deck.Hand);
+        Assert.Equal(["SYM_FIRE"], data.Deck.DiscardPile);
+        Assert.Equal("SYM_BLOOD", data.Deck.UsedSymbolId);
+        Assert.Equal(2, data.Deck.ShuffleCount);
         Assert.Equal(new RegionCivilization(0.25, 0.1, 1, 0), data.Civilization.Regions[0]);
         Assert.Equal(
             [new Building(0, BuildingType.Workshop, 3, 6, 2, 500), new Building(3, BuildingType.HouseTimber, 3, 6, 0, 600)],
@@ -358,8 +365,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 10", "\"saveVersion\": 9", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 10, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 11", "\"saveVersion\": 10", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 11, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": -1", "invalid_dreams_generated")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": 1000001", "invalid_dreams_generated")]
@@ -428,6 +435,11 @@ public class SaveDataTests
     [InlineData("\"body\": \"木は人を見下ろし、人は木を仰いだ。\"", "\"body\": \"\"", "invalid_history")] // 神話の本文が空
     [InlineData("\"historyChapterStart\": { \"year\": 300", "\"historyChapterStart\": { \"year\": 400", "invalid_year")]
     [InlineData("\"chaos\": 12.5", "\"chaos\": -1", "invalid_number")]
+    [InlineData("\"drawPile\": [\"SYM_TREE\"", "\"drawPile\": [\"SYM_STONE\"", "invalid_deck")] // 定義に無い記号のカード
+    [InlineData("\"usedSymbolId\": \"SYM_BLOOD\"", "\"usedSymbolId\": \"SYM_STONE\"", "invalid_deck")]
+    [InlineData("\"hand\": [\"SYM_BLOOD\", ", "\"hand\": [\"SYM_TREE\", ", "invalid_deck")] // 使ったカードが手札に無い
+    [InlineData("\"state\": \"TAMPERED\"", "\"state\": \"UNTAMPERED\"", "invalid_deck")] // 夢が改ざん済みでないのに、使ったカードがある
+    [InlineData("\"shuffleCount\": 2", "\"shuffleCount\": -1", "invalid_deck")]
     [InlineData("\"symbolId\": \"SYM_TREE\", \"dogmaType\": \"Taboo\"", "\"symbolId\": \"SYM_STONE\", \"dogmaType\": \"Taboo\"", "invalid_history")]
     [InlineData("\"dogmaType\": \"Taboo\", \"name\"", "\"dogmaType\": \"Love\", \"name\"", "invalid_history")]
     [InlineData("\"epithet\": { \"id\": \"EPITHET_BUILDER\", \"symbolId\": null }, \"breakdown\": null", "\"epithet\": null, \"breakdown\": null", "invalid_history")] // 称号の無い住人の死は残さない

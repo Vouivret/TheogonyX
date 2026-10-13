@@ -90,6 +90,11 @@ internal static class TestRules
             new TerrainAnomaly(TileType.Jungle, WorldMetric.ForestAmount, ThresholdComparison.AtOrAbove, Threshold: 70f, ZeroColumnValue: 70f, FullColumnValue: 100f),
         ];
 
+    // docs/domain/oracle-deck.md の第 1 段（4 記号を各 3 枚、手札 4 枚）。
+    public static readonly DeckRules Deck = new(
+        [new DeckRuneCount("SYM_TREE", 3), new DeckRuneCount("SYM_RAIN", 3), new DeckRuneCount("SYM_BLOOD", 3), new DeckRuneCount("SYM_FIRE", 3)],
+        HandSize: 4);
+
     // docs/domain/dream-tampering.md と prophet-request.md のルールの値。
     public static readonly ProphetDreamRules ProphetDreams = new(
         NodeCount: 3,

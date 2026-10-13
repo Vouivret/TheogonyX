@@ -86,6 +86,10 @@ public sealed class OracleCommandQueue
                 {
                     return Reject(command, "unknown_symbol");
                 }
+                if (!_prophet.Hand.Contains(command.SymbolId))
+                {
+                    return Reject(command, "card_not_in_hand");
+                }
                 _prophet.Tamper(command.Index, command.SymbolId!);
                 return new OracleCommandOutcome(command, null, null);
 

@@ -16,7 +16,7 @@
 | `ERROR` | 1 | ホスト → コンパニオン | `reason`: 文字列（下の表） | 受け付けられない。ホストは送った後に接続を閉じる |
 | `START_STREAM` | 1 | コンパニオン → ホスト | なし | この接続への画面の配信（`FRAME`）を始めてほしい。配信中に受け取っても何もしない |
 | `STOP_STREAM` | 1 | コンパニオン → ホスト | なし | この接続への画面の配信をやめてほしい。配信していないときに受け取っても何もしない |
-| `DREAM_STATE` | 1 | ホスト → コンパニオン | `state`: `"NONE"`・`"UNTAMPERED"`・`"TAMPERED"` のどれか、`nodes`: `{symbolId: 文字列, weight: 数}` の配列（夢なしなら空）、`cards`: 記号 ID の配列、`canTamper`: 真偽、`canPronounce`: 真偽、`isDestroyed`: 真偽、`request`: `{requestType: 文字列, symbolId: 文字列}` か `null` | 予言者の夢と依頼の今の状態（下の「夢の状態」） |
+| `DREAM_STATE` | 1 | ホスト → コンパニオン | `state`: `"NONE"`・`"UNTAMPERED"`・`"TAMPERED"` のどれか、`nodes`: `{symbolId: 文字列, weight: 数}` の配列（夢なしなら空）、`cards`: 手札の記号 ID の配列（同じ記号が重なりうる。順番は手札の順）、`canTamper`: 真偽、`canPronounce`: 真偽、`isDestroyed`: 真偽、`request`: `{requestType: 文字列, symbolId: 文字列}` か `null` | 予言者の夢と依頼の今の状態（下の「夢の状態」） |
 | `TAMPER` | 1 | コンパニオン → ホスト | `index`: 0 以上の整数、`symbolId`: 1〜64 文字の文字列 | 夢の `index` 番目（0 から）を `symbolId` のカードと入れ替える |
 | `PRONOUNCE` | 1 | コンパニオン → ホスト | なし | 神託を下す |
 

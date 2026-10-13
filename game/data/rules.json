@@ -199,6 +199,15 @@
     "dotColor": "#D2AA99",
     "useGpu": true
   },
+  "deck": {
+    "initialRunes": [
+      { "symbolId": "SYM_TREE", "count": 3 },
+      { "symbolId": "SYM_RAIN", "count": 3 },
+      { "symbolId": "SYM_BLOOD", "count": 3 },
+      { "symbolId": "SYM_FIRE", "count": 3 }
+    ],
+    "handSize": 4
+  },
   "dream": {
     "nodeCount": 3,
     "minWeight": 0.3,

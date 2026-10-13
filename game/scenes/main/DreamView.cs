@@ -33,6 +33,7 @@ public sealed class DreamView
 
     // 改ざんするために選んだ夢ノードの位置。選んでいなければ -1。
     private int _selectedIndex = -1;
+    private string[] _handShown = [];
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
     public DreamView(Node owner, ProphetDreams prophet, OracleCommandQueue commands, TimeControl timeControl, DreamRules dreamRules)
@@ -48,21 +49,32 @@ public sealed class DreamView
         _dreamCards = owner.GetNode<HBoxContainer>("%DreamCards");
         _requestBubble = owner.GetNode<Label>("%RequestBubble");
 
-        // 手札は使う記号すべて。使ってもなくならない。
-        foreach (var symbol in dreamRules.Symbols)
+        RebuildCards();
+        _oracleButton.Pressed += () => TryPronounce();
+
+        LogDream("dream_created");
+        Redraw();
+    }
+
+    // 手札のカードのボタンと「やめる」を作り直す。手札は神託を下すたびに変わる
+    private void RebuildCards()
+    {
+        foreach (var child in _dreamCards.GetChildren())
         {
-            var card = new Button { Text = Tr($"SYMBOL_{symbol.Id}") };
-            var symbolId = symbol.Id;
-            card.Pressed += () => OnCardChosen(symbolId);
+            _dreamCards.RemoveChild(child);
+            child.QueueFree();
+        }
+        foreach (var symbolId in _prophet.Hand)
+        {
+            var card = new Button { Text = Tr($"SYMBOL_{symbolId}") };
+            var id = symbolId;
+            card.Pressed += () => OnCardChosen(id);
             _dreamCards.AddChild(card);
         }
         var cancel = new Button { Text = Tr("BUTTON_CANCEL") };
         cancel.Pressed += () => OnNodePressed(_selectedIndex);
         _dreamCards.AddChild(cancel);
-        _oracleButton.Pressed += () => TryPronounce();
-
-        LogDream("dream_created");
-        Redraw();
+        _handShown = [.. _prophet.Hand];
     }
 
     /// <summary>神託を下したとき。HUD のドグマの一覧と、時間のボタンを描き直すのに使う。</summary>
@@ -72,7 +84,8 @@ public sealed class DreamView
     public event Action? Changed;
 
     /// <summary>スマホに送る、今の夢と依頼（<c>DREAM_STATE</c>）。</summary>
-    public string StateMessage() => HostMessageWriter.DreamState(_prophet, _dreamRules.Symbols, _timeControl.World.IsDestroyed);
+    public string StateMessage() => HostMessageWriter.DreamState(
+        _prophet, _prophet.Hand.Select(id => _dreamRules.Symbols.First(symbol => symbol.Id == id)), _timeControl.World.IsDestroyed);
 
     /// <summary>100 年跳躍の後と、自動進行の 1 年ごとに呼ぶ。</summary>
     public void OnTimeAdvanced()
@@ -196,6 +209,11 @@ public sealed class DreamView
             button.Text = Tr($"SYMBOL_{node.SymbolId}");
             button.TooltipText = string.Format(CultureInfo.CurrentCulture, Tr("DREAM_NODE_TOOLTIP"), node.Weight);
             button.Disabled = !canTamper;
+        }
+
+        if (!_prophet.Hand.SequenceEqual(_handShown))
+        {
+            RebuildCards();
         }
 
         var isChoosing = _selectedIndex >= 0;

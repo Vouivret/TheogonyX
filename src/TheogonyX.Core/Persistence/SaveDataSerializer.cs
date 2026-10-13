@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 10;
+    public const int SaveVersion = 11;
 
     /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
     public const int MaxDreamsGenerated = 1_000_000;
@@ -196,6 +196,16 @@ public static class SaveDataSerializer
                 myth = entry.Myth is null ? null : new { heading = entry.Myth.Heading, body = entry.Myth.Body },
             }),
             historyChapterStart = new { year = data.Chapter.Year, chaos = data.Chapter.ChaosLevel },
+            deck = data.Deck is null
+                ? null
+                : new
+                {
+                    drawPile = data.Deck.DrawPile,
+                    hand = data.Deck.Hand,
+                    discardPile = data.Deck.DiscardPile,
+                    usedSymbolId = data.Deck.UsedSymbolId,
+                    shuffleCount = data.Deck.ShuffleCount,
+                },
         });
     }
 
@@ -340,9 +350,50 @@ public static class SaveDataSerializer
         var chapter = new ChapterStart(
             ReadYearUpTo(Property(chapterElement, "year", JsonValueKind.Number), world.Year), ReadChaos(chapterElement, "chaos", "invalid_number"));
 
+        var deck = ReadDeck(Property(root, "deck", null), symbolIds, dreamState.Key);
+
         return new SaveData(
             seed, dreamsGenerated, world, dogmas, dreamState.Key, dream, requestId, answeredYears, lastOracleYear, speed.Key, elapsedSeconds,
-            civilization, residents, history, chapter);
+            civilization, residents, history, chapter, deck);
+    }
+
+    // 神託のデッキ。持たないセーブ（null）も読める。カードは定義にある記号で、使ったカードは手札にあり、夢が改ざん済みのときだけある
+    private static OracleDeckState? ReadDeck(JsonElement element, HashSet<string> symbolIds, ProphetDreamState dreamState)
+    {
+        if (element.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidSaveDataException("invalid_deck");
+        }
+
+        List<string> ReadCards(string name) => Property(element, name, JsonValueKind.Array).EnumerateArray()
+            .Select(card => card.ValueKind == JsonValueKind.String && card.GetString() is { } id && symbolIds.Contains(id)
+                ? id
+                : throw new InvalidSaveDataException("invalid_deck"))
+            .ToList();
+
+        var drawPile = ReadCards("drawPile");
+        var hand = ReadCards("hand");
+        var discardPile = ReadCards("discardPile");
+        var shuffleCount = ReadInt(element, "shuffleCount");
+        string? usedSymbolId = null;
+        var usedElement = Property(element, "usedSymbolId", null);
+        if (usedElement.ValueKind != JsonValueKind.Null)
+        {
+            usedSymbolId = usedElement.ValueKind == JsonValueKind.String ? usedElement.GetString() : null;
+            if (usedSymbolId is null || !hand.Contains(usedSymbolId) || dreamState != ProphetDreamState.Tampered)
+            {
+                throw new InvalidSaveDataException("invalid_deck");
+            }
+        }
+        if (shuffleCount < 0)
+        {
+            throw new InvalidSaveDataException("invalid_deck");
+        }
+        return new OracleDeckState(drawPile, hand, discardPile, usedSymbolId, shuffleCount);
     }
 
     // 年表の行。世界再創生の前の行は今の年より後になりうるので、年は 0 以上だけを見る。種類ごとに、使う項目があり、使わない項目は null

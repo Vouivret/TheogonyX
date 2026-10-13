@@ -62,7 +62,9 @@ public sealed class ProphetDreams
 
     /// <summary>作った時点で、起動時の夢を見る。</summary>
     /// <param name="createDream">新しい夢を返す。</param>
-    public ProphetDreams(TimeControl timeControl, DreamRules dreamRules, ProphetDreamRules rules, Func<IReadOnlyList<DreamNode>> createDream)
+    /// <param name="deck">神託のデッキ。null なら、使う記号すべてが手札で、使ってもなくならない（デッキの前の動き）。</param>
+    public ProphetDreams(
+        TimeControl timeControl, DreamRules dreamRules, ProphetDreamRules rules, Func<IReadOnlyList<DreamNode>> createDream, OracleDeck? deck = null)
     {
         ArgumentNullException.ThrowIfNull(timeControl);
         ArgumentNullException.ThrowIfNull(dreamRules);
@@ -73,10 +75,17 @@ public sealed class ProphetDreams
         _dreamRules = dreamRules;
         _rules = rules;
         _createDream = createDream;
+        Deck = deck;
         Reset();
     }
 
     public ProphetDreamState State { get; private set; }
+
+    /// <summary>神託のデッキ。持たなければ null。</summary>
+    public OracleDeck? Deck { get; }
+
+    /// <summary>手札の記号（重複がありうる）。デッキが無ければ、使う記号すべて。</summary>
+    public IReadOnlyList<string> Hand => Deck?.Hand ?? [.. _dreamRules.Symbols.Select(symbol => symbol.Id)];
 
     /// <summary>今の夢。夢なしなら空。</summary>
     public IReadOnlyList<DreamNode> Dream => _dream;
@@ -140,8 +149,13 @@ public sealed class ProphetDreams
         {
             throw new ArgumentException($"使う記号に無い: symbolId={symbolId}", nameof(symbolId));
         }
+        if (Deck is not null && !Deck.Hand.Contains(symbolId))
+        {
+            throw new ArgumentException($"手札に無い: symbolId={symbolId}", nameof(symbolId));
+        }
 
         _dream[index] = _dream[index] with { SymbolId = symbolId };
+        Deck?.Use(symbolId);
         State = next;
     }
 
@@ -167,6 +181,7 @@ public sealed class ProphetDreams
         _dream.Clear();
         _lastOracleYear = world.Year;
         State = next;
+        Deck?.Settle();
 
         var resumed = false;
         if (_pausedForDream && _timeControl.CanDo(TimeControlAction.StartAutoPlay))
@@ -185,6 +200,7 @@ public sealed class ProphetDreams
         _answeredYears.Clear();
         _pausedForDream = false;
         _lastOracleYear = _timeControl.World.Year;
+        Deck?.ClearUsed();
         State = DreamTransitions[(State, DreamTrigger.Reset)];
         _dream.Clear();
         _dream.AddRange(_createDream());

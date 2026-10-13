@@ -244,6 +244,28 @@ public static class GameDataLoader
         return history;
     }
 
+    public static DeckRules ParseDeck(string rulesJson, DreamRules dreamRules)
+    {
+        ArgumentNullException.ThrowIfNull(dreamRules);
+        var section = Parse<DeckSection>(rulesJson, "rules.json").Deck
+            ?? throw new InvalidDataException("神託のデッキの定義が無い: file=rules.json key=deck");
+        try
+        {
+            var deck = section.Deserialize<DeckRules>(StrictOptions)
+                ?? throw new InvalidDataException("神託のデッキの定義が空: file=rules.json key=deck");
+            deck.Validate(dreamRules.Symbols.Select(symbol => symbol.Id).ToHashSet());
+            return deck;
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("神託のデッキの定義を読めない: file=rules.json key=deck", ex);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("神託のデッキの定義の値が範囲外: file=rules.json key=deck", ex);
+        }
+    }
+
     public static ProphetDreamRules ParseProphetDreams(string rulesJson)
     {
         var rules = Parse<RulesFile>(rulesJson, "rules.json");
@@ -330,6 +352,8 @@ public static class GameDataLoader
     private sealed record NeedsSection(JsonElement? Needs);
 
     private sealed record HistorySection(JsonElement? History);
+
+    private sealed record DeckSection(JsonElement? Deck);
 
     private sealed record OracleAiSection(JsonElement? OracleAi);
 
