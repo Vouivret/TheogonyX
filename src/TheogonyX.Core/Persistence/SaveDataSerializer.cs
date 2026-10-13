@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 8;
+    public const int SaveVersion = 9;
 
     /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
     public const int MaxDreamsGenerated = 1_000_000;
@@ -188,6 +188,7 @@ public static class SaveDataSerializer
                 name = entry.Name is null ? null : WriteName(entry.Name),
                 epithet = WriteEpithet(entry.Epithet),
                 breakdown = entry.Breakdown is { } kind ? BreakdownNames[kind] : null,
+                oracle = entry.Oracle is null ? null : new { heading = entry.Oracle.Heading, intent = entry.Oracle.Intent, doctrine = entry.Oracle.Doctrine },
             }),
         });
     }
@@ -350,6 +351,7 @@ public static class SaveDataSerializer
         var nameElement = Property(element, "name", null);
         var epithetElement = Property(element, "epithet", null);
         var breakdownElement = Property(element, "breakdown", null);
+        var oracleElement = Property(element, "oracle", null);
         if (year < 0 || type.Value is null)
         {
             throw new InvalidSaveDataException("invalid_history");
@@ -404,7 +406,23 @@ public static class SaveDataSerializer
         {
             throw new InvalidSaveDataException("invalid_history");
         }
-        return new HistoryEntry(year, type.Key, symbolId, dogmaType, name, epithet, breakdown);
+
+        // 神託の文は AI が作った外部入力なので、作ったときと同じ検証をする
+        OracleText? oracle = null;
+        if (oracleElement.ValueKind != JsonValueKind.Null)
+        {
+            if (type.Key != HistoryEventType.DogmaFormed || oracleElement.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidSaveDataException("invalid_history");
+            }
+            oracle = new OracleText(
+                ReadString(oracleElement, "heading"), ReadString(oracleElement, "intent"), ReadString(oracleElement, "doctrine"));
+            if (!oracle.IsValid())
+            {
+                throw new InvalidSaveDataException("invalid_history");
+            }
+        }
+        return new HistoryEntry(year, type.Key, symbolId, dogmaType, name, epithet, breakdown, oracle);
     }
 
     private static object WriteName(ResidentName name) => new

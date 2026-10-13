@@ -200,6 +200,28 @@ public static class GameDataLoader
         return needs;
     }
 
+    public static OracleAiRules ParseOracleAi(string rulesJson)
+    {
+        var section = Parse<OracleAiSection>(rulesJson, "rules.json").OracleAi
+            ?? throw new InvalidDataException("予言者の誤解の定義が無い: file=rules.json key=oracleAi");
+        OracleAiRules oracleAi;
+        try
+        {
+            oracleAi = section.Deserialize<OracleAiRules>(StrictOptions)
+                ?? throw new InvalidDataException("予言者の誤解の定義が空: file=rules.json key=oracleAi");
+            oracleAi.Validate();
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("予言者の誤解の定義を読めない: file=rules.json key=oracleAi", ex);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("予言者の誤解の定義の値が範囲外か、宛先がループバックでない: file=rules.json key=oracleAi", ex);
+        }
+        return oracleAi;
+    }
+
     public static HistoryRules ParseHistory(string rulesJson)
     {
         var section = Parse<HistorySection>(rulesJson, "rules.json").History
@@ -308,6 +330,8 @@ public static class GameDataLoader
     private sealed record NeedsSection(JsonElement? Needs);
 
     private sealed record HistorySection(JsonElement? History);
+
+    private sealed record OracleAiSection(JsonElement? OracleAi);
 
     private sealed record StrataFile(int LifespanMin, int LifespanMax, int RuinBurialYears, int MaxDepth);
 

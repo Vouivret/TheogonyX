@@ -26,6 +26,7 @@ public partial class WorldCore : Node2D
     private HistoryView? _history;
     private CrowdView? _crowd;
     private DreamView? _dreams;
+    private OracleView? _oracle;
     private CompanionHost? _companion;
     private SaveStore? _saveStore;
     private Func<string>? _writeSave;
@@ -69,6 +70,7 @@ public partial class WorldCore : Node2D
         var civilizationRules = GameDataLoader.ParseCivilization(rulesJson);
         var needsRules = GameDataLoader.ParseNeeds(rulesJson);
         var historyRules = GameDataLoader.ParseHistory(rulesJson);
+        var oracleAiRules = GameDataLoader.ParseOracleAi(rulesJson);
 
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
         _saveStore = new SaveStore("user://save", TimeProvider.System);
@@ -118,6 +120,8 @@ public partial class WorldCore : Node2D
         _dreams.OraclePronounced += _screen.Refresh;
         // 夢の欄が新しい夢を見た後に保存するよう、DreamView の後につなぐ
         _dreams.OraclePronounced += Save;
+        _oracle = new OracleView(this, timeControl, _dreams, oracleAiRules);
+        _oracle.OracleAttached += Save;
         _screen.Jumped += Save;
         _screen.WorldReset += Save;
         if (loadFailed)
@@ -143,6 +147,7 @@ public partial class WorldCore : Node2D
         _camera?.Process(delta);
         _residents?.Process(delta);
         _history?.Process();
+        _oracle?.Process(delta);
         _crowd?.Process(delta);
         _companion?.Process(delta);
     }
@@ -161,6 +166,8 @@ public partial class WorldCore : Node2D
         _companion = null;
         _crowd?.Dispose();
         _crowd = null;
+        _oracle?.Dispose();
+        _oracle = null;
         Save();
     }
 

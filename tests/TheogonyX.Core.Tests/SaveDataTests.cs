@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 8, "seed": 42, "dreamsGenerated": 2,
+          "saveVersion": 9, "seed": 42, "dreamsGenerated": 2,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -48,14 +48,15 @@ public class SaveDataTests
             "nextResidentId": 5
           },
           "history": [
-            { "year": 200, "type": "DOGMA_FORMED", "symbolId": "SYM_TREE", "dogmaType": "Taboo", "name": null, "epithet": null, "breakdown": null },
-            { "year": 300, "type": "WORLD_RECREATED", "symbolId": null, "dogmaType": null, "name": null, "epithet": null, "breakdown": null },
+            { "year": 200, "type": "DOGMA_FORMED", "symbolId": "SYM_TREE", "dogmaType": "Taboo", "name": null, "epithet": null, "breakdown": null,
+              "oracle": { "heading": "木に触れるな", "intent": "神は木を憎んでおられる。", "doctrine": "木を見た者は目を閉じよ。" } },
+            { "year": 300, "type": "WORLD_RECREATED", "symbolId": null, "dogmaType": null, "name": null, "epithet": null, "breakdown": null, "oracle": null },
             { "year": 305, "type": "NOTABLE_DIED", "symbolId": null, "dogmaType": null,
               "name": { "firstPrefix": "NAME_PREFIX_VAL", "firstSuffix": "NAME_SUFFIX_US", "lineagePrefix": "NAME_PREFIX_EL", "lineageSuffix": "NAME_SUFFIX_GIS" },
-              "epithet": { "id": "EPITHET_BUILDER", "symbolId": null }, "breakdown": null },
+              "epithet": { "id": "EPITHET_BUILDER", "symbolId": null }, "breakdown": null, "oracle": null },
             { "year": 311, "type": "RESIDENT_BROKE_DOWN", "symbolId": null, "dogmaType": null,
               "name": { "firstPrefix": "NAME_PREFIX_ART", "firstSuffix": "NAME_SUFFIX_ORIUS", "lineagePrefix": "NAME_PREFIX_ILIO", "lineageSuffix": "NAME_SUFFIX_A" },
-              "epithet": null, "breakdown": "RAMPAGE" }
+              "epithet": null, "breakdown": "RAMPAGE", "oracle": null }
           ]
         }
         """;
@@ -268,6 +269,7 @@ public class SaveDataTests
     [Fact]
     [Trait("TS", "TS-save-data-004")]
     [Trait("TS", "TS-history-007")]
+    [Trait("TS", "TS-ai-presentation-005")]
     public void TryParse_正しいセーブ_読める()
     {
         var ok = SaveDataSerializer.TryParse(ValidSave, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, out var data, out var reason);
@@ -297,7 +299,9 @@ public class SaveDataTests
         Assert.Equal(5, data.Residents.NextResidentId);
         Assert.Equal(
             [
-                new HistoryEntry(200, HistoryEventType.DogmaFormed, "SYM_TREE", DogmaType.Taboo),
+                new HistoryEntry(
+                    200, HistoryEventType.DogmaFormed, "SYM_TREE", DogmaType.Taboo,
+                    Oracle: new OracleText("木に触れるな", "神は木を憎んでおられる。", "木を見た者は目を閉じよ。")),
                 new HistoryEntry(300, HistoryEventType.WorldRecreated),
                 new HistoryEntry(
                     305, HistoryEventType.NotableDied,
@@ -343,8 +347,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 8", "\"saveVersion\": 7", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 8, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 9", "\"saveVersion\": 8", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 9, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": -1", "invalid_dreams_generated")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": 1000001", "invalid_dreams_generated")]
@@ -401,6 +405,10 @@ public class SaveDataTests
     [InlineData("\"graves\": [", "\"grave\": [", "invalid_field")]
     [InlineData("\"partnerId\": 4", "\"partnerId\": \"4\"", "invalid_field")]
     [InlineData("\"housesBuilt\": 1", "\"housesBuilt\": -1", "invalid_residents")]
+    [InlineData("\"heading\": \"木に触れるな\"", "\"heading\": \"\"", "invalid_history")] // 神託の文が空
+    [InlineData("\"heading\": \"木に触れるな\"", "\"heading\": \"一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一\"", "invalid_history")] // 31 字
+    [InlineData("\"intent\": \"神は木を憎んでおられる。\"", "\"intent\": 3", "invalid_field")]
+    [InlineData("\"type\": \"WORLD_RECREATED\", \"symbolId\": null, \"dogmaType\": null, \"name\": null, \"epithet\": null, \"breakdown\": null, \"oracle\": null", "\"type\": \"WORLD_RECREATED\", \"symbolId\": null, \"dogmaType\": null, \"name\": null, \"epithet\": null, \"breakdown\": null, \"oracle\": { \"heading\": \"a\", \"intent\": \"b\", \"doctrine\": \"c\" }", "invalid_history")] // ドグマの行でない
     [InlineData("\"history\": [", "\"histories\": [", "invalid_field")]
     [InlineData("\"type\": \"DOGMA_FORMED\"", "\"type\": \"WAR_STARTED\"", "invalid_history")]
     [InlineData("\"year\": 200", "\"year\": -1", "invalid_history")]
@@ -413,6 +421,7 @@ public class SaveDataTests
     [InlineData("\"partnerId\": 3", "\"partnerId\": null", "invalid_residents")] // 相手のパートナーが自分でない
     [InlineData("\"partnerId\": 3", "\"partnerId\": 4", "invalid_residents")] // 自分自身
     [Trait("TS", "TS-history-007")]
+    [Trait("TS", "TS-ai-presentation-005")]
     public void TryParse_壊れたセーブ_失敗して理由が分かる(string original, string replacement, string expectedReason)
     {
         Assert.Contains(original, ValidSave);

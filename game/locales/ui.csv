@@ -20,10 +20,16 @@ BUTTON_SPEED_FAST,速さ: 高速,Speed: Fast
 BUTTON_SPEED_REAL_TIME,速さ: 現実同期,Speed: Real Time
 HUD_NEXT_YEAR,次の年まで {0},Next year in {0}
 BUTTON_RESET,世界再創生,Recreate World
+ORACLE_THINKING,予言者は神託を紡いでいる…,The prophet is weaving an oracle...
+ORACLE_HEADING,「{0}」,"""{0}"""
+ORACLE_FALLBACK_TABOO,{0}を恐れよ。触れる者に災いあれ。,"Fear the {0}. Woe to those who touch it."
+ORACLE_FALLBACK_WORSHIP,{0}を崇めよ。{0}こそが我らを救う。,"Worship the {0}. The {0} alone shall save us."
+ORACLE_FALLBACK_DESTRUCTION,{0}を打ち壊せ。それが神の望みだ。,"Destroy the {0}. It is the will of god."
 BUTTON_HISTORY,年表,Chronicle
 HISTORY_TITLE,星の年表,Chronicle of the Star
 HISTORY_EMPTY,（まだ何も起きていない）,(Nothing has happened yet)
 HISTORY_DOGMA_FORMED,{0} 年　{1}が生まれた,Year {0}: {1} was born
+HISTORY_DOGMA_FORMED_ORACLE,{0} 年　{1}が生まれた　「{2}」,Year {0}: {1} was born — "{2}"
 HISTORY_RAMPAGE,{0} 年　{1}が狂乱した,Year {0}: {1} went on a rampage
 HISTORY_CATATONIA,{0} 年　{1}が自閉・絶望に沈んだ,Year {0}: {1} sank into despair
 HISTORY_NOTABLE_DIED,{0} 年　{1}が死んだ,Year {0}: {1} died
