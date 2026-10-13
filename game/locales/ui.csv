@@ -48,19 +48,42 @@ TROUBLE_HEAT,暑さ,heat
 TROUBLE_COLD,寒さ,cold
 TROUBLE_CHAOS,混乱,chaos
 SAVE_LOAD_FAILED,セーブを読めなかったので、新しい星で始めました,Could not read the save. Started a new planet.
-NAME_PREFIX_ART,アルト,Art
-NAME_PREFIX_VAL,ヴァル,Val
-NAME_PREFIX_ILIO,イリオ,Ilio
-NAME_PREFIX_EL,エル,El
-NAME_PREFIX_SELE,セレ,Sele
-NAME_PREFIX_OR,オル,Or
-NAME_SUFFIX_ORIUS,トリウス,orius
-NAME_SUFFIX_US,ウス,us
-NAME_SUFFIX_PHIA,フィア,phia
-NAME_SUFFIX_GIS,ギス,gis
-NAME_SUFFIX_MION,ミオン,mion
-NAME_SUFFIX_A,ア,a
-RESIDENT_NAME_PART,{0}{1},{0}{1}
+NAME_ART_ORIUS,アルトリウス,Artorius
+NAME_ART_US,アルトゥス,Artus
+NAME_ART_PHIA,アルトフィア,Artphia
+NAME_ART_GIS,アルトギス,Artgis
+NAME_ART_MION,アルトミオン,Artmion
+NAME_ART_A,アルタ,Arta
+NAME_VAL_ORIUS,ヴァロリウス,Valorius
+NAME_VAL_US,ヴァルス,Valus
+NAME_VAL_PHIA,ヴァルフィア,Valphia
+NAME_VAL_GIS,ヴァルギス,Valgis
+NAME_VAL_MION,ヴァルミオン,Valmion
+NAME_VAL_A,ヴァラ,Vala
+NAME_ILIO_ORIUS,イリオリウス,Ilioorius
+NAME_ILIO_US,イリオウス,Ilious
+NAME_ILIO_PHIA,イリオフィア,Iliophia
+NAME_ILIO_GIS,イリオギス,Iliogis
+NAME_ILIO_MION,イリオミオン,Iliomion
+NAME_ILIO_A,イリオア,Ilioa
+NAME_EL_ORIUS,エロリウス,Elorius
+NAME_EL_US,エルス,Elus
+NAME_EL_PHIA,エルフィア,Elphia
+NAME_EL_GIS,エルギス,Elgis
+NAME_EL_MION,エルミオン,Elmion
+NAME_EL_A,エラ,Ela
+NAME_SELE_ORIUS,セレオリウス,Seleorius
+NAME_SELE_US,セレウス,Seleus
+NAME_SELE_PHIA,セレフィア,Selephia
+NAME_SELE_GIS,セレギス,Selegis
+NAME_SELE_MION,セレミオン,Selemion
+NAME_SELE_A,セレア,Selea
+NAME_OR_ORIUS,オロリウス,Ororius
+NAME_OR_US,オルス,Orus
+NAME_OR_PHIA,オルフィア,Orphia
+NAME_OR_GIS,オルギス,Orgis
+NAME_OR_MION,オルミオン,Ormion
+NAME_OR_A,オラ,Ora
 RESIDENT_NAME,{0}・{1},{0} {1}
 RESIDENT_NAME_WITH_EPITHET,{0}・{1} の {2},{0} {1} the {2}
 EPITHET_BLOODLESS,血を恐れぬ者,Unafraid of Blood

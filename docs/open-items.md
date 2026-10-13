@@ -28,7 +28,7 @@
 | 項目 | 内容 | 期限 |
 | :--- | :--- | :--- |
 | 予言者の絵の出典 | 生成 AI のツール名と、利用規約で商用利用・ゲームへの組み込みが認められているか。分かったら [credits.md](credits.md) に書く | 配布する前 |
-| 英語の文言 | `game/locales/ui.csv` の `en` の列は仮の訳。住人の名前のパーツ・称号・情報の欄（`NAME_*`・`EPITHET_*`・`RESIDENT_*`）も仮の訳。`companion/locales/en.json` は 2026-10-12 に確定した訳を当てたが、`TITLE`・`CARDS_*`・`STATUS_SCAN_QR`・`STATUS_RECONNECTING`・`ERROR_SESSION_REPLACED` はまだ仮の訳 | 英語版を出す前 |
+| 英語の文言 | `game/locales/ui.csv` の `en` の列は仮の訳。住人の名前（パーツの組み合わせ 36 通りの `NAME_*`。英語は綴りをつないだだけ）・称号・情報の欄（`EPITHET_*`・`RESIDENT_*`）も仮の訳。`companion/locales/en.json` は 2026-10-12 に確定した訳を当てたが、`TITLE`・`CARDS_*`・`STATUS_SCAN_QR`・`STATUS_RECONNECTING`・`ERROR_SESSION_REPLACED` はまだ仮の訳 | 英語版を出す前 |
 | 群衆の仕様書の承認 | [crowd.md](domain/crowd.md) は `draft` のまま。湖を足した [planet-display.md](domain/planet-display.md) も `draft` | 次に群衆・地表を変える前 |
 | 推奨スペックの PC | [nfr.md](nfr.md) の性能の目標は「例」のまま。群衆の計測（10,000 人で GPU 版 約 1,000 fps、開発者の PC）を目安に、目標と推奨スペックを決める | 配布する前 |
 | 「狂乱」の言葉の重なり | 群衆の `CrowdMode.Frenzy`（聖地へ押し寄せる）と、住人の精神崩壊の `BreakdownKind.Rampage`（建物を壊す）が、どちらも「狂乱」。どちらかの言葉を変えるか | 急がない |

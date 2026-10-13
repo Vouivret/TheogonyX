@@ -11,12 +11,17 @@ public static class ResidentText
     public static string NameOf(ResidentName name, ResidentEpithet? epithet)
     {
         var culture = CultureInfo.CurrentCulture;
-        var first = string.Format(culture, Tr("RESIDENT_NAME_PART"), Tr(name.FirstPrefix), Tr(name.FirstSuffix));
-        var lineage = string.Format(culture, Tr("RESIDENT_NAME_PART"), Tr(name.LineagePrefix), Tr(name.LineageSuffix));
+        var first = Tr(JoinedKey(name.FirstPrefix, name.FirstSuffix));
+        var lineage = Tr(JoinedKey(name.LineagePrefix, name.LineageSuffix));
         return epithet is null
             ? string.Format(culture, Tr("RESIDENT_NAME"), first, lineage)
             : string.Format(culture, Tr("RESIDENT_NAME_WITH_EPITHET"), first, lineage, EpithetOf(epithet));
     }
+
+    // 接頭辞と接尾辞の組み合わせごとの表記のキー（NAME_PREFIX_ART ＋ NAME_SUFFIX_ORIUS → NAME_ART_ORIUS）。
+    // つなぎ目の音は言語ごとに変わる（アルト ＋ トリウス は アルトトリウス でなく アルトリウス）ので、パーツを連結せず組み合わせで引く
+    private static string JoinedKey(string prefix, string suffix) =>
+        $"NAME_{prefix["NAME_PREFIX_".Length..]}_{suffix["NAME_SUFFIX_".Length..]}";
 
     private static string EpithetOf(ResidentEpithet epithet) =>
         epithet.SymbolId is null
