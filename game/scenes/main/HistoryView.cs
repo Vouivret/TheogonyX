@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Linq;
 using Godot;
 using TheogonyX.Core;
@@ -16,9 +15,8 @@ public sealed class HistoryView
     private readonly PanelContainer _panel;
     private readonly Label _label;
 
-    // 描いている年表の行の数と最後の行（変わっていなければ組み立て直さない）
-    private int _shownCount = -1;
-    private HistoryEntry? _shownLast;
+    // 描いている年表の行（同じ行が同じ順にあれば組み立て直さない。神話の文は途中の章の行にも後から付く）
+    private HistoryEntry[] _shown = [];
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
     public HistoryView(Node owner, TimeControl timeControl)
@@ -70,33 +68,14 @@ public sealed class HistoryView
     private void Refresh()
     {
         var entries = _timeControl.History?.Entries ?? [];
-        var last = entries.Count == 0 ? null : entries[^1];
-        if (entries.Count == _shownCount && ReferenceEquals(last, _shownLast))
+        if (entries.Count == _shown.Length && entries.Select((entry, i) => ReferenceEquals(entry, _shown[i])).All(same => same))
         {
             return;
         }
-        _shownCount = entries.Count;
-        _shownLast = last;
-        _label.Text = entries.Count == 0 ? Tr("HISTORY_EMPTY") : string.Join('\n', entries.Reverse().Select(LineOf));
+        _shown = [.. entries];
+        _label.Text = entries.Count == 0
+            ? ChronicleText.Tr("HISTORY_EMPTY")
+            : string.Join('\n', entries.Reverse().Select(ChronicleText.LineOf));
     }
 
-    private static string LineOf(HistoryEntry entry)
-    {
-        var culture = CultureInfo.CurrentCulture;
-        string Who() => ResidentText.NameOf(entry.Name!, entry.Epithet);
-        return entry.Type switch
-        {
-            HistoryEventType.DogmaFormed => string.Format(
-                culture, Tr(entry.Oracle is null ? "HISTORY_DOGMA_FORMED" : "HISTORY_DOGMA_FORMED_ORACLE"), entry.Year,
-                string.Format(culture, Tr("DOGMA_ENTRY"), Tr($"SYMBOL_{entry.SymbolId}"), Tr($"DOGMA_TYPE_{entry.DogmaType.ToString()!.ToUpperInvariant()}")),
-                entry.Oracle?.Heading),
-            HistoryEventType.ResidentBrokeDown => string.Format(
-                culture, Tr(entry.Breakdown == BreakdownKind.Rampage ? "HISTORY_RAMPAGE" : "HISTORY_CATATONIA"), entry.Year, Who()),
-            HistoryEventType.NotableDied => string.Format(culture, Tr("HISTORY_NOTABLE_DIED"), entry.Year, Who()),
-            HistoryEventType.WorldDestroyed => string.Format(culture, Tr("HISTORY_WORLD_DESTROYED"), entry.Year),
-            _ => string.Format(culture, Tr("HISTORY_WORLD_RECREATED"), entry.Year),
-        };
-    }
-
-    private static string Tr(string key) => TranslationServer.Translate(key).ToString();
 }

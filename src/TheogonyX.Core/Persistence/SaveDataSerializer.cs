@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 9;
+    public const int SaveVersion = 10;
 
     /// <summary>受け付ける「見た夢の数」の上限。読み込み時に夢を作り直すので、書き換えられた大きな値で止まらないようにする。</summary>
     public const int MaxDreamsGenerated = 1_000_000;
@@ -44,6 +44,7 @@ public static class SaveDataSerializer
         [HistoryEventType.NotableDied] = "NOTABLE_DIED",
         [HistoryEventType.WorldDestroyed] = "WORLD_DESTROYED",
         [HistoryEventType.WorldRecreated] = "WORLD_RECREATED",
+        [HistoryEventType.ChapterEnded] = "CHAPTER_ENDED",
     };
 
     private static readonly Dictionary<BreakdownKind, string> BreakdownNames = new()
@@ -189,7 +190,12 @@ public static class SaveDataSerializer
                 epithet = WriteEpithet(entry.Epithet),
                 breakdown = entry.Breakdown is { } kind ? BreakdownNames[kind] : null,
                 oracle = entry.Oracle is null ? null : new { heading = entry.Oracle.Heading, intent = entry.Oracle.Intent, doctrine = entry.Oracle.Doctrine },
+                fromYear = entry.FromYear,
+                chaosFrom = entry.ChaosFrom,
+                chaosTo = entry.ChaosTo,
+                myth = entry.Myth is null ? null : new { heading = entry.Myth.Heading, body = entry.Myth.Body },
             }),
+            historyChapterStart = new { year = data.Chapter.Year, chaos = data.Chapter.ChaosLevel },
         });
     }
 
@@ -330,10 +336,13 @@ public static class SaveDataSerializer
         var history = Property(root, "history", JsonValueKind.Array).EnumerateArray()
             .Select(element => ReadHistoryEntry(element, needsRules, symbolIds))
             .ToList();
+        var chapterElement = Property(root, "historyChapterStart", JsonValueKind.Object);
+        var chapter = new ChapterStart(
+            ReadYearUpTo(Property(chapterElement, "year", JsonValueKind.Number), world.Year), ReadChaos(chapterElement, "chaos", "invalid_number"));
 
         return new SaveData(
             seed, dreamsGenerated, world, dogmas, dreamState.Key, dream, requestId, answeredYears, lastOracleYear, speed.Key, elapsedSeconds,
-            civilization, residents, history);
+            civilization, residents, history, chapter);
     }
 
     // 年表の行。世界再創生の前の行は今の年より後になりうるので、年は 0 以上だけを見る。種類ごとに、使う項目があり、使わない項目は null
@@ -352,6 +361,10 @@ public static class SaveDataSerializer
         var epithetElement = Property(element, "epithet", null);
         var breakdownElement = Property(element, "breakdown", null);
         var oracleElement = Property(element, "oracle", null);
+        var fromYearElement = Property(element, "fromYear", null);
+        var chaosFromElement = Property(element, "chaosFrom", null);
+        var chaosToElement = Property(element, "chaosTo", null);
+        var mythElement = Property(element, "myth", null);
         if (year < 0 || type.Value is null)
         {
             throw new InvalidSaveDataException("invalid_history");
@@ -422,7 +435,39 @@ public static class SaveDataSerializer
                 throw new InvalidSaveDataException("invalid_history");
             }
         }
-        return new HistoryEntry(year, type.Key, symbolId, dogmaType, name, epithet, breakdown, oracle);
+        // 章の終わりの項目。始まりは終わりより前の年で、カオス度は 0〜100、神話の文は AI が作った外部入力なので検証する
+        int? fromYear = null;
+        float? chaosFrom = null;
+        float? chaosTo = null;
+        MythText? myth = null;
+        if (type.Key == HistoryEventType.ChapterEnded)
+        {
+            fromYear = ReadInt(element, "fromYear");
+            if (fromYear < 0 || fromYear >= year)
+            {
+                throw new InvalidSaveDataException("invalid_history");
+            }
+            chaosFrom = ReadChaos(element, "chaosFrom", "invalid_history");
+            chaosTo = ReadChaos(element, "chaosTo", "invalid_history");
+            if (mythElement.ValueKind == JsonValueKind.Object)
+            {
+                myth = new MythText(ReadString(mythElement, "heading"), ReadString(mythElement, "body"));
+                if (!myth.IsValid())
+                {
+                    throw new InvalidSaveDataException("invalid_history");
+                }
+            }
+            else if (mythElement.ValueKind != JsonValueKind.Null)
+            {
+                throw new InvalidSaveDataException("invalid_history");
+            }
+        }
+        else if (fromYearElement.ValueKind != JsonValueKind.Null || chaosFromElement.ValueKind != JsonValueKind.Null
+            || chaosToElement.ValueKind != JsonValueKind.Null || mythElement.ValueKind != JsonValueKind.Null)
+        {
+            throw new InvalidSaveDataException("invalid_history");
+        }
+        return new HistoryEntry(year, type.Key, symbolId, dogmaType, name, epithet, breakdown, oracle, fromYear, chaosFrom, chaosTo, myth);
     }
 
     private static object WriteName(ResidentName name) => new
@@ -738,6 +783,13 @@ public static class SaveDataSerializer
             throw new InvalidSaveDataException("invalid_field");
         }
         return value;
+    }
+
+    // カオス度は 0 以上 100 以下（HUD と同じ百分率）
+    private static float ReadChaos(JsonElement parent, string name, string reason)
+    {
+        var value = ReadFloat(parent, name);
+        return value is < 0 or > 100 ? throw new InvalidSaveDataException(reason) : value;
     }
 
     private static int ReadInt(JsonElement parent, string name) =>

@@ -39,7 +39,7 @@ public sealed class TimeControl
         World = WorldState.CreateInitial(worldRules);
         Civilization = civilization is null ? null : Civilization.CreateInitial(civilization.Rules);
         Residents = civilization?.Needs is null ? null : Residents.CreateInitial();
-        History = history is null ? null : new History([], history);
+        History = history is null ? null : new History([], history, new ChapterStart(World.Year, World.ChaosLevel));
     }
 
     public TimeControlState State { get; private set; } = TimeControlState.Stopped;
@@ -86,11 +86,14 @@ public sealed class TimeControl
     public void Reset()
     {
         var next = NextState(TimeControlAction.Reset);
+        var initial = WorldState.CreateInitial(_worldRules);
+        History?.CloseChapter(World.Year, World.ChaosLevel);
         History?.Add(new HistoryEntry(World.Year, HistoryEventType.WorldRecreated));
+        History?.RestartChapter(initial.Year, initial.ChaosLevel);
         Civilization = _civilizationSetup is null ? null : Civilization?.Recreate(World, _dogmas, _civilizationSetup.Rules);
         Residents = Residents?.Recreate();
         ResidentEvents = [];
-        World = WorldState.CreateInitial(_worldRules);
+        World = initial;
         _dogmas.Clear();
         State = next;
     }
@@ -99,8 +102,10 @@ public sealed class TimeControl
     /// <param name="civilization">文明の計算をしないなら無視する。</param>
     /// <param name="residents">住人の計算をしないなら無視する。</param>
     /// <param name="history">年表の行（古い順）。年表を残さないなら無視する。null なら年表を空にする。</param>
+    /// <param name="chapter">年表の今の章の始まり。年表を残さないなら無視する。null なら今の年・カオス度から始める。</param>
     public void Restore(
-        WorldState world, IEnumerable<Dogma> dogmas, Civilization civilization, Residents residents, IEnumerable<HistoryEntry>? history = null)
+        WorldState world, IEnumerable<Dogma> dogmas, Civilization civilization, Residents residents, IEnumerable<HistoryEntry>? history = null,
+        ChapterStart? chapter = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(dogmas);
@@ -109,7 +114,7 @@ public sealed class TimeControl
         World = world;
         Civilization = _civilizationSetup is null ? null : civilization.Copy();
         Residents = _civilizationSetup?.Needs is null ? null : residents.Copy();
-        History = History is null ? null : new History(history ?? [], History.Rules);
+        History = History is null ? null : new History(history ?? [], History.Rules, chapter ?? new ChapterStart(world.Year, world.ChaosLevel));
         ResidentEvents = [];
         _dogmas.Clear();
         _dogmas.AddRange(dogmas);
@@ -123,24 +128,33 @@ public sealed class TimeControl
         var civilization = Civilization;
         var residents = Residents;
         var events = new List<ResidentEvent>();
-        Action? afterYear = setup is null || civilization is null
+        var history = History;
+        // 1 年ごとに、文明・住人の計算、年表（住人の出来事・章）の順に進める。年表の行は年の順に並ぶ
+        Action? afterYear = history is null && (setup is null || civilization is null)
             ? null
             : () =>
             {
-                CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed);
-                if (residents is not null && setup.Needs is not null)
+                var yearEvents = new List<ResidentEvent>();
+                if (setup is not null && civilization is not null)
                 {
-                    events.AddRange(ResidentSimulator.AdvanceYear(
-                        residents, civilization, World, _dogmas, setup.Needs, setup.Rules, _worldRules, setup.Terrain, setup.Seed));
+                    CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed);
+                    if (residents is not null && setup.Needs is not null)
+                    {
+                        yearEvents.AddRange(ResidentSimulator.AdvanceYear(
+                            residents, civilization, World, _dogmas, setup.Needs, setup.Rules, _worldRules, setup.Terrain, setup.Seed));
+                    }
                 }
+                events.AddRange(yearEvents);
+                history?.AddResidentEvents(yearEvents);
+                history?.AdvanceChapters(World.Year, World.ChaosLevel);
             };
         var wasDestroyed = World.IsDestroyed;
         WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules, afterYear);
         ResidentEvents = events;
-        History?.AddResidentEvents(events);
         if (World.IsDestroyed && !wasDestroyed)
         {
-            History?.Add(new HistoryEntry(World.Year, HistoryEventType.WorldDestroyed));
+            history?.Add(new HistoryEntry(World.Year, HistoryEventType.WorldDestroyed));
+            history?.CloseChapter(World.Year, World.ChaosLevel);
         }
         State = World.IsDestroyed ? TimeControlState.Destroyed : next;
     }

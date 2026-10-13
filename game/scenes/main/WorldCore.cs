@@ -27,6 +27,8 @@ public partial class WorldCore : Node2D
     private CrowdView? _crowd;
     private DreamView? _dreams;
     private OracleView? _oracle;
+    private MythView? _myth;
+    private OllamaClient? _ollama;
     private CompanionHost? _companion;
     private SaveStore? _saveStore;
     private Func<string>? _writeSave;
@@ -120,8 +122,12 @@ public partial class WorldCore : Node2D
         _dreams.OraclePronounced += _screen.Refresh;
         // 夢の欄が新しい夢を見た後に保存するよう、DreamView の後につなぐ
         _dreams.OraclePronounced += Save;
-        _oracle = new OracleView(this, timeControl, _dreams, oracleAiRules);
+        // 予言者の誤解と歴史の神話化で、ローカルの LLM への通信を 1 つ共有する
+        _ollama = new OllamaClient(oracleAiRules);
+        _oracle = new OracleView(this, timeControl, _dreams, oracleAiRules, _ollama);
         _oracle.OracleAttached += Save;
+        _myth = new MythView(timeControl, oracleAiRules, _ollama);
+        _myth.MythAttached += Save;
         _screen.Jumped += Save;
         _screen.WorldReset += Save;
         if (loadFailed)
@@ -148,6 +154,7 @@ public partial class WorldCore : Node2D
         _residents?.Process(delta);
         _history?.Process();
         _oracle?.Process(delta);
+        _myth?.Process(delta);
         _crowd?.Process(delta);
         _companion?.Process(delta);
     }
@@ -166,8 +173,10 @@ public partial class WorldCore : Node2D
         _companion = null;
         _crowd?.Dispose();
         _crowd = null;
-        _oracle?.Dispose();
+        _ollama?.Dispose();
+        _ollama = null;
         _oracle = null;
+        _myth = null;
         Save();
     }
 

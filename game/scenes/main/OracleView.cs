@@ -1,12 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
-using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using Godot;
-using HttpClient = System.Net.Http.HttpClient;
 using TheogonyX.Core;
 
 namespace TheogonyX.Scenes.Main;
@@ -16,11 +12,11 @@ namespace TheogonyX.Scenes.Main;
 /// できたら予言者の吹き出しに出して、年表のドグマの行に添える。LLM が使えない・応答が壊れているときは、種別ごとの定型文を出す。
 /// 文は表現だけで、ゲームの計算には関わらない。頼むのは一度に 1 つで、ゲームの進行は止めない。
 /// </summary>
-public sealed class OracleView : IDisposable
+public sealed class OracleView
 {
     private readonly TimeControl _timeControl;
     private readonly OracleAiRules _rules;
-    private readonly HttpClient _http;
+    private readonly OllamaClient _client;
     private readonly PanelContainer _bubble;
     private readonly Label _label;
     private readonly Queue<(HistoryEntry? Entry, Dogma Dogma, Request Request)> _queue = new();
@@ -29,11 +25,11 @@ public sealed class OracleView : IDisposable
     private double _hideInSeconds;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public OracleView(Node owner, TimeControl timeControl, DreamView dreams, OracleAiRules rules)
+    public OracleView(Node owner, TimeControl timeControl, DreamView dreams, OracleAiRules rules, OllamaClient client)
     {
         _timeControl = timeControl;
         _rules = rules;
-        _http = new HttpClient { Timeout = TimeSpan.FromSeconds(rules.TimeoutSeconds) };
+        _client = client;
         _label = new Label { Name = "OracleText", AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(200, 0) };
         // 地表の上の真ん中寄りに重ねて出す（依頼の吹き出し・年表の欄より手前）
         _bubble = new PanelContainer { Name = "OracleBubble", Visible = false, Position = new Vector2(60, 64), MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -58,8 +54,6 @@ public sealed class OracleView : IDisposable
             _bubble.Visible = false;
         }
     }
-
-    public void Dispose() => _http.Dispose();
 
     // 神託を下した直後に呼ばれる。ドグマが生まれていれば、そのドグマの年表の行（最後の行）と一緒に頼みを積む
     private void OnOraclePronounced()
@@ -136,26 +130,13 @@ public sealed class OracleView : IDisposable
         var body = OracleProphecy.BuildRequest(
             _rules, dogma, Tr($"SYMBOL_{dogma.TargetSymbolId}"), Tr($"DOGMA_TYPE_{dogma.Type.ToString().ToUpperInvariant()}"),
             _timeControl.World, TranslationServer.GetLocale());
-        var watch = Stopwatch.StartNew();
-        try
+        var (reply, failure, durationMs) = await _client.PostAsync(body);
+        if (reply is null)
         {
-            using var content = new StringContent(body, Encoding.UTF8, "application/json");
-            using var response = await _http.PostAsync(_rules.Endpoint, content);
-            if (!response.IsSuccessStatusCode)
-            {
-                return (null, "http_error", watch.ElapsedMilliseconds);
-            }
-            var text = OracleProphecy.ParseResponse(await response.Content.ReadAsStringAsync());
-            return (text, text is null ? "invalid_response" : string.Empty, watch.ElapsedMilliseconds);
+            return (null, failure, durationMs);
         }
-        catch (TaskCanceledException)
-        {
-            return (null, "timeout", watch.ElapsedMilliseconds);
-        }
-        catch (HttpRequestException)
-        {
-            return (null, "connection_failed", watch.ElapsedMilliseconds);
-        }
+        var text = OracleProphecy.ParseResponse(reply);
+        return (text, text is null ? "invalid_response" : string.Empty, durationMs);
     }
 
     private void ShowFallback(Dogma dogma) =>

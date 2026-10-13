@@ -69,10 +69,47 @@ public class HistoryTests
             [
                 new HistoryEntry(30, HistoryEventType.DogmaFormed, "SYM_BLOOD", DogmaType.Worship),
                 new HistoryEntry(destroyedYear, HistoryEventType.WorldDestroyed),
+                // 章は年 40（読み込んだ年）から始まり、崩壊の年で閉じる。カオス度は崩壊のときの 100
+                new HistoryEntry(destroyedYear, HistoryEventType.ChapterEnded, FromYear: 40, ChaosFrom: 99.5f, ChaosTo: 100f),
                 new HistoryEntry(destroyedYear, HistoryEventType.WorldRecreated),
             ],
             time.History!.Entries);
         Assert.Equal(41, destroyedYear);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-history-009")]
+    public void Jump_章の長さ100年_年100で章が閉じ再創生の後も年0から数え直す()
+    {
+        var time = CreateTime();
+
+        time.Jump();
+        time.Reset();
+        time.Jump();
+
+        Assert.Equal(
+            [
+                new HistoryEntry(100, HistoryEventType.ChapterEnded, FromYear: 0, ChaosFrom: 0f, ChaosTo: 0f),
+                new HistoryEntry(100, HistoryEventType.WorldRecreated),
+                new HistoryEntry(100, HistoryEventType.ChapterEnded, FromYear: 0, ChaosFrom: 0f, ChaosTo: 0f),
+            ],
+            time.History!.Entries.Where(entry => entry.Type is HistoryEventType.ChapterEnded or HistoryEventType.WorldRecreated));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-history-010")]
+    public void Restore_章の始まりを読み込む_次の100年の区切りで読んだ始まりから章が閉じる()
+    {
+        var time = CreateTime();
+        time.Restore(
+            new WorldState { Year = 150, ForestAmount = 50f, WaterAmount = 50f, Temperature = 15f, ChaosLevel = 0f, HarmonyLevel = 50f },
+            [], Civilization.CreateInitial(TestRules.Civilization), Residents.CreateInitial(), [], new ChapterStart(120, 30f));
+
+        time.Jump();
+
+        Assert.Equal(
+            [new HistoryEntry(200, HistoryEventType.ChapterEnded, FromYear: 120, ChaosFrom: 30f, ChaosTo: 0f)],
+            time.History!.Entries.Where(entry => entry.Type == HistoryEventType.ChapterEnded));
     }
 
     [Fact]

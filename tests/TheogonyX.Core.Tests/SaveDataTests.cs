@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 9, "seed": 42, "dreamsGenerated": 2,
+          "saveVersion": 10, "seed": 42, "dreamsGenerated": 2,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -47,16 +47,23 @@ public class SaveDataTests
                          "epithet": { "id": "EPITHET_WITNESS", "symbolId": "SYM_RAIN" } }],
             "nextResidentId": 5
           },
+          "historyChapterStart": { "year": 300, "chaos": 12.5 },
           "history": [
             { "year": 200, "type": "DOGMA_FORMED", "symbolId": "SYM_TREE", "dogmaType": "Taboo", "name": null, "epithet": null, "breakdown": null,
-              "oracle": { "heading": "木に触れるな", "intent": "神は木を憎んでおられる。", "doctrine": "木を見た者は目を閉じよ。" } },
-            { "year": 300, "type": "WORLD_RECREATED", "symbolId": null, "dogmaType": null, "name": null, "epithet": null, "breakdown": null, "oracle": null },
+              "oracle": { "heading": "木に触れるな", "intent": "神は木を憎んでおられる。", "doctrine": "木を見た者は目を閉じよ。" },
+              "fromYear": null, "chaosFrom": null, "chaosTo": null, "myth": null },
+            { "year": 300, "type": "CHAPTER_ENDED", "symbolId": null, "dogmaType": null, "name": null, "epithet": null, "breakdown": null, "oracle": null,
+              "fromYear": 200, "chaosFrom": 10.0, "chaosTo": 40.0, "myth": { "heading": "木の時代", "body": "木は人を見下ろし、人は木を仰いだ。" } },
+            { "year": 300, "type": "WORLD_RECREATED", "symbolId": null, "dogmaType": null, "name": null, "epithet": null, "breakdown": null, "oracle": null,
+              "fromYear": null, "chaosFrom": null, "chaosTo": null, "myth": null },
             { "year": 305, "type": "NOTABLE_DIED", "symbolId": null, "dogmaType": null,
               "name": { "firstPrefix": "NAME_PREFIX_VAL", "firstSuffix": "NAME_SUFFIX_US", "lineagePrefix": "NAME_PREFIX_EL", "lineageSuffix": "NAME_SUFFIX_GIS" },
-              "epithet": { "id": "EPITHET_BUILDER", "symbolId": null }, "breakdown": null, "oracle": null },
+              "epithet": { "id": "EPITHET_BUILDER", "symbolId": null }, "breakdown": null, "oracle": null,
+              "fromYear": null, "chaosFrom": null, "chaosTo": null, "myth": null },
             { "year": 311, "type": "RESIDENT_BROKE_DOWN", "symbolId": null, "dogmaType": null,
               "name": { "firstPrefix": "NAME_PREFIX_ART", "firstSuffix": "NAME_SUFFIX_ORIUS", "lineagePrefix": "NAME_PREFIX_ILIO", "lineageSuffix": "NAME_SUFFIX_A" },
-              "epithet": null, "breakdown": "RAMPAGE", "oracle": null }
+              "epithet": null, "breakdown": "RAMPAGE", "oracle": null,
+              "fromYear": null, "chaosFrom": null, "chaosTo": null, "myth": null }
           ]
         }
         """;
@@ -302,6 +309,9 @@ public class SaveDataTests
                 new HistoryEntry(
                     200, HistoryEventType.DogmaFormed, "SYM_TREE", DogmaType.Taboo,
                     Oracle: new OracleText("木に触れるな", "神は木を憎んでおられる。", "木を見た者は目を閉じよ。")),
+                new HistoryEntry(
+                    300, HistoryEventType.ChapterEnded, FromYear: 200, ChaosFrom: 10f, ChaosTo: 40f,
+                    Myth: new MythText("木の時代", "木は人を見下ろし、人は木を仰いだ。")),
                 new HistoryEntry(300, HistoryEventType.WorldRecreated),
                 new HistoryEntry(
                     305, HistoryEventType.NotableDied,
@@ -313,6 +323,7 @@ public class SaveDataTests
                     Breakdown: BreakdownKind.Rampage),
             ],
             data.History);
+        Assert.Equal(new ChapterStart(300, 12.5f), data.Chapter);
     }
 
     [Fact]
@@ -347,8 +358,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 9", "\"saveVersion\": 8", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 9, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 10", "\"saveVersion\": 9", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 10, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": -1", "invalid_dreams_generated")]
     [InlineData("\"dreamsGenerated\": 2", "\"dreamsGenerated\": 1000001", "invalid_dreams_generated")]
@@ -412,6 +423,11 @@ public class SaveDataTests
     [InlineData("\"history\": [", "\"histories\": [", "invalid_field")]
     [InlineData("\"type\": \"DOGMA_FORMED\"", "\"type\": \"WAR_STARTED\"", "invalid_history")]
     [InlineData("\"year\": 200", "\"year\": -1", "invalid_history")]
+    [InlineData("\"chaosTo\": 40.0", "\"chaosTo\": 140.0", "invalid_history")] // 章のカオス度は 0〜100
+    [InlineData("\"fromYear\": 200, \"chaosFrom\": 10.0", "\"fromYear\": 300, \"chaosFrom\": 10.0", "invalid_history")] // 章の始まりは終わりより前
+    [InlineData("\"body\": \"木は人を見下ろし、人は木を仰いだ。\"", "\"body\": \"\"", "invalid_history")] // 神話の本文が空
+    [InlineData("\"historyChapterStart\": { \"year\": 300", "\"historyChapterStart\": { \"year\": 400", "invalid_year")]
+    [InlineData("\"chaos\": 12.5", "\"chaos\": -1", "invalid_number")]
     [InlineData("\"symbolId\": \"SYM_TREE\", \"dogmaType\": \"Taboo\"", "\"symbolId\": \"SYM_STONE\", \"dogmaType\": \"Taboo\"", "invalid_history")]
     [InlineData("\"dogmaType\": \"Taboo\", \"name\"", "\"dogmaType\": \"Love\", \"name\"", "invalid_history")]
     [InlineData("\"epithet\": { \"id\": \"EPITHET_BUILDER\", \"symbolId\": null }, \"breakdown\": null", "\"epithet\": null, \"breakdown\": null", "invalid_history")] // 称号の無い住人の死は残さない

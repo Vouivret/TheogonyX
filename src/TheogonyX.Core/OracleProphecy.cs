@@ -21,8 +21,7 @@ public sealed record OracleText(string Heading, string Intent, string Doctrine)
     public bool IsValid() =>
         IsValidPart(Heading, MaxHeadingLength) && IsValidPart(Intent, MaxBodyLength) && IsValidPart(Doctrine, MaxBodyLength);
 
-    private static bool IsValidPart(string? text, int maxLength) =>
-        !string.IsNullOrWhiteSpace(text) && text.Length <= maxLength && !text.Any(char.IsControl);
+    private static bool IsValidPart(string? text, int maxLength) => AiText.IsPlain(text, maxLength);
 }
 
 /// <summary>予言者の誤解に使う、ローカルの LLM の定義。</summary>
@@ -107,34 +106,12 @@ public static class OracleProphecy
     public static OracleText? ParseResponse(string body)
     {
         ArgumentNullException.ThrowIfNull(body);
-        try
+        // 形の崩れは想定内。呼び出し側が定型文に戻し、理由をログに出す
+        var text = AiText.ReadObject(body, root =>
         {
-            using var outer = JsonDocument.Parse(body);
-            if (outer.RootElement.ValueKind != JsonValueKind.Object
-                || !outer.RootElement.TryGetProperty("response", out var response) || response.ValueKind != JsonValueKind.String)
-            {
-                return null;
-            }
-            using var inner = JsonDocument.Parse(response.GetString()!);
-            var root = inner.RootElement;
-            if (root.ValueKind != JsonValueKind.Object)
-            {
-                return null;
-            }
-            string? Part(string name) =>
-                root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString()?.Trim() : null;
-            var (heading, intent, doctrine) = (Part("heading"), Part("intent"), Part("doctrine"));
-            if (heading is null || intent is null || doctrine is null)
-            {
-                return null;
-            }
-            var text = new OracleText(heading, intent, doctrine);
-            return text.IsValid() ? text : null;
-        }
-        catch (JsonException)
-        {
-            // 外部入力の形の崩れは想定内。呼び出し側が定型文に戻し、理由をログに出す
-            return null;
-        }
+            var (heading, intent, doctrine) = (AiText.Part(root, "heading"), AiText.Part(root, "intent"), AiText.Part(root, "doctrine"));
+            return heading is null || intent is null || doctrine is null ? null : new OracleText(heading, intent, doctrine);
+        });
+        return text is not null && text.IsValid() ? text : null;
     }
 }

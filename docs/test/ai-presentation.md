@@ -14,6 +14,9 @@
 | TS-ai-presentation-003 | AC-ai-presentation-003 | 宛先がループバックだけであること、定義の値の範囲 | 受け入れ条件のとおり | 検証する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleProphecyTests.cs` |
 | TS-ai-presentation-004 | AC-ai-presentation-004 | 年表のドグマの行に添えること | 受け入れ条件のとおり | 添える | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleProphecyTests.cs` |
 | TS-ai-presentation-005 | AC-ai-presentation-005 | 神託の文の保存と読み込み、壊れた文 | 受け入れ条件のとおり | 書き出して読み戻す、読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs`（TS-save-data-004 の中で確かめる） |
+| TS-ai-presentation-007 | AC-ai-presentation-007 | 章の神話の頼みの組み立て（年・カオス度の変化・出来事・前の言い伝え） | 受け入れ条件のとおり | 頼みを組み立てる | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/MythChronicleTests.cs` |
+| TS-ai-presentation-008 | AC-ai-presentation-008 | 神話の応答の検証 | 受け入れ条件のとおり | 取り出す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/MythChronicleTests.cs` |
+| TS-ai-presentation-009 | AC-ai-presentation-009 | 神話の文を章の行にだけ添えること | 受け入れ条件のとおり | 添える | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/MythChronicleTests.cs` |
 | TS-ai-presentation-006 | AC-ai-presentation-006 | 実際の Ollama での吹き出しと年表、止まっているときの定型文 | `game/` を Godot 4.7.2 で開く。Ollama に `gemma2:9b` がある | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順

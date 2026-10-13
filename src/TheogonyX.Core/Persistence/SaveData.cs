@@ -10,6 +10,7 @@ namespace TheogonyX.Core.Persistence;
 /// <param name="Civilization">地域の文明の値と建物。</param>
 /// <param name="Residents">住人と墓。</param>
 /// <param name="History">年表の行（古い順）。年表を残さないなら空。</param>
+/// <param name="Chapter">年表の今の章の始まり。</param>
 public sealed record SaveData(
     int Seed,
     int DreamsGenerated,
@@ -24,4 +25,5 @@ public sealed record SaveData(
     double ElapsedSeconds,
     Civilization Civilization,
     Residents Residents,
-    IReadOnlyList<HistoryEntry> History);
+    IReadOnlyList<HistoryEntry> History,
+    ChapterStart Chapter);

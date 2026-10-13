@@ -16,6 +16,8 @@
 | TS-history-005 | AC-history-005 | 決定性 | 受け入れ条件のとおり | 2 回計算する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/HistoryTests.cs` |
 | TS-history-006 | AC-history-006 | 年表を持たない場合 | 受け入れ条件のとおり | ドグマを加える | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/HistoryTests.cs` |
 | TS-history-007 | AC-history-007 | 年表の保存と読み込み、壊れた年表 | 受け入れ条件のとおり | 書き出して読み戻す、読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs`（TS-save-data-004・009 の中で確かめる） |
+| TS-history-009 | AC-history-009 | 章の区切り（100 年ごと）と、再創生の後の数え直し | 受け入れ条件のとおり | 跳躍・再創生する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/HistoryTests.cs` |
+| TS-history-010 | AC-history-010 | 読み込んだ章の始まりから、次の区切りで閉じること | 受け入れ条件のとおり | 章の始まりを渡して跳躍する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/HistoryTests.cs` |
 | TS-history-008 | AC-history-008 | 年表の欄の見た目と開け閉め | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順
