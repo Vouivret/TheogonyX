@@ -9,7 +9,7 @@ status: draft   # draft | approved | as-is
 - 通信: なし（スマホの手札の出し方は[未決](#未決)。決まったら `messages.md` の `DREAM_STATE` を更新する）
 - 画面デザイン: なし
 - 出典: 2026-10-14 のチャットで人間が渡した指示書「神託デッキビルドがもたらす 4 つの神システム」。**ルールの骨格は指示書のもの。数値・条件・名前のうち指示書に無いものは AI が仮に置いたもの（`TODO(AI_UNSURE)`）で、人間が決め直す。**
-- 関連: [夢の改ざん](dream-tampering.md)（手札の扱いが変わる）・[人の欲求と健康](agent-needs.md)・[星の年表](history.md)・[時間の進め方](time-skip.md)・[創発的な発展](emergent-progression.md)・[地層](strata.md)
+- 関連: [神託の伝達メディア](oracle-delivery.md)（ルーンとは別に選ぶ）・[夢の改ざん](dream-tampering.md)（手札の扱いが変わる）・[人の欲求と健康](agent-needs.md)・[星の年表](history.md)・[時間の進め方](time-skip.md)・[創発的な発展](emergent-progression.md)・[地層](strata.md)
 
 ## 目的
 
