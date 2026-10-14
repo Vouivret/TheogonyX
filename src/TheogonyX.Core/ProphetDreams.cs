@@ -70,6 +70,16 @@ public sealed class ProphetDreams
     /// <summary>困りごとの ID ごとの、依頼が済んだ年。</summary>
     public IReadOnlyDictionary<string, int> AnsweredYears => _answeredYears;
 
+    /// <summary>精査（ルーンの削除）の残りの回数。</summary>
+    public int PruneCharges => Deck.PruneCharges;
+
+    /// <summary>ルーンを 1 枚削除できない理由（<see cref="OracleDeck.PruneRejection"/>）。できるなら null。</summary>
+    public string? PruneRejection(string cardId) => Deck.PruneRejection(cardId);
+
+    /// <summary>ルーンを 1 枚削除する（精査）。</summary>
+    /// <exception cref="InvalidOperationException">削除できない。</exception>
+    public void Prune(string cardId) => Deck.Prune(cardId);
+
     /// <summary>神託を下せるか。崩壊しておらず、手札が 2 枚以上あり、神威がコスト以上ある。</summary>
     public bool CanPronounce => !_timeControl.World.IsDestroyed && Deck.Hand.Count >= 2 && Faith.CanAfford;
 
@@ -186,11 +196,12 @@ public sealed class ProphetDreams
         return new OracleResult(dogma, answered, resumed, overload, corruptedCount);
     }
 
-    /// <summary>世界再創生: 依頼・同じ困りごとを待つ年数を消し、神威を最初の量に戻す。デッキは保つ。</summary>
+    /// <summary>世界再創生: 依頼・同じ困りごとを待つ年数を消し、神威を最初の量に戻し、精査の持ち分を与える。デッキは保つ。</summary>
     public void Reset()
     {
         Faith.Reset();
         Deck.ResetCorruption();
+        Deck.GrantPruneCharges();
         _faithYear = _timeControl.World.Year;
         ActiveRequest = RequestTransitions[(ActiveRequest is not null, RequestTrigger.Reset)] ? ActiveRequest : null;
         _answeredYears.Clear();

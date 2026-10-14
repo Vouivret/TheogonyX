@@ -93,7 +93,8 @@ internal static class TestRules
     // docs/domain/oracle-deck.md の第 1 段（4 記号を各 3 枚、手札 4 枚）。
     public static readonly DeckRules Deck = new(
         [new DeckRuneCount("SYM_TREE", 3), new DeckRuneCount("SYM_RAIN", 3), new DeckRuneCount("SYM_BLOOD", 3), new DeckRuneCount("SYM_FIRE", 3)],
-        HandSize: 4);
+        HandSize: 4,
+        PruneChargesPerReset: 2);
 
     // docs/domain/oracle-pair.md の受け入れ条件の値（重みは AC の記号の重みと同じ。神威は上限 3・1 年に 0.1・コスト 1。歪みは 10 年に 2 回まで、超えた分 SAN 値 −20・カオス度 +5）。
     public static readonly OracleRules Oracle = new(

@@ -20,6 +20,8 @@ public sealed record OracleDeckState(
 public sealed class OracleDeck
 {
     private readonly int _seed;
+    private readonly int _handSize;
+    private readonly int _pruneChargesPerReset;
     private readonly List<string> _drawPile = [];
     private readonly List<string> _hand = [];
     private readonly List<string> _discardPile = [];
@@ -29,6 +31,8 @@ public sealed class OracleDeck
     {
         ArgumentNullException.ThrowIfNull(rules);
         _seed = seed;
+        _handSize = rules.HandSize;
+        _pruneChargesPerReset = rules.PruneChargesPerReset;
         foreach (var rune in rules.InitialRunes)
         {
             for (var i = 0; i < rune.Count; i++)
@@ -51,6 +55,54 @@ public sealed class OracleDeck
 
     /// <summary>カオス度の閾値を越えて、汚染ルーンを混ぜた回数。</summary>
     public int CorruptionStage { get; private set; }
+
+    /// <summary>精査（ルーンの削除）の残りの回数。セーブしない（起動し直すと 0）。</summary>
+    public int PruneCharges { get; private set; }
+
+    /// <summary>世界再創生: 精査の持ち分を、決まった回数に戻す。</summary>
+    public void GrantPruneCharges() => PruneCharges = _pruneChargesPerReset;
+
+    /// <summary>
+    /// ルーンを 1 枚削除できない理由。できるなら null。
+    /// 理由は <c>no_prune_charges</c>・<c>card_not_in_deck</c>・<c>deck_too_small</c>（削除するとデッキが 2 枚未満になる）。
+    /// </summary>
+    public string? PruneRejection(string cardId)
+    {
+        ArgumentNullException.ThrowIfNull(cardId);
+        if (PruneCharges < 1)
+        {
+            return "no_prune_charges";
+        }
+        var total = _drawPile.Count + _hand.Count + _discardPile.Count;
+        if (!_drawPile.Contains(cardId) && !_hand.Contains(cardId) && !_discardPile.Contains(cardId))
+        {
+            return "card_not_in_deck";
+        }
+        return total <= 2 ? "deck_too_small" : null;
+    }
+
+    /// <summary>
+    /// ルーンを 1 枚、デッキから消す（精査の削除）。同じルーンが複数あるときは、捨札・山札・手札の順に 1 枚を選ぶ。
+    /// 手札から消えたら、山札から補う。
+    /// </summary>
+    /// <exception cref="InvalidOperationException">削除できない（<see cref="PruneRejection"/> が null でない）。</exception>
+    public void Prune(string cardId)
+    {
+        if (PruneRejection(cardId) is { } reason)
+        {
+            throw new InvalidOperationException($"削除できない: reason={reason}");
+        }
+
+        if (!_discardPile.Remove(cardId) && !_drawPile.Remove(cardId))
+        {
+            _hand.Remove(cardId);
+        }
+        PruneCharges--;
+        if (_hand.Count < _handSize)
+        {
+            Draw(_handSize - _hand.Count);
+        }
+    }
 
     /// <summary>
     /// 汚染ルーンを山札の中に混ぜる。位置は (シード, 混ぜた回数) から決める（同じ並びを再現できる）。

@@ -123,6 +123,7 @@ public partial class WorldCore : Node2D
         _dreams.OraclePronounced += _screen.Refresh;
         // 夢の欄が新しい夢を見た後に保存するよう、DreamView の後につなぐ
         _dreams.OraclePronounced += Save;
+        _dreams.DeckPruned += Save;
         // 予言者の誤解と歴史の神話化で、ローカルの LLM への通信を 1 つ共有する
         _ollama = new OllamaClient(oracleAiRules);
         _oracle = new OracleView(this, timeControl, _dreams, oracleAiRules, _ollama);

@@ -225,7 +225,8 @@
       { "symbolId": "SYM_BLOOD", "count": 3 },
       { "symbolId": "SYM_FIRE", "count": 3 }
     ],
-    "handSize": 4
+    "handSize": 4,
+    "pruneChargesPerReset": 2
   },
   "prophetRequests": {
     "cooldownYears": 50,

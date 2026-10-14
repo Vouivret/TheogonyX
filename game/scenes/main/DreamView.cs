@@ -25,6 +25,7 @@ public sealed class DreamView
     private readonly Button _oracleButton;
     private readonly HBoxContainer _dreamCards;
     private readonly Label _requestBubble;
+    private readonly HBoxContainer _pruneRow;
 
     // 選んだ手札の番号（1 枚目・2 枚目の順）。
     private readonly List<int> _selected = [];
@@ -48,11 +49,19 @@ public sealed class DreamView
         _dreamCards.Visible = true;
         _oracleButton.Pressed += OnOracleButtonPressed;
 
+        // 精査（世界再創生の後に、ルーンを削除する）の欄。持ち分があるときだけ出す。シーンは変えず、手札の下に足す
+        _pruneRow = new HBoxContainer { Visible = false };
+        _dreamCards.GetParent().AddChild(_pruneRow);
+        _dreamCards.GetParent().MoveChild(_pruneRow, _dreamCards.GetIndex() + 1);
+
         Redraw();
     }
 
     /// <summary>神託を下したとき。HUD のドグマの一覧と、時間のボタンを描き直すのに使う。</summary>
     public event Action? OraclePronounced;
+
+    /// <summary>精査でルーンを削除したとき。保存に使う。</summary>
+    public event Action? DeckPruned;
 
     /// <summary>描き直したとき。手札・神威・依頼・できる操作が変わったかもしれない。</summary>
     public event Action? Changed;
@@ -128,6 +137,55 @@ public sealed class DreamView
         return null;
     }
 
+    /// <summary>デッキのルーンを 1 枚削除する（精査）。</summary>
+    private void TryPrune(string cardId)
+    {
+        if (_prophet.PruneRejection(cardId) is { } reason)
+        {
+            GD.Print(FormattableString.Invariant(
+                $"event=deck_prune_rejected year={_timeControl.World.Year} runeId={cardId} reason={reason}"));
+            return;
+        }
+
+        _prophet.Prune(cardId);
+        GD.Print(FormattableString.Invariant(
+            $"event=deck_pruned year={_timeControl.World.Year} runeId={cardId}"));
+        Redraw();
+        DeckPruned?.Invoke();
+    }
+
+    // 精査の欄を作り直す。デッキのルーンを種類ごとにまとめて、ボタンにする
+    private void RedrawPrune()
+    {
+        foreach (var child in _pruneRow.GetChildren())
+        {
+            _pruneRow.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        _pruneRow.Visible = _prophet.PruneCharges > 0;
+        if (!_pruneRow.Visible)
+        {
+            return;
+        }
+
+        _pruneRow.AddChild(new Label
+        {
+            Text = string.Format(CultureInfo.CurrentCulture, Tr("PRUNE_LABEL"), _prophet.PruneCharges),
+        });
+        var cards = _prophet.Deck.DrawPile.Concat(_prophet.Hand).Concat(_prophet.Deck.DiscardPile);
+        foreach (var group in cards.GroupBy(id => id))
+        {
+            var cardId = group.Key;
+            var button = new Button
+            {
+                Text = string.Format(CultureInfo.CurrentCulture, Tr("PRUNE_CARD"), Tr($"SYMBOL_{cardId}"), group.Count()),
+            };
+            button.Pressed += () => TryPrune(cardId);
+            _pruneRow.AddChild(button);
+        }
+    }
+
     private void OnOracleButtonPressed()
     {
         if (_selected.Count == 2)
@@ -189,6 +247,7 @@ public sealed class DreamView
 
         _oracleButton.Disabled = !(_selected.Count == 2 && _prophet.CanPronounce);
         _dreamGuide.Text = GuideText();
+        RedrawPrune();
 
         if (_prophet.ActiveRequest is { } request)
         {
