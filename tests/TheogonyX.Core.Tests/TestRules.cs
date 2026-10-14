@@ -12,7 +12,7 @@ internal static class TestRules
     public static readonly DreamRules Dream = new(
         [
             new Symbol("SYM_TREE", 0.4f),
-            new Symbol("SYM_RAIN", 0.6f),
+            new Symbol("SYM_WATER", 0.6f),
             new Symbol("SYM_BLOOD", -0.9f),
             new Symbol("SYM_FIRE", 0.1f),
         ],
@@ -28,9 +28,9 @@ internal static class TestRules
             new DogmaEffect("SYM_TREE", DogmaType.Taboo, new EnvironmentValues(ForestAmount: 1.0f, WaterAmount: -0.5f, 0f, 0f, 0f)),
             new DogmaEffect("SYM_TREE", DogmaType.Worship, new EnvironmentValues(ForestAmount: 0.5f, 0f, 0f, 0f, HarmonyLevel: 0.2f)),
             new DogmaEffect("SYM_TREE", DogmaType.Destruction, new EnvironmentValues(ForestAmount: -2.0f, 0f, 0f, ChaosLevel: 0.8f, 0f)),
-            new DogmaEffect("SYM_RAIN", DogmaType.Taboo, new EnvironmentValues(0f, WaterAmount: -1.0f, Temperature: 0.1f, 0f, 0f)),
-            new DogmaEffect("SYM_RAIN", DogmaType.Worship, new EnvironmentValues(0f, WaterAmount: 0.5f, Temperature: -0.05f, 0f, 0f)),
-            new DogmaEffect("SYM_RAIN", DogmaType.Destruction, new EnvironmentValues(0f, WaterAmount: -1.5f, 0f, ChaosLevel: 0.5f, 0f)),
+            new DogmaEffect("SYM_WATER", DogmaType.Taboo, new EnvironmentValues(0f, WaterAmount: -1.0f, Temperature: 0.1f, 0f, 0f)),
+            new DogmaEffect("SYM_WATER", DogmaType.Worship, new EnvironmentValues(0f, WaterAmount: 0.5f, Temperature: -0.05f, 0f, 0f)),
+            new DogmaEffect("SYM_WATER", DogmaType.Destruction, new EnvironmentValues(0f, WaterAmount: -1.5f, 0f, ChaosLevel: 0.5f, 0f)),
             new DogmaEffect("SYM_FIRE", DogmaType.Taboo, new EnvironmentValues(0f, 0f, Temperature: -0.2f, 0f, 0f)),
             new DogmaEffect("SYM_FIRE", DogmaType.Destruction, new EnvironmentValues(ForestAmount: -1.5f, 0f, Temperature: 0.3f, ChaosLevel: 1.0f, 0f)),
             new DogmaEffect("SYM_BLOOD", DogmaType.Worship, new EnvironmentValues(0f, 0f, 0f, ChaosLevel: 1.5f, HarmonyLevel: -1.0f)),
@@ -92,20 +92,20 @@ internal static class TestRules
 
     // docs/domain/oracle-deck.md の第 1 段（4 記号を各 3 枚、手札 4 枚）。
     public static readonly DeckRules Deck = new(
-        [new DeckRuneCount("SYM_TREE", 3), new DeckRuneCount("SYM_RAIN", 3), new DeckRuneCount("SYM_BLOOD", 3), new DeckRuneCount("SYM_FIRE", 3)],
+        [new DeckRuneCount("SYM_TREE", 3), new DeckRuneCount("SYM_WATER", 3), new DeckRuneCount("SYM_BLOOD", 3), new DeckRuneCount("SYM_FIRE", 3)],
         HandSize: 4,
         PruneChargesPerReset: 2,
-        BuildingRunes: [new BuildingRune("Workshop", "SYM_FIRE"), new BuildingRune("Shrine", "SYM_RAIN")],
+        BuildingRunes: [new BuildingRune("Workshop", "SYM_FIRE"), new BuildingRune("Shrine", "SYM_WATER")],
         MaxSize: 20);
 
     // docs/domain/oracle-pair.md の受け入れ条件の値（重みは AC の記号の重みと同じ。神威は上限 3・1 年に 0.1・コスト 1。歪みは 10 年に 2 回まで、超えた分 SAN 値 −20・カオス度 +5）。
     public static readonly OracleRules Oracle = new(
-        [new RuneWeight("SYM_TREE", 0.5f), new RuneWeight("SYM_RAIN", 0.5f), new RuneWeight("SYM_BLOOD", 0.9f), new RuneWeight("SYM_FIRE", 0.4f)],
+        [new RuneWeight("SYM_TREE", 0.5f), new RuneWeight("SYM_WATER", 0.5f), new RuneWeight("SYM_BLOOD", 0.9f), new RuneWeight("SYM_FIRE", 0.4f)],
         new FaithRules(Max: 3f, PerYear: 0.1f, Cost: 1f, Initial: 3f),
         new OverloadRules(WindowYears: 10, FreeCount: 2, SanityLoss: 20, ChaosGain: 5f),
         new CorruptionRules(
             Thresholds: [50f, 80f],
-            Runes: [new CorruptedRune("RUNE_MADNESS", "SYM_BLOOD"), new CorruptedRune("RUNE_DECAY", "SYM_TREE"), new CorruptedRune("RUNE_CURSE", "SYM_RAIN")],
+            Runes: [new CorruptedRune("RUNE_MADNESS", "SYM_BLOOD"), new CorruptedRune("RUNE_DECAY", "SYM_TREE"), new CorruptedRune("RUNE_CURSE", "SYM_WATER")],
             ChaosPerRune: 10f));
 
     // docs/domain/dream-tampering.md と prophet-request.md のルールの値。
@@ -113,9 +113,9 @@ internal static class TestRules
         RequestCooldownYears: 50,
         Requests:
         [
-            new ProphetRequestRule("THIRST", WorldMetric.WaterAmount, ThresholdComparison.AtOrBelow, 30f, "SYM_RAIN"),
+            new ProphetRequestRule("THIRST", WorldMetric.WaterAmount, ThresholdComparison.AtOrBelow, 30f, "SYM_WATER"),
             new ProphetRequestRule("FAMINE", WorldMetric.ForestAmount, ThresholdComparison.AtOrBelow, 30f, "SYM_TREE"),
-            new ProphetRequestRule("HEAT", WorldMetric.Temperature, ThresholdComparison.AtOrAbove, 40f, "SYM_RAIN"),
+            new ProphetRequestRule("HEAT", WorldMetric.Temperature, ThresholdComparison.AtOrAbove, 40f, "SYM_WATER"),
             new ProphetRequestRule("COLD", WorldMetric.Temperature, ThresholdComparison.AtOrBelow, -10f, "SYM_FIRE"),
             new ProphetRequestRule("CHAOS", WorldMetric.ChaosLevel, ThresholdComparison.AtOrAbove, 60f, "SYM_TREE"),
         ]);

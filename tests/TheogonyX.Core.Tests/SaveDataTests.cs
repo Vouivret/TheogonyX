@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 14, "seed": 42,
+          "saveVersion": 15, "seed": 42,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -42,11 +42,11 @@ public class SaveDataTests
                          "epithet": { "id": "EPITHET_BLOODLESS", "symbolId": null }, "partnerId": 3, "housesBuilt": 1 }],
             "graves": [{ "residentId": 2, "region": 1, "deathYear": 305,
                          "name": { "firstPrefix": "NAME_PREFIX_VAL", "firstSuffix": "NAME_SUFFIX_US", "lineagePrefix": "NAME_PREFIX_EL", "lineageSuffix": "NAME_SUFFIX_GIS" },
-                         "epithet": { "id": "EPITHET_WITNESS", "symbolId": "SYM_RAIN" } }],
+                         "epithet": { "id": "EPITHET_WITNESS", "symbolId": "SYM_WATER" } }],
             "nextResidentId": 5
           },
           "historyChapterStart": { "year": 300, "chaos": 12.5 },
-          "deck": { "drawPile": ["SYM_TREE", "SYM_RAIN"], "hand": ["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_RAIN"],
+          "deck": { "drawPile": ["SYM_TREE", "SYM_WATER"], "hand": ["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_WATER"],
                     "discardPile": ["SYM_FIRE"], "shuffleCount": 2, "corruptionStage": 1, "lastBuildingId": 3 },
           "faith": { "value": 1.5, "recentYears": [300, 310] },
           "history": [
@@ -284,8 +284,8 @@ public class SaveDataTests
         Assert.True(ok, reason);
         Assert.Equal(312, data!.World.Year);
         Assert.Equal("THIRST", data.RequestId);
-        Assert.Equal(["SYM_TREE", "SYM_RAIN"], data.Deck.DrawPile);
-        Assert.Equal(["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_RAIN"], data.Deck.Hand);
+        Assert.Equal(["SYM_TREE", "SYM_WATER"], data.Deck.DrawPile);
+        Assert.Equal(["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_WATER"], data.Deck.Hand);
         Assert.Equal(["SYM_FIRE"], data.Deck.DiscardPile);
         Assert.Equal(2, data.Deck.ShuffleCount);
         Assert.Equal(1, data.Deck.CorruptionStage);
@@ -309,7 +309,7 @@ public class SaveDataTests
         Assert.Equal(
             new Grave(
                 2, 1, 305, new ResidentName("NAME_PREFIX_VAL", "NAME_SUFFIX_US", "NAME_PREFIX_EL", "NAME_SUFFIX_GIS"),
-                new ResidentEpithet(Epithets.Witness, "SYM_RAIN")),
+                new ResidentEpithet(Epithets.Witness, "SYM_WATER")),
             Assert.Single(data.Residents.Graves));
         Assert.Equal(5, data.Residents.NextResidentId);
         Assert.Equal(
@@ -366,8 +366,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 14", "\"saveVersion\": 13", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 14, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 15", "\"saveVersion\": 14", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 15, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"year\": 312", "\"year\": -1", "invalid_year")]
     [InlineData("\"forestAmount\": 50", "\"forestAmount\": 1e999", "invalid_number")]
@@ -408,7 +408,7 @@ public class SaveDataTests
     [InlineData("\"birthYear\": 280", "\"birthYear\": 313", "invalid_residents")]
     [InlineData("\"firstPrefix\": \"NAME_PREFIX_ART\"", "\"firstPrefix\": \"NAME_PREFIX_DAGO\"", "invalid_residents")]
     [InlineData("\"id\": \"EPITHET_BLOODLESS\"", "\"id\": \"EPITHET_CONQUEROR\"", "invalid_residents")]
-    [InlineData("\"symbolId\": \"SYM_RAIN\"", "\"symbolId\": \"SYM_STONE\"", "invalid_residents")]
+    [InlineData("\"symbolId\": \"SYM_WATER\"", "\"symbolId\": \"SYM_STONE\"", "invalid_residents")]
     [InlineData("\"residentId\": 2", "\"residentId\": 4", "invalid_residents")] // 住人と墓で ID が重なる
     [InlineData("\"nextResidentId\": 5", "\"nextResidentId\": 4", "invalid_residents")] // 次の ID 以上
     [InlineData("\"region\": 1", "\"region\": 8", "invalid_residents")] // 地域の外

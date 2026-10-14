@@ -115,7 +115,7 @@ public class OracleCorruptionTests
     public void PronouncePair_汚染ルーンを1枚使う_カオス度が10上がり捨札へ移る()
     {
         var (prophet, time, deck) = Create();
-        SetHand(deck, "RUNE_MADNESS", "SYM_TREE", "SYM_RAIN", "SYM_FIRE");
+        SetHand(deck, "RUNE_MADNESS", "SYM_TREE", "SYM_WATER", "SYM_FIRE");
         time.World.ChaosLevel = 20f;
 
         var result = prophet.PronouncePair(0, 1);
@@ -130,7 +130,7 @@ public class OracleCorruptionTests
     public void PronouncePair_汚染ルーンを2枚使う_カオス度が20上がる()
     {
         var (prophet, time, deck) = Create();
-        SetHand(deck, "RUNE_MADNESS", "RUNE_DECAY", "SYM_RAIN", "SYM_FIRE");
+        SetHand(deck, "RUNE_MADNESS", "RUNE_DECAY", "SYM_WATER", "SYM_FIRE");
         time.World.ChaosLevel = 20f;
 
         var result = prophet.PronouncePair(0, 1);
@@ -144,7 +144,7 @@ public class OracleCorruptionTests
     public void PronouncePair_汚染ルーンが対象_持つ記号がドグマの対象になる()
     {
         var (prophet, time, deck) = Create();
-        SetHand(deck, "RUNE_MADNESS", "SYM_TREE", "SYM_RAIN", "SYM_FIRE");
+        SetHand(deck, "RUNE_MADNESS", "SYM_TREE", "SYM_WATER", "SYM_FIRE");
 
         prophet.PronouncePair(0, 1);
 
@@ -157,7 +157,7 @@ public class OracleCorruptionTests
     public void PronouncePair_カオス度が上限に近い_上限を越えない()
     {
         var (prophet, time, deck) = Create();
-        SetHand(deck, "RUNE_MADNESS", "RUNE_DECAY", "SYM_RAIN", "SYM_FIRE");
+        SetHand(deck, "RUNE_MADNESS", "RUNE_DECAY", "SYM_WATER", "SYM_FIRE");
         time.World.ChaosLevel = 95f;
 
         prophet.PronouncePair(0, 1);
@@ -235,7 +235,7 @@ public class OracleCorruptionTests
     [Trait("TS", "TS-oracle-deck-012")]
     public void Validate_汚染ルーンの定義が正しくない_例外になる()
     {
-        var symbols = new HashSet<string> { "SYM_TREE", "SYM_RAIN", "SYM_BLOOD", "SYM_FIRE" };
+        var symbols = new HashSet<string> { "SYM_TREE", "SYM_WATER", "SYM_BLOOD", "SYM_FIRE" };
 
         void Check(CorruptionRules corruption) => (TestRules.Oracle with { Corruption = corruption }).Validate(symbols);
 

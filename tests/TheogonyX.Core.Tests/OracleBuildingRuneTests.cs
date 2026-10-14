@@ -20,7 +20,7 @@ public class OracleBuildingRuneTests
         var gained = deck.GainFromBuildings([Build(0, BuildingType.Workshop), Build(1, BuildingType.Shrine)]);
 
         Assert.Equal(2, gained);
-        Assert.Equal(["SYM_FIRE", "SYM_RAIN"], deck.DiscardPile);
+        Assert.Equal(["SYM_FIRE", "SYM_WATER"], deck.DiscardPile);
         Assert.Equal(1, deck.LastBuildingId);
     }
 
@@ -90,7 +90,7 @@ public class OracleBuildingRuneTests
     [Trait("TS", "TS-oracle-deck-019")]
     public void Validate_建物のルーンの定義が正しくない_例外になる()
     {
-        var symbols = new HashSet<string> { "SYM_TREE", "SYM_RAIN", "SYM_BLOOD", "SYM_FIRE" };
+        var symbols = new HashSet<string> { "SYM_TREE", "SYM_WATER", "SYM_BLOOD", "SYM_FIRE" };
 
         void Check(DeckRules rules) => rules.Validate(symbols);
 

@@ -29,7 +29,7 @@ public class WorldSimulatorTests
     [Trait("TS", "TS-time-skip-002")]
     public void SimulateTimeSkip_雨の禁忌が強度0点5で100年_変化量が半分になる()
     {
-        var world = Skip(100, new Dogma("SYM_RAIN", DogmaType.Taboo, 0.5f));
+        var world = Skip(100, new Dogma("SYM_WATER", DogmaType.Taboo, 0.5f));
 
         Assert.Equal(100, world.Year);
         Assert.Equal(50.0f, world.WaterAmount, Tolerance);
@@ -91,7 +91,7 @@ public class WorldSimulatorTests
     [Trait("TS", "TS-time-skip-007")]
     public void SimulateTimeSkip_木の破壊と雨の破壊で10年_変化量が合算される()
     {
-        var world = Skip(10, new Dogma("SYM_TREE", DogmaType.Destruction, 1.0f), new Dogma("SYM_RAIN", DogmaType.Destruction, 1.0f));
+        var world = Skip(10, new Dogma("SYM_TREE", DogmaType.Destruction, 1.0f), new Dogma("SYM_WATER", DogmaType.Destruction, 1.0f));
 
         Assert.Equal(10, world.Year);
         Assert.Equal(80.0f, world.ForestAmount, Tolerance);
@@ -103,7 +103,7 @@ public class WorldSimulatorTests
     [Trait("TS", "TS-time-skip-008")]
     public void SimulateTimeSkip_木の破壊と雨の破壊で100年_不毛で年67に崩壊する()
     {
-        var world = Skip(100, new Dogma("SYM_TREE", DogmaType.Destruction, 1.0f), new Dogma("SYM_RAIN", DogmaType.Destruction, 1.0f));
+        var world = Skip(100, new Dogma("SYM_TREE", DogmaType.Destruction, 1.0f), new Dogma("SYM_WATER", DogmaType.Destruction, 1.0f));
 
         Assert.Equal(67, world.Year);
         Assert.True(world.IsDestroyed);
@@ -134,7 +134,7 @@ public class WorldSimulatorTests
     [Trait("TS", "TS-time-skip-010")]
     public void SimulateTimeSkip_50年を2回_ドグマが跳躍をまたいで効き続ける()
     {
-        var dogmas = new[] { new Dogma("SYM_RAIN", DogmaType.Taboo, 0.5f) };
+        var dogmas = new[] { new Dogma("SYM_WATER", DogmaType.Taboo, 0.5f) };
         var world = Skip(50, dogmas);
 
         WorldSimulator.SimulateTimeSkip(world, dogmas, 50, TestRules.World);
@@ -194,7 +194,7 @@ public class WorldSimulatorTests
     [Trait("TS", "TS-time-skip-011")]
     public void SimulateTimeSkip_同じ入力で2回実行_すべての値が一致する()
     {
-        var dogmas = new[] { new Dogma("SYM_TREE", DogmaType.Destruction, 1.0f), new Dogma("SYM_RAIN", DogmaType.Destruction, 1.0f) };
+        var dogmas = new[] { new Dogma("SYM_TREE", DogmaType.Destruction, 1.0f), new Dogma("SYM_WATER", DogmaType.Destruction, 1.0f) };
 
         var first = Skip(100, dogmas);
         var second = Skip(100, dogmas);

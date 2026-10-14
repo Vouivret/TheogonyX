@@ -43,7 +43,7 @@ public class OraclePairTests
     [Trait("TS", "TS-oracle-pair-001")]
     [InlineData("SYM_TREE", "SYM_BLOOD", "SYM_TREE", DogmaType.Taboo, 1.0f)]
     [InlineData("SYM_BLOOD", "SYM_TREE", "SYM_BLOOD", DogmaType.Taboo, 1.0f)]
-    [InlineData("SYM_TREE", "SYM_RAIN", "SYM_TREE", DogmaType.Worship, 0.5f)]
+    [InlineData("SYM_TREE", "SYM_WATER", "SYM_TREE", DogmaType.Worship, 0.5f)]
     public void PronouncePair_2枚を選ぶ_1枚目が対象のドグマが加わる(string first, string second, string target, DogmaType type, float intensity)
     {
         var (prophet, time, deck) = CreatePair(first, second);

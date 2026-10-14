@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 14;
+    public const int SaveVersion = 15;
 
     /// <summary>受け付ける「直近の神託の年」の数の上限。</summary>
     public const int MaxRecentOracleYears = 1000;

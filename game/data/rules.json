@@ -11,9 +11,9 @@
       { "symbolId": "SYM_TREE", "dogmaType": "Taboo", "perYear": { "forestAmount": 1.0, "waterAmount": -0.5 } },
       { "symbolId": "SYM_TREE", "dogmaType": "Worship", "perYear": { "forestAmount": 0.5, "harmonyLevel": 0.2 } },
       { "symbolId": "SYM_TREE", "dogmaType": "Destruction", "perYear": { "forestAmount": -2.0, "chaosLevel": 0.8 } },
-      { "symbolId": "SYM_RAIN", "dogmaType": "Taboo", "perYear": { "waterAmount": -1.0, "temperature": 0.1 } },
-      { "symbolId": "SYM_RAIN", "dogmaType": "Worship", "perYear": { "waterAmount": 0.5, "temperature": -0.05 } },
-      { "symbolId": "SYM_RAIN", "dogmaType": "Destruction", "perYear": { "waterAmount": -1.5, "chaosLevel": 0.5 } },
+      { "symbolId": "SYM_WATER", "dogmaType": "Taboo", "perYear": { "waterAmount": -1.0, "temperature": 0.1 } },
+      { "symbolId": "SYM_WATER", "dogmaType": "Worship", "perYear": { "waterAmount": 0.5, "temperature": -0.05 } },
+      { "symbolId": "SYM_WATER", "dogmaType": "Destruction", "perYear": { "waterAmount": -1.5, "chaosLevel": 0.5 } },
       { "symbolId": "SYM_FIRE", "dogmaType": "Taboo", "perYear": { "temperature": -0.2 } },
       { "symbolId": "SYM_FIRE", "dogmaType": "Destruction", "perYear": { "forestAmount": -1.5, "temperature": 0.3, "chaosLevel": 1.0 } },
       { "symbolId": "SYM_BLOOD", "dogmaType": "Worship", "perYear": { "chaosLevel": 1.5, "harmonyLevel": -1.0 } },
@@ -202,7 +202,7 @@
   "oracle": {
     "runeWeights": [
       { "symbolId": "SYM_TREE", "weight": 0.7 },
-      { "symbolId": "SYM_RAIN", "weight": 0.7 },
+      { "symbolId": "SYM_WATER", "weight": 0.7 },
       { "symbolId": "SYM_BLOOD", "weight": 0.7 },
       { "symbolId": "SYM_FIRE", "weight": 0.7 }
     ],
@@ -214,14 +214,14 @@
       "runes": [
         { "id": "RUNE_MADNESS", "symbolId": "SYM_BLOOD" },
         { "id": "RUNE_DECAY", "symbolId": "SYM_TREE" },
-        { "id": "RUNE_CURSE", "symbolId": "SYM_RAIN" }
+        { "id": "RUNE_CURSE", "symbolId": "SYM_WATER" }
       ]
     }
   },
   "deck": {
     "initialRunes": [
       { "symbolId": "SYM_TREE", "count": 3 },
-      { "symbolId": "SYM_RAIN", "count": 3 },
+      { "symbolId": "SYM_WATER", "count": 3 },
       { "symbolId": "SYM_BLOOD", "count": 3 },
       { "symbolId": "SYM_FIRE", "count": 3 }
     ],
@@ -230,15 +230,15 @@
     "maxSize": 20,
     "buildingRunes": [
       { "buildingType": "Workshop", "symbolId": "SYM_FIRE" },
-      { "buildingType": "Shrine", "symbolId": "SYM_RAIN" }
+      { "buildingType": "Shrine", "symbolId": "SYM_WATER" }
     ]
   },
   "prophetRequests": {
     "cooldownYears": 50,
     "requests": [
-      { "id": "THIRST", "metric": "WaterAmount", "comparison": "AtOrBelow", "threshold": 30.0, "symbolId": "SYM_RAIN" },
+      { "id": "THIRST", "metric": "WaterAmount", "comparison": "AtOrBelow", "threshold": 30.0, "symbolId": "SYM_WATER" },
       { "id": "FAMINE", "metric": "ForestAmount", "comparison": "AtOrBelow", "threshold": 30.0, "symbolId": "SYM_TREE" },
-      { "id": "HEAT", "metric": "Temperature", "comparison": "AtOrAbove", "threshold": 40.0, "symbolId": "SYM_RAIN" },
+      { "id": "HEAT", "metric": "Temperature", "comparison": "AtOrAbove", "threshold": 40.0, "symbolId": "SYM_WATER" },
       { "id": "COLD", "metric": "Temperature", "comparison": "AtOrBelow", "threshold": -10.0, "symbolId": "SYM_FIRE" },
       { "id": "CHAOS", "metric": "ChaosLevel", "comparison": "AtOrAbove", "threshold": 60.0, "symbolId": "SYM_TREE" }
     ]

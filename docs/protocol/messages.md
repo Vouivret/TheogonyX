@@ -27,10 +27,10 @@
 { "type": "START_STREAM", "version": 1 }
 { "type": "ERROR", "version": 1, "reason": "MAX_CONNECTIONS_REACHED" }
 { "type": "ORACLE_STATE", "version": 1,
-  "hand": ["SYM_FIRE", "SYM_TREE", "SYM_TREE", "SYM_RAIN"],
+  "hand": ["SYM_FIRE", "SYM_TREE", "SYM_TREE", "SYM_WATER"],
   "faith": { "value": 2.0, "max": 3.0, "cost": 1.0 },
   "canPronounce": true, "isDestroyed": false,
-  "request": { "requestType": "THIRST", "symbolId": "SYM_RAIN" } }
+  "request": { "requestType": "THIRST", "symbolId": "SYM_WATER" } }
 { "type": "PRONOUNCE", "version": 2, "first": 1, "second": 3 }
 ```
 

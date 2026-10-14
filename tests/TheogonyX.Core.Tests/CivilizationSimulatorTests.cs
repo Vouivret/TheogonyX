@@ -67,7 +67,7 @@ public class CivilizationSimulatorTests
     public void AdvanceYear_禁忌と強度1の崇拝_伸びが半分になる()
     {
         var civilization = Advance(GrasslandWorld(),
-            [new Dogma("SYM_RAIN", DogmaType.Taboo, 0.7f), new Dogma("SYM_FIRE", DogmaType.Worship, 1f)]);
+            [new Dogma("SYM_WATER", DogmaType.Taboo, 0.7f), new Dogma("SYM_FIRE", DogmaType.Worship, 1f)]);
 
         Assert.Equal(0.055, civilization.Regions[ProphetRegion].Culture, Tolerance);
         Assert.Equal(0.005, civilization.Regions[ProphetRegion].Tech, Tolerance);

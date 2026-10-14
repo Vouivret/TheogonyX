@@ -651,20 +651,20 @@ public class ResidentsTests
 
         Assert.Equal(
             new ResidentEpithet(Epithets.Witness, "SYM_TREE"),
-            WitnessAfter(new Dogma("SYM_RAIN", DogmaType.Worship, 0.8f), new Dogma("SYM_TREE", DogmaType.Worship, 0.9f)));
-        Assert.Null(WitnessAfter(new Dogma("SYM_RAIN", DogmaType.Worship, 0.79f)));
+            WitnessAfter(new Dogma("SYM_WATER", DogmaType.Worship, 0.8f), new Dogma("SYM_TREE", DogmaType.Worship, 0.9f)));
+        Assert.Null(WitnessAfter(new Dogma("SYM_WATER", DogmaType.Worship, 0.79f)));
         Assert.Equal(
-            new ResidentEpithet(Epithets.Witness, "SYM_RAIN"),
-            WitnessAfter(new Dogma("SYM_RAIN", DogmaType.Worship, 0.9f), new Dogma("SYM_TREE", DogmaType.Worship, 0.9f)));
+            new ResidentEpithet(Epithets.Witness, "SYM_WATER"),
+            WitnessAfter(new Dogma("SYM_WATER", DogmaType.Worship, 0.9f), new Dogma("SYM_TREE", DogmaType.Worship, 0.9f)));
         Assert.Null(WitnessAfter());
 
         var residents = With(
             Person(0, RegionA, age: 81),
-            Person(1, RegionA, sanity: 3, epithet: new ResidentEpithet(Epithets.Witness, "SYM_RAIN")));
+            Person(1, RegionA, sanity: 3, epithet: new ResidentEpithet(Epithets.Witness, "SYM_WATER")));
         Advance(residents, CivilizationWith(House(0, RegionA)), WorldBefore(forest: 20f, chaos: 50f), rules: TestRules.Needs with { RampageProbability = 1.0 });
         Assert.Equal(new ResidentEpithet(Epithets.Elder), Find(residents, 0).Epithet);
         Assert.Equal(BreakdownKind.Rampage, Find(residents, 1).Breakdown);
-        Assert.Equal(new ResidentEpithet(Epithets.Witness, "SYM_RAIN"), Find(residents, 1).Epithet);
+        Assert.Equal(new ResidentEpithet(Epithets.Witness, "SYM_WATER"), Find(residents, 1).Epithet);
     }
 
     [Fact]

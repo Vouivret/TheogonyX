@@ -99,7 +99,7 @@ public class ProphetDreamsTests
         var update = prophet.OnTimeAdvanced();
 
         Assert.Equal("THIRST", update.NewRequest?.Id);
-        Assert.Equal("SYM_RAIN", prophet.ActiveRequest?.SymbolId);
+        Assert.Equal("SYM_WATER", prophet.ActiveRequest?.SymbolId);
     }
 
     [Fact]

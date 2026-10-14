@@ -30,7 +30,7 @@ public class OracleDeckTests
         Assert.Empty(deck.DiscardPile);
         var all = deck.Hand.Concat(deck.DrawPile).OrderBy(id => id).ToList();
         Assert.Equal(
-            [.. new[] { "SYM_BLOOD", "SYM_FIRE", "SYM_RAIN", "SYM_TREE" }.SelectMany(id => Enumerable.Repeat(id, 3)).OrderBy(id => id)],
+            [.. new[] { "SYM_BLOOD", "SYM_FIRE", "SYM_WATER", "SYM_TREE" }.SelectMany(id => Enumerable.Repeat(id, 3)).OrderBy(id => id)],
             all);
     }
 
@@ -84,7 +84,7 @@ public class OracleDeckTests
     public void SpendPair_山札が尽きている_捨札をシャッフルして戻して引く()
     {
         // 4 枚のデッキ: 手札 4 枚で山札は空。2 枚が捨札に入ってから 2 枚引くので、同じ 4 枚が手札に戻る
-        var deck = new OracleDeck(Seed, Rules(4, ("SYM_TREE", 1), ("SYM_RAIN", 1), ("SYM_BLOOD", 1), ("SYM_FIRE", 1)));
+        var deck = new OracleDeck(Seed, Rules(4, ("SYM_TREE", 1), ("SYM_WATER", 1), ("SYM_BLOOD", 1), ("SYM_FIRE", 1)));
         Assert.Empty(deck.DrawPile);
         var shuffles = deck.ShuffleCount;
 
@@ -94,14 +94,14 @@ public class OracleDeckTests
         Assert.Empty(deck.DiscardPile);
         Assert.Empty(deck.DrawPile);
         Assert.Equal(shuffles + 1, deck.ShuffleCount);
-        Assert.Equal(["SYM_BLOOD", "SYM_FIRE", "SYM_RAIN", "SYM_TREE"], [.. deck.Hand.OrderBy(id => id)]);
+        Assert.Equal(["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_WATER"], [.. deck.Hand.OrderBy(id => id)]);
     }
 
     [Fact]
     [Trait("TS", "TS-oracle-deck-003")]
     public void Constructor_手札の枚数がデッキより多い_引けるだけ引く()
     {
-        var deck = new OracleDeck(Seed, Rules(6, ("SYM_TREE", 1), ("SYM_RAIN", 1), ("SYM_BLOOD", 1), ("SYM_FIRE", 1)));
+        var deck = new OracleDeck(Seed, Rules(6, ("SYM_TREE", 1), ("SYM_WATER", 1), ("SYM_BLOOD", 1), ("SYM_FIRE", 1)));
 
         Assert.Equal(4, deck.Hand.Count);
         Assert.Empty(deck.DrawPile);

@@ -33,7 +33,7 @@ public class HostMessageWriterTests
     private static (ProphetDreams Prophet, TimeControl Time) CreateProphet()
     {
         var time = new TimeControl(TestRules.World, TestRules.JumpYears);
-        var deck = new OracleDeck(1, new DeckRules([new DeckRuneCount("SYM_TREE", 1), new DeckRuneCount("SYM_RAIN", 1)], HandSize: 2));
+        var deck = new OracleDeck(1, new DeckRules([new DeckRuneCount("SYM_TREE", 1), new DeckRuneCount("SYM_WATER", 1)], HandSize: 2));
         return (new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, TestRules.Oracle), time);
     }
 
@@ -74,7 +74,7 @@ public class HostMessageWriterTests
         var request = json.RootElement.GetProperty("request");
 
         Assert.Equal("THIRST", request.GetProperty("requestType").GetString());
-        Assert.Equal("SYM_RAIN", request.GetProperty("symbolId").GetString());
+        Assert.Equal("SYM_WATER", request.GetProperty("symbolId").GetString());
     }
 
     [Fact]

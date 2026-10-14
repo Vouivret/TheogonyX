@@ -43,7 +43,7 @@ public class OracleProphecyTests
     [Trait("TS", "TS-ai-presentation-001")]
     public void BuildPrompt_日本語でない言語_英語で答えさせる()
     {
-        var prompt = OracleProphecy.BuildPrompt(new Dogma("SYM_RAIN", DogmaType.Worship, 0.9f), "Blessed Rain", "Worship", World(5f, 80f), "en");
+        var prompt = OracleProphecy.BuildPrompt(new Dogma("SYM_WATER", DogmaType.Worship, 0.9f), "Blessed Rain", "Worship", World(5f, 80f), "en");
 
         Assert.Contains("Worship of \"Blessed Rain\" (strength 0.90", prompt);
         Assert.Contains("chaos 5", prompt);

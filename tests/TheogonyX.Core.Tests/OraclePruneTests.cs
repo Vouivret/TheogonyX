@@ -40,14 +40,14 @@ public class OraclePruneTests
     public void Prune_捨札の汚染ルーン_1枚消えて持ち分が減り手札は変わらない()
     {
         var (prophet, time, deck) = Create();
-        SetDeck(deck, ["SYM_RAIN", "SYM_FIRE"], ["SYM_TREE", "SYM_BLOOD", "SYM_RAIN", "SYM_FIRE"], ["RUNE_MADNESS"]);
+        SetDeck(deck, ["SYM_WATER", "SYM_FIRE"], ["SYM_TREE", "SYM_BLOOD", "SYM_WATER", "SYM_FIRE"], ["RUNE_MADNESS"]);
         time.Reset();
         prophet.Reset();
 
         prophet.Prune("RUNE_MADNESS");
 
         Assert.Empty(deck.DiscardPile);
-        Assert.Equal(["SYM_TREE", "SYM_BLOOD", "SYM_RAIN", "SYM_FIRE"], deck.Hand);
+        Assert.Equal(["SYM_TREE", "SYM_BLOOD", "SYM_WATER", "SYM_FIRE"], deck.Hand);
         Assert.Equal(1, prophet.PruneCharges);
     }
 
@@ -56,7 +56,7 @@ public class OraclePruneTests
     public void Prune_手札にだけある_消えた分を山札から補う()
     {
         var (prophet, time, deck) = Create();
-        SetDeck(deck, ["SYM_RAIN", "SYM_FIRE"], ["SYM_TREE", "SYM_BLOOD", "SYM_BLOOD", "SYM_FIRE"], []);
+        SetDeck(deck, ["SYM_WATER", "SYM_FIRE"], ["SYM_TREE", "SYM_BLOOD", "SYM_BLOOD", "SYM_FIRE"], []);
         time.Reset();
         prophet.Reset();
 
@@ -73,14 +73,14 @@ public class OraclePruneTests
     public void Prune_同じルーンが複数_捨札から先に消える()
     {
         var (prophet, time, deck) = Create();
-        SetDeck(deck, ["SYM_TREE", "SYM_RAIN"], ["SYM_TREE", "SYM_BLOOD", "SYM_BLOOD", "SYM_FIRE"], ["SYM_TREE"]);
+        SetDeck(deck, ["SYM_TREE", "SYM_WATER"], ["SYM_TREE", "SYM_BLOOD", "SYM_BLOOD", "SYM_FIRE"], ["SYM_TREE"]);
         time.Reset();
         prophet.Reset();
 
         prophet.Prune("SYM_TREE");
 
         Assert.Empty(deck.DiscardPile);
-        Assert.Equal(["SYM_TREE", "SYM_RAIN"], deck.DrawPile);
+        Assert.Equal(["SYM_TREE", "SYM_WATER"], deck.DrawPile);
         Assert.Equal(["SYM_TREE", "SYM_BLOOD", "SYM_BLOOD", "SYM_FIRE"], deck.Hand);
     }
 
@@ -115,7 +115,7 @@ public class OraclePruneTests
     public void PruneRejection_デッキが2枚_拒否される()
     {
         var (prophet, time, deck) = Create();
-        SetDeck(deck, [], ["SYM_TREE", "SYM_RAIN"], []);
+        SetDeck(deck, [], ["SYM_TREE", "SYM_WATER"], []);
         time.Reset();
         prophet.Reset();
 
