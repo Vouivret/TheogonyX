@@ -281,8 +281,26 @@ public sealed class DreamView
             : !faith.CanAfford ? "ORACLE_GUIDE_NO_FAITH"
             : _selected.Count == 2 ? "ORACLE_GUIDE_READY"
             : "ORACLE_GUIDE_CHOOSE";
+        var guide = key == "ORACLE_GUIDE_READY" && PreviewText() is { } preview ? preview : Tr(key);
         return string.Format(
-            CultureInfo.CurrentCulture, Tr("ORACLE_GUIDE_FAITH"), Tr(key), faith.Value, faith.Max);
+            CultureInfo.CurrentCulture, Tr("ORACLE_GUIDE_FAITH"), guide, faith.Value, faith.Max);
+    }
+
+    // 選んだ 2 枚の五行の関係と種別の予告（例: 「聖なる火 ← 木：相生 → 崇拝（陽）」）。予告できなければ null
+    private string? PreviewText()
+    {
+        if (_prophet.PreviewPair(_selected[0], _selected[1]) is not { } judgement)
+        {
+            return null;
+        }
+        var relation = judgement.Relation is { } r ? $"WUXING_{r.ToString().ToUpperInvariant()}" : "WUXING_IMPURE";
+        return string.Format(
+            CultureInfo.CurrentCulture,
+            Tr("ORACLE_PREVIEW"),
+            Tr($"SYMBOL_{_prophet.Hand[_selected[0]]}"),
+            Tr($"SYMBOL_{_prophet.Hand[_selected[1]]}"),
+            Tr(relation),
+            Tr($"DOGMA_TYPE_{judgement.Type.ToString().ToUpperInvariant()}"));
     }
 
     private static string Tr(string key) => TranslationServer.Translate(key).ToString();

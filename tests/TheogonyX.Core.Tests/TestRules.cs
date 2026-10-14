@@ -116,7 +116,8 @@ internal static class TestRules
         new WuxingRules(
             Cycle: ["SYM_TREE", "SYM_FIRE", "SYM_EARTH", "SYM_METAL", "SYM_WATER"],
             Impure: ["SYM_BLOOD"],
-            Multipliers: new WuxingMultipliers(Same: 1.3f, Generated: 1.0f, Overcome: 1.0f, Rebel: 1.0f, Leak: 0.5f)));
+            Multipliers: new WuxingMultipliers(Same: 1.3f, Generated: 1.0f, Overcome: 1.0f, Rebel: 1.0f, Leak: 0.5f)),
+        TypeRule: OracleTypeRule.Wuxing);
 
     // docs/domain/oracle-wuxing.md の受け入れ条件の値（重みはすべて 0.7、種別は五行の関係で決める）。
     public static readonly OracleRules OracleWuxing = Oracle with

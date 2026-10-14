@@ -14,9 +14,9 @@ SYMBOL_SYM_METAL,鉄,Iron
 SYMBOL_RUNE_MADNESS,狂乱,Madness
 SYMBOL_RUNE_DECAY,腐敗,Decay
 SYMBOL_RUNE_CURSE,祟り,Curse
-DOGMA_TYPE_TABOO,禁忌,Taboo
-DOGMA_TYPE_WORSHIP,崇拝,Worship
-DOGMA_TYPE_DESTRUCTION,破壊,Destruction
+DOGMA_TYPE_TABOO,禁忌（陰）,Taboo (Yin)
+DOGMA_TYPE_WORSHIP,崇拝（陽）,Worship (Yang)
+DOGMA_TYPE_DESTRUCTION,破壊（乱れ）,Destruction (Disorder)
 BUTTON_JUMP,{0}年跳躍,Skip {0} Years
 BUTTON_AUTO_PLAY,自動進行,Auto-play
 BUTTON_PAUSE,一時停止,Pause
@@ -48,6 +48,13 @@ BUTTON_RESET_SESSIONS,全セッションリセット,Reset All Sessions
 BUTTON_ORACLE,神託を下す,Deliver Oracle
 ORACLE_GUIDE_CHOOSE,手札から 2 枚を選べ（1 枚目が対象）,Choose 2 cards (the first is the target).
 ORACLE_GUIDE_READY,神託を下せ,Deliver the oracle.
+ORACLE_PREVIEW,{0} ← {1}：{2} → {3},{0} ← {1}: {2} → {3}
+WUXING_SAME,比和,Kinship
+WUXING_GENERATED,相生,Generating
+WUXING_OVERCOME,相剋,Overcoming
+WUXING_REBEL,逆らう,Rebelling
+WUXING_LEAK,漏れる,Draining
+WUXING_IMPURE,穢れ,Impurity
 ORACLE_GUIDE_NO_FAITH,神威が足りない,Not enough divine power.
 ORACLE_GUIDE_NO_CARDS,手札が足りない,Not enough cards.
 PRUNE_LABEL,精査 残り {0} 回（消すルーンを選ぶ）,Prune: {0} left (choose a rune to remove)

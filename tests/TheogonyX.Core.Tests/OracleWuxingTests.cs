@@ -17,7 +17,9 @@ public class OracleWuxingTests
             ? new DeckRules([new DeckRuneCount(a, 2)], HandSize: 2)
             : new DeckRules([new DeckRuneCount(a, 1), new DeckRuneCount(b, 1)], HandSize: 2);
         var deck = new OracleDeck(Seed, rules);
-        return (new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, TestRules.Oracle), time);
+        // 段階 1 の旧い方式（極性の和）。段階 2c で旧い方式とともに消す
+        var oracle = TestRules.Oracle with { TypeRule = OracleTypeRule.Polarity };
+        return (new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, oracle), time);
     }
 
     [Theory]
@@ -157,5 +159,57 @@ public class OracleWuxingTests
 
         Assert.NotNull(dogma);
         Assert.Equal(DogmaType.Destruction, dogma.Type);
+    }
+
+    // 手札を指定した ProphetDreams（種別は五行の関係で決める）
+    private static (ProphetDreams Prophet, TimeControl Time) CreateWithHand(params string[] hand)
+    {
+        var time = new TimeControl(
+            TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
+        var deck = new OracleDeck(Seed, TestRules.Deck);
+        var state = deck.Capture();
+        deck.Restore(state with { Hand = hand, DrawPile = [.. state.DrawPile, .. state.Hand] });
+        return (new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, TestRules.OracleWuxing), time);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-wuxing-007")]
+    public void PreviewPair_火と水_相剋で禁忌と予告し下した神託と一致する()
+    {
+        var (prophet, time) = CreateWithHand("SYM_FIRE", "SYM_WATER", "SYM_TREE", "SYM_EARTH");
+
+        var preview = prophet.PreviewPair(0, 1);
+        prophet.PronouncePair(0, 1);
+
+        Assert.NotNull(preview);
+        Assert.Equal(WuxingRelation.Overcome, preview.Relation);
+        Assert.Equal(DogmaType.Taboo, preview.Type);
+        var dogma = Assert.Single(time.Dogmas);
+        Assert.Equal("SYM_FIRE", dogma.TargetSymbolId);
+        Assert.Equal(DogmaType.Taboo, dogma.Type);
+    }
+
+    [Theory]
+    [Trait("TS", "TS-oracle-wuxing-007")]
+    [InlineData(0, 0)]
+    [InlineData(0, 4)]
+    [InlineData(-1, 1)]
+    public void PreviewPair_番号が正しくない_予告しない(int first, int second)
+    {
+        var (prophet, _) = CreateWithHand("SYM_FIRE", "SYM_WATER", "SYM_TREE", "SYM_EARTH");
+
+        Assert.Null(prophet.PreviewPair(first, second));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-wuxing-007")]
+    public void PreviewPair_種別の決め方が極性_予告しない()
+    {
+        var time = new TimeControl(
+            TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
+        var prophet = new ProphetDreams(
+            time, TestRules.Dream, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle with { TypeRule = OracleTypeRule.Polarity });
+
+        Assert.Null(prophet.PreviewPair(0, 1));
     }
 }

@@ -217,7 +217,7 @@
     ],
     "faith": { "max": 3.0, "perYear": 0.1, "cost": 1.0, "initial": 3.0 },
     "overload": { "windowYears": 10, "freeCount": 2, "sanityLoss": 20.0, "chaosGain": 5.0 },
-    "typeRule": "Polarity",
+    "typeRule": "Wuxing",
     "wuxing": {
       "cycle": ["SYM_TREE", "SYM_FIRE", "SYM_EARTH", "SYM_METAL", "SYM_WATER"],
       "impure": ["SYM_BLOOD"],

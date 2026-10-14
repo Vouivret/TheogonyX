@@ -123,6 +123,20 @@ public sealed class ProphetDreams
     }
 
     /// <summary>
+    /// 手札の 2 枚（番号は手札の位置。1 枚目が対象）で神託を下したときの、五行の関係と種別の予告（画面の案内に使う）。
+    /// 種別を五行で決めていない、または番号が正しくなければ null。
+    /// </summary>
+    public WuxingJudgement? PreviewPair(int first, int second)
+    {
+        if (_oracleRules.TypeRule != OracleTypeRule.Wuxing
+            || first < 0 || second < 0 || first >= Deck.Hand.Count || second >= Deck.Hand.Count || first == second)
+        {
+            return null;
+        }
+        return WuxingInterpreter.Judge(Deck.Hand[first], Deck.Hand[second], _oracleRules);
+    }
+
+    /// <summary>
     /// 手札の 2 枚（番号は手札の位置）で神託を下せない理由。下せるなら null。
     /// 理由は <c>star_destroyed</c>・<c>not_enough_cards</c>・<c>card_not_in_hand</c>・<c>same_card</c>・<c>not_enough_faith</c>。
     /// </summary>

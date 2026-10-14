@@ -46,7 +46,8 @@ public class OraclePairTests
     [InlineData("SYM_TREE", "SYM_WATER", "SYM_TREE", DogmaType.Worship, 0.5f)]
     public void PronouncePair_2枚を選ぶ_1枚目が対象のドグマが加わる(string first, string second, string target, DogmaType type, float intensity)
     {
-        var (prophet, time, deck) = CreatePair(first, second);
+        // 旧い方式（極性の和）。段階 2c で旧い方式とともに消す（docs/domain/oracle-wuxing.md）
+        var (prophet, time, deck) = CreatePair(first, second, TestRules.Oracle with { TypeRule = OracleTypeRule.Polarity });
 
         var result = prophet.PronouncePair(IndexOf(deck, first), IndexOf(deck, second));
 
