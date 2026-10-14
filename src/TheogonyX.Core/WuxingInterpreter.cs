@@ -15,7 +15,7 @@ public enum WuxingRelation
     /// <summary>対象が 2 枚目を剋す（逆らう）。</summary>
     Rebel,
 
-    /// <summary>対象が 2 枚目を生む（漏れる）。</summary>
+    /// <summary>対象が 2 枚目を生む（分流）。</summary>
     Leak,
 }
 
