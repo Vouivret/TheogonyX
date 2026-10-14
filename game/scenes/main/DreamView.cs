@@ -25,7 +25,7 @@ public sealed class DreamView
     private readonly Button _oracleButton;
     private readonly HBoxContainer _dreamCards;
     private readonly Label _requestBubble;
-    private readonly HBoxContainer _pruneRow;
+    private readonly HFlowContainer _pruneRow;
 
     // 選んだ手札の番号（1 枚目・2 枚目の順）。
     private readonly List<int> _selected = [];
@@ -50,7 +50,8 @@ public sealed class DreamView
         _oracleButton.Pressed += OnOracleButtonPressed;
 
         // 精査（世界再創生の後に、ルーンを削除する）の欄。持ち分があるときだけ出す。シーンは変えず、手札の下に足す
-        _pruneRow = new HBoxContainer { Visible = false };
+        // 左の帯は幅が狭い（264px）ので、ボタンは折り返す
+        _pruneRow = new HFlowContainer { Visible = false };
         _dreamCards.GetParent().AddChild(_pruneRow);
         _dreamCards.GetParent().MoveChild(_pruneRow, _dreamCards.GetIndex() + 1);
 
