@@ -25,16 +25,18 @@ public sealed class CameraView
     // ズームの中心にするマウスの位置（画面の中心から見た px）
     private Vector2 _anchorOffset;
     private bool _dragging;
-    private bool _detail;
+    private double _blend = -1;
 
-    // 詳細の視点になる倍率（docs/domain/camera-views.md の詳細は 1.5〜4.0 倍）。これ以上で住人の絵を出し、群衆の点を隠す
-    private const double DetailZoom = 1.5;
+    // 群衆の点から住人の絵へ、重ねて薄くしながら切り替える倍率の範囲。1.0 倍以下は群衆だけ、2.0 倍以上は住人だけ
+    // TODO(AI_UNSURE): 範囲は AI が仮に置いた（docs/domain/camera-views.md の「未決」）
+    private const double BlendFromZoom = 1.0;
+    private const double BlendToZoom = 2.0;
 
-    /// <summary>詳細の視点になった（true）か、中拡大・大陸に戻った（false）とき。</summary>
-    public event System.Action<bool>? DetailChanged;
+    /// <summary>詳細の視点の度合い（0: 群衆の点だけ、1: 住人の絵だけ）が変わったとき。</summary>
+    public event System.Action<float>? DetailBlendChanged;
 
-    /// <summary>今、詳細の視点か。</summary>
-    public bool IsDetail => _zoom >= DetailZoom;
+    /// <summary>今の詳細の視点の度合い。</summary>
+    public float DetailBlend => (float)CameraZoom.DetailBlend(_zoom, BlendFromZoom, BlendToZoom);
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
     public CameraView(Node owner, CameraSettings settings)
@@ -113,10 +115,10 @@ public sealed class CameraView
         var y = settled ? CameraZoom.SnapCenter(_centerY, _zoom) : _centerY;
         _camera.Position = new Vector2((float)x, (float)y);
         _camera.Zoom = new Vector2((float)_zoom, (float)_zoom);
-        if (IsDetail != _detail)
+        if (DetailBlend != _blend)
         {
-            _detail = IsDetail;
-            DetailChanged?.Invoke(_detail);
+            _blend = DetailBlend;
+            DetailBlendChanged?.Invoke(DetailBlend);
         }
     }
 }

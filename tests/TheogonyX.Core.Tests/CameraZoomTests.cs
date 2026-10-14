@@ -86,4 +86,23 @@ public class CameraZoomTests
     {
         Assert.Equal(expected, CameraZoom.SnapCenter(center, zoom), Tolerance);
     }
+
+    [Theory]
+    [Trait("TS", "TS-camera-views-005")]
+    [InlineData(0.5, 0.0)]
+    [InlineData(1.0, 0.0)]
+    [InlineData(1.5, 0.5)]
+    [InlineData(2.0, 1.0)]
+    [InlineData(4.0, 1.0)]
+    public void DetailBlend_範囲の中で直線に変わり外では0か1(double zoom, double expected)
+    {
+        Assert.Equal(expected, CameraZoom.DetailBlend(zoom, 1.0, 2.0), Tolerance);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-camera-views-005")]
+    public void DetailBlend_範囲が正しくない_例外になる()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => CameraZoom.DetailBlend(1.0, 2.0, 2.0));
+    }
 }

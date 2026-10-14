@@ -137,13 +137,20 @@ public static class GameDataLoader
                 && (i == 0 || steps[i] > steps[i - 1])
                 && (steps[i] <= 1 || steps[i] == Math.Floor(steps[i]));
         }
+        var icons = camera.ResidentIcons
+            ?? throw new InvalidDataException("住人の印の定義が無い: file=rules.json key=camera.residentIcons");
+        if (!double.IsFinite(icons.Hunger) || icons.Hunger < 0 || icons.Hunger > 1 || !double.IsFinite(icons.Shelter) || icons.Shelter < 0
+            || icons.Shelter > 1 || !double.IsFinite(icons.SanityBelow) || icons.SanityBelow < 0 || icons.SanityBelow > 100)
+        {
+            throw new InvalidDataException($"住人の印の定義の値が範囲外: file=rules.json value={icons}");
+        }
         if (!stepsValid || !steps.Contains(camera.StartZoom) || !double.IsFinite(camera.ZoomSmoothing) || camera.ZoomSmoothing <= 0
             || !double.IsFinite(camera.PanSpeed) || camera.PanSpeed <= 0)
         {
             throw new InvalidDataException(
                 $"カメラの定義の値が範囲外: file=rules.json zoomSteps={string.Join(',', steps)} startZoom={camera.StartZoom} zoomSmoothing={camera.ZoomSmoothing} panSpeed={camera.PanSpeed}");
         }
-        return new CameraSettings(steps, camera.StartZoom, camera.ZoomSmoothing, camera.PanSpeed);
+        return new CameraSettings(steps, camera.StartZoom, camera.ZoomSmoothing, camera.PanSpeed, icons);
     }
 
     public static CivilizationRules ParseCivilization(string rulesJson)
@@ -351,7 +358,8 @@ public static class GameDataLoader
 
     private sealed record CampfireFile(int Column, string Color, float Energy, float RadiusTiles, float FlickerAmount, float FlickerSpeed);
 
-    private sealed record CameraFile(IReadOnlyList<double>? ZoomSteps, double StartZoom, double ZoomSmoothing, double PanSpeed);
+    private sealed record CameraFile(
+        IReadOnlyList<double>? ZoomSteps, double StartZoom, double ZoomSmoothing, double PanSpeed, ResidentIconSettings? ResidentIcons);
 
     private sealed record CivilizationFile(
         int ColumnsPerRegion,

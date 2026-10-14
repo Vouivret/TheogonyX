@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Linq;
 using Godot;
 using TheogonyX.Core;
+using TheogonyX.Data;
 
 namespace TheogonyX.Scenes.Main;
 
@@ -23,6 +24,7 @@ public sealed class ResidentView
     private const float ArrivedDistance = 0.5f;
 
     private const int DollKinds = 7;
+    private const int IconSize = 12; // 欲求の印の大きさ（px）
     private const float ChildScale = 0.7f;
     private const float CoupleGap = 3f; // 並んで寝るつがいの、建物のそばの点からのずれ（px）
 
@@ -44,14 +46,18 @@ public sealed class ResidentView
     private readonly Dictionary<int, Sprite2D> _graves = [];
     private readonly Texture2D[] _dolls;
     private readonly Texture2D _graveTexture;
+    private readonly ResidentIconSettings _icons;
+    private readonly Texture2D[] _iconTextures;
+    private readonly Node2D _iconRow;
     private readonly PanelContainer _infoPanel;
     private readonly Label _infoLabel;
     private int? _selectedId;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public ResidentView(Node owner, TimeControl timeControl, CivilizationRules rules, NeedsRules needs, AmbienceView ambience, int seed)
+    public ResidentView(Node owner, TimeControl timeControl, CivilizationRules rules, NeedsRules needs, AmbienceView ambience, int seed, ResidentIconSettings icons)
     {
         _timeControl = timeControl;
+        _icons = icons;
         _rules = rules;
         _needs = needs;
         _ambience = ambience;
@@ -63,6 +69,15 @@ public sealed class ResidentView
         owner.GetNode<Sprite2D>("%Prophet").GetParent().AddChild(_layer);
         _dolls = [.. Enumerable.Range(1, DollKinds).Select(kind => GD.Load<Texture2D>($"res://assets/sprites/resident_{kind}.png"))];
         _graveTexture = CreateGrave();
+        // 欲求の印（空腹・住居・SAN 値）。絵のファイルがあればそれを使い、無ければ仮の単色の絵
+        _iconTextures =
+        [
+            LoadIcon("hunger", new Color(0.93f, 0.55f, 0.15f)),
+            LoadIcon("shelter", new Color(0.55f, 0.35f, 0.2f)),
+            LoadIcon("sanity", new Color(0.6f, 0.3f, 0.8f)),
+        ];
+        _iconRow = new Node2D { Name = "NeedIcons", Visible = false, ZIndex = 1 };
+        _layer.AddChild(_iconRow);
 
         _infoLabel = new Label { Name = "ResidentInfo" };
         _infoPanel = new PanelContainer
@@ -92,6 +107,11 @@ public sealed class ResidentView
         foreach (var walker in _walkers.Values)
         {
             walker.Update((float)delta, night, buildings, this);
+        }
+        // 印は、選んだ住人の頭上について歩く
+        if (_iconRow.Visible && _selectedId is { } id && _walkers.TryGetValue(id, out var selected))
+        {
+            _iconRow.Position = selected.Node.Position + new Vector2(0, -DollHeight * selected.Node.Scale.Y - 1);
         }
     }
 
@@ -180,14 +200,48 @@ public sealed class ResidentView
         ShowInfo();
     }
 
-    /// <summary>住人の絵を出す・隠す（視点で切り替える）。隠すとき、情報の枠も閉じる。</summary>
-    public void SetShown(bool shown)
+    /// <summary>住人の絵の濃さ（0〜1。視点で切り替える）。0 なら隠し、情報の枠も閉じる。</summary>
+    public void SetOpacity(float opacity)
     {
-        _layer.Visible = shown;
-        if (!shown)
+        _layer.Visible = opacity > 0f;
+        _layer.Modulate = new Color(1f, 1f, 1f, opacity);
+        if (opacity <= 0f)
         {
             _infoPanel.Visible = false;
         }
+    }
+
+    // 選んだ住人の頭上に、切実な欲求の印（空腹・住居・SAN 値）を横一列に並べる。何も無ければ隠す
+    private void ShowNeedIcons(Resident person)
+    {
+        foreach (var child in _iconRow.GetChildren())
+        {
+            _iconRow.RemoveChild(child);
+            child.QueueFree();
+        }
+        var urgent = new List<Texture2D>();
+        if (person.Hunger >= _icons.Hunger)
+        {
+            urgent.Add(_iconTextures[0]);
+        }
+        if (person.Shelter >= _icons.Shelter)
+        {
+            urgent.Add(_iconTextures[1]);
+        }
+        if (person.Sanity <= _icons.SanityBelow)
+        {
+            urgent.Add(_iconTextures[2]);
+        }
+        for (var i = 0; i < urgent.Count; i++)
+        {
+            _iconRow.AddChild(new Sprite2D
+            {
+                Texture = urgent[i],
+                Centered = false,
+                Position = new Vector2((i - (urgent.Count - 1) / 2f) * (IconSize + 1) - IconSize / 2f, -IconSize),
+            });
+        }
+        _iconRow.Visible = urgent.Count > 0;
     }
 
     private void ShowInfo()
@@ -195,9 +249,11 @@ public sealed class ResidentView
         if (_selectedId is not { } id || !_walkers.TryGetValue(id, out var walker))
         {
             _infoPanel.Visible = false;
+            _iconRow.Visible = false;
             return;
         }
         var person = walker.Resident;
+        ShowNeedIcons(person);
         var culture = CultureInfo.CurrentCulture;
         var partner = person.PartnerId is { } partnerId && _walkers.TryGetValue(partnerId, out var other)
             ? string.Format(culture, Tr("RESIDENT_INFO_PARTNER"), ResidentText.NameOf(other.Resident.Name, other.Resident.Epithet))
@@ -235,6 +291,19 @@ public sealed class ResidentView
         + new Vector2(Mathf.Floor((CrowdHash.Next01(_seed, index, step) - 0.5f) * 24f), 3f);
 
     private static string Tr(string key) => TranslationServer.Translate(key).ToString();
+
+    private static Texture2D LoadIcon(string name, Color color)
+    {
+        var path = $"res://assets/sprites/icon_need_{name}.png";
+        if (ResourceLoader.Exists(path))
+        {
+            return GD.Load<Texture2D>(path);
+        }
+        var image = Image.CreateEmpty(IconSize, IconSize, false, Image.Format.Rgba8);
+        image.FillRect(new Rect2I(0, 0, IconSize, IconSize), Outline);
+        image.FillRect(new Rect2I(1, 1, IconSize - 2, IconSize - 2), color);
+        return ImageTexture.CreateFromImage(image);
+    }
 
     private static Texture2D CreateGrave()
     {

@@ -172,7 +172,8 @@
     "zoomSteps": [0.25, 0.5, 0.75, 1.0, 2.0, 3.0, 4.0],
     "startZoom": 0.5,
     "zoomSmoothing": 12.0,
-    "panSpeed": 240.0
+    "panSpeed": 240.0,
+    "residentIcons": { "hunger": 0.6, "shelter": 0.6, "sanityBelow": 30.0 }
   },
   "crowd": {
     "count": 10000,

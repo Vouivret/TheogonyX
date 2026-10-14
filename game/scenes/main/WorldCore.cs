@@ -110,20 +110,20 @@ public partial class WorldCore : Node2D
         _screen.TerrainDrawn += _buildings.Refresh;
         _strata = new StrataView(this, timeControl, civilizationRules);
         _screen.TerrainDrawn += _strata.Refresh;
-        _residents = new ResidentView(this, timeControl, civilizationRules, needsRules, _ambience, seed);
+        _residents = new ResidentView(this, timeControl, civilizationRules, needsRules, _ambience, seed, cameraSettings.ResidentIcons);
         _screen.TerrainDrawn += _residents.Refresh;
         _history = new HistoryView(this, timeControl);
         _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
-        // 詳細の視点は住人の絵、中拡大・大陸は群衆の点（docs/domain/camera-views.md の「群衆の描き方」）
-        var showDetail = (bool detail) =>
+        // 詳細の視点は住人の絵、中拡大・大陸は群衆の点。境目は重ねて薄くしながら切り替える（docs/domain/camera-views.md の「群衆の描き方」）
+        var blend = (float detail) =>
         {
-            _residents.SetShown(detail);
-            _crowd.SetShown(!detail);
+            _residents.SetOpacity(detail);
+            _crowd.SetOpacity(1f - detail);
         };
-        _camera.DetailChanged += showDetail;
-        showDetail(_camera.IsDetail);
+        _camera.DetailBlendChanged += blend;
+        blend(_camera.DetailBlend);
         _screen.WorldReset += _crowd.OnWorldReset;
         _dreams = new DreamView(this, prophet, new OracleCommandQueue(prophet, timeControl), timeControl);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;

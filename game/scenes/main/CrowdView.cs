@@ -122,8 +122,12 @@ public sealed class CrowdView : IDisposable
 
     public void Dispose() => _gpu?.Dispose();
 
-    /// <summary>群衆の点を出す・隠す（視点で切り替える。計算は止めない）。</summary>
-    public void SetShown(bool shown) => _node.Visible = shown;
+    /// <summary>群衆の点の濃さ（0〜1。視点で切り替える。0 なら隠す。計算は止めない）。</summary>
+    public void SetOpacity(float opacity)
+    {
+        _node.Visible = opacity > 0f;
+        _node.Modulate = new Color(1f, 1f, 1f, opacity);
+    }
 
     /// <summary>群衆の点を描く MultiMesh を作る（計測用のシーンでも使う）。</summary>
     internal static MultiMesh CreateMultiMesh(int count, CrowdLook look) => new()

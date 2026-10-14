@@ -13,9 +13,10 @@
 | TS-camera-views-002 | AC-camera-views-002 | ズームは目標へ近づき、越えず、十分に時間がたつと目標ちょうどになる（拡大と縮小） | 受け入れ条件のとおり | ズームを補間する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/CameraZoomTests.cs` |
 | TS-camera-views-003 | AC-camera-views-003 | マウスの位置にある世界の点が、ズームしても動かない（画面の端・中心） | 受け入れ条件のとおり | ズームの後のカメラの中心を求める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/CameraZoomTests.cs` |
 | TS-camera-views-004 | AC-camera-views-004 | 範囲の外を見せない。見える幅が範囲以上なら中央 | 受け入れ条件のとおり | カメラの中心を範囲に収める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/CameraZoomTests.cs` |
-| TS-camera-views-005 | AC-camera-views-005 | 整数倍では中心を丸め、整数倍でなければ丸めない | 受け入れ条件のとおり | カメラの中心を丸める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/CameraZoomTests.cs` |
+| TS-camera-views-005 | AC-camera-views-005, 009 | 整数倍では中心を丸め、整数倍でなければ丸めない | 受け入れ条件のとおり | カメラの中心を丸める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/CameraZoomTests.cs` |
 | TS-camera-views-007 | AC-camera-views-008 | キーで動かす量がズームによらず画面の上で同じ。逆向き・押していないとき | 受け入れ条件のとおり | キーで動かした後の中心を求める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/CameraZoomTests.cs` |
 | TS-camera-views-006 | AC-camera-views-006, 007, 008 | 起動時の見た目、ホイールのズーム、ドラッグ、HUD、詳細の視点のドットの幅 | `game/` を Godot 4.7.2 で開く | メインシーンを実行して操作する | 下の手順のとおり | 手動 | — |
+| TS-camera-views-008 | AC-camera-views-010 | 詳細の視点で、選んだ住人の頭上に切実な欲求の印が出る | Godot 4.7.2 で動かす | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順
 
@@ -30,6 +31,11 @@
 8. ズーム・ドラッグの間、HUD（年・ボタン・夢の欄・QR コード）が動かず、ボタンを押せることを確かめる。ボタンの上でドラッグしても地表が動かないことを確かめる。
 9. 予言者と焚き火の足元が地表の上端に接していること（崩壊して倒れた姿でも）を確かめる。
 10. 出力パネルにエラー・警告が無いことを確かめる。
+
+### TS-camera-views-008
+1. メインシーンを実行し、ホイールで 2 倍以上にして、住人を 1 人クリックする。
+2. 空腹・住居が切実（0.6 以上）、または SAN 値が 30 以下の住人なら、頭上に 12 × 12 px の印が出て、住人について歩く（橙＝空腹、茶＝住居、紫＝SAN 値）。
+3. 何も切実でない住人では、印が出ない。選びを外す（空きをクリック）と印が消える。
 
 ## 対象外
 

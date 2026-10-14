@@ -77,6 +77,19 @@ public static class CameraZoom
     }
 
     /// <summary>
+    /// 詳細の視点の度合い（0: 中拡大・大陸のみ、1: 詳細のみ）。<paramref name="from"/> 以下で 0、<paramref name="to"/> 以上で 1、間は直線で変わる。
+    /// 群衆の点と住人の絵を重ねて薄くしながら切り替えるのに使う。
+    /// </summary>
+    public static double DetailBlend(double zoom, double from, double to)
+    {
+        if (!(from < to))
+        {
+            throw new ArgumentOutOfRangeException(nameof(to), to, "to は from より大きくなければならない");
+        }
+        return Math.Clamp((zoom - from) / (to - from), 0.0, 1.0);
+    }
+
+    /// <summary>
     /// 整数倍のズームで、ドットが画面の px にそろうカメラの中心（1 軸ぶん。1 / 倍率 の倍数に丸める）。整数倍でなければそのまま返す。
     /// </summary>
     public static double SnapCenter(double center, double zoom)
