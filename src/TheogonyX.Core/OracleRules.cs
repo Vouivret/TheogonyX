@@ -28,9 +28,47 @@ public sealed record CorruptedRune(string Id, string SymbolId);
 /// <param name="ChaosPerRune">汚染ルーンを神託に使ったとき、1 枚につき上がるカオス度。</param>
 public sealed record CorruptionRules(IReadOnlyList<float> Thresholds, IReadOnlyList<CorruptedRune> Runes, float ChaosPerRune);
 
+/// <summary>神託のドグマの種別の決め方。</summary>
+public enum OracleTypeRule
+{
+    /// <summary>2 枚の感情の極性の和（旧い方式。docs/domain/oracle-pair.md）。</summary>
+    Polarity,
+
+    /// <summary>2 枚の五行の関係（docs/domain/oracle-wuxing.md）。</summary>
+    Wuxing,
+}
+
+/// <summary>五行の関係ごとの、強度の倍率。</summary>
+public sealed record WuxingMultipliers(float Same, float Generated, float Overcome, float Rebel, float Leak)
+{
+    public float Of(WuxingRelation relation) => relation switch
+    {
+        WuxingRelation.Same => Same,
+        WuxingRelation.Generated => Generated,
+        WuxingRelation.Overcome => Overcome,
+        WuxingRelation.Rebel => Rebel,
+        WuxingRelation.Leak => Leak,
+        _ => throw new ArgumentOutOfRangeException(nameof(relation), relation, "未知の五行の関係"),
+    };
+}
+
+/// <summary>五行（docs/domain/oracle-wuxing.md）の定義。</summary>
+/// <param name="Cycle">相生の順の記号（木 → 火 → 土 → 金 → 水）。相剋は 2 つ先。</param>
+/// <param name="Impure">五行の外の穢れの記号（血）。どの組でも破壊になる。</param>
+/// <param name="Multipliers">関係ごとの強度の倍率。</param>
+public sealed record WuxingRules(IReadOnlyList<string> Cycle, IReadOnlyList<string> Impure, WuxingMultipliers Multipliers);
+
 /// <summary>神託の作り方（ルーンの組）のゲームデータ定義（docs/domain/oracle-pair.md）。</summary>
 /// <param name="Corruption">汚染ルーンの定義。省略したら、汚染ルーンは混ざらない。</param>
-public sealed record OracleRules(IReadOnlyList<RuneWeight> RuneWeights, FaithRules Faith, OverloadRules Overload, CorruptionRules? Corruption = null)
+/// <param name="Wuxing">五行の定義。<paramref name="TypeRule"/> が <see cref="OracleTypeRule.Wuxing"/> なら必須。</param>
+/// <param name="TypeRule">ドグマの種別の決め方。</param>
+public sealed record OracleRules(
+    IReadOnlyList<RuneWeight> RuneWeights,
+    FaithRules Faith,
+    OverloadRules Overload,
+    CorruptionRules? Corruption = null,
+    WuxingRules? Wuxing = null,
+    OracleTypeRule TypeRule = OracleTypeRule.Polarity)
 {
     private static readonly CorruptionRules NoCorruption = new([], [], 0f);
 
@@ -96,6 +134,44 @@ public sealed record OracleRules(IReadOnlyList<RuneWeight> RuneWeights, FaithRul
                 || corruption.Runes.Count(other => other.Id == rune.Id) > 1)
             {
                 throw new ArgumentException($"汚染ルーンの定義が正しくない: id={rune.Id} symbolId={rune.SymbolId}");
+            }
+        }
+
+        if (TypeRule == OracleTypeRule.Wuxing && Wuxing is null)
+        {
+            throw new ArgumentException("種別を五行で決めるのに、五行の定義が無い");
+        }
+        if (Wuxing is not null)
+        {
+            ValidateWuxing(Wuxing, symbolIds);
+        }
+    }
+
+    // 相生の並びは 5 つで重ならず、すべての記号が五行か穢れのどちらか 1 つだけに入る
+    private static void ValidateWuxing(WuxingRules wuxing, IReadOnlySet<string> symbolIds)
+    {
+        if (wuxing.Cycle is null || wuxing.Impure is null || wuxing.Multipliers is null
+            || wuxing.Cycle.Count != 5 || wuxing.Cycle.Distinct().Count() != 5)
+        {
+            throw new ArgumentException("五行の相生の並びは、重ならない 5 つの記号");
+        }
+        var m = wuxing.Multipliers;
+        if (m.Same < 0 || m.Generated < 0 || m.Overcome < 0 || m.Rebel < 0 || m.Leak < 0)
+        {
+            throw new ArgumentException($"五行の倍率が負: {m}");
+        }
+        foreach (var symbolId in wuxing.Cycle.Concat(wuxing.Impure))
+        {
+            if (!symbolIds.Contains(symbolId))
+            {
+                throw new ArgumentException($"五行の定義に、定義に無い記号: symbolId={symbolId}");
+            }
+        }
+        foreach (var symbolId in symbolIds)
+        {
+            if (wuxing.Cycle.Contains(symbolId) == wuxing.Impure.Contains(symbolId))
+            {
+                throw new ArgumentException($"記号は五行か穢れのどちらか 1 つだけに入る: symbolId={symbolId}");
             }
         }
     }

@@ -235,7 +235,7 @@ public class OracleCorruptionTests
     [Trait("TS", "TS-oracle-deck-012")]
     public void Validate_汚染ルーンの定義が正しくない_例外になる()
     {
-        var symbols = new HashSet<string> { "SYM_TREE", "SYM_WATER", "SYM_BLOOD", "SYM_FIRE" };
+        var symbols = new HashSet<string> { "SYM_TREE", "SYM_WATER", "SYM_BLOOD", "SYM_FIRE", "SYM_EARTH", "SYM_METAL" };
 
         void Check(CorruptionRules corruption) => (TestRules.Oracle with { Corruption = corruption }).Validate(symbols);
 

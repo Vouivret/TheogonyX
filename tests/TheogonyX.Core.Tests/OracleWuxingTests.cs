@@ -65,4 +65,97 @@ public class OracleWuxingTests
 
         Assert.Equal(["SYM_METAL"], deck.DiscardPile);
     }
+
+    [Theory]
+    [Trait("TS", "TS-oracle-wuxing-004")]
+    [InlineData("SYM_FIRE", "SYM_TREE", DogmaType.Worship, 0.7f)] // 木が火を生む
+    [InlineData("SYM_FIRE", "SYM_WATER", DogmaType.Taboo, 0.7f)] // 水が火を剋す
+    [InlineData("SYM_FIRE", "SYM_METAL", DogmaType.Destruction, 0.7f)] // 火が金を剋す
+    [InlineData("SYM_FIRE", "SYM_EARTH", DogmaType.Worship, 0.35f)] // 火が土を生む
+    [InlineData("SYM_FIRE", "SYM_FIRE", DogmaType.Worship, 0.91f)] // 比和
+    [InlineData("SYM_TREE", "SYM_BLOOD", DogmaType.Destruction, 0.7f)] // 穢れ
+    [InlineData("SYM_BLOOD", "SYM_TREE", DogmaType.Destruction, 0.7f)]
+    public void Interpret_五行の関係_種別と強度が決まり1枚目が対象(string first, string second, DogmaType type, float intensity)
+    {
+        var dogma = OracleInterpreter.Interpret(first, second, TestRules.Dream, TestRules.OracleWuxing);
+
+        Assert.NotNull(dogma);
+        Assert.Equal(first, dogma.TargetSymbolId);
+        Assert.Equal(type, dogma.Type);
+        Assert.Equal(intensity, dogma.Intensity, Tolerance);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-wuxing-005")]
+    public void Judge_五行の順序付きの25通り_違う五行は4つの関係に5通りずつで同じ五行は比和()
+    {
+        string[] cycle = ["SYM_TREE", "SYM_FIRE", "SYM_EARTH", "SYM_METAL", "SYM_WATER"];
+        var relations = new List<WuxingRelation?>();
+        foreach (var first in cycle)
+        {
+            foreach (var second in cycle)
+            {
+                var relation = WuxingInterpreter.Judge(first, second, TestRules.OracleWuxing).Relation;
+                Assert.Equal(first == second, relation == WuxingRelation.Same);
+                relations.Add(relation);
+            }
+        }
+
+        foreach (var relation in Enum.GetValues<WuxingRelation>())
+        {
+            Assert.Equal(5, relations.Count(r => r == relation));
+        }
+    }
+
+    [Theory]
+    [Trait("TS", "TS-oracle-wuxing-005")]
+    [InlineData("SYM_EARTH", "SYM_TREE", WuxingRelation.Overcome)] // 木は土を剋す
+    [InlineData("SYM_WATER", "SYM_EARTH", WuxingRelation.Overcome)] // 土は水を剋す
+    [InlineData("SYM_TREE", "SYM_METAL", WuxingRelation.Overcome)] // 金は木を剋す
+    [InlineData("SYM_TREE", "SYM_WATER", WuxingRelation.Generated)] // 水は木を生む
+    [InlineData("SYM_METAL", "SYM_TREE", WuxingRelation.Rebel)] // 対象の金が木を剋す
+    [InlineData("SYM_WATER", "SYM_TREE", WuxingRelation.Leak)] // 対象の水が木を生む
+    public void Judge_相生と相剋の並び_仕様書の関係になる(string first, string second, WuxingRelation relation)
+    {
+        Assert.Equal(relation, WuxingInterpreter.Judge(first, second, TestRules.OracleWuxing).Relation);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-wuxing-004")]
+    public void Interpret_汚染ルーンの狂乱_穢れとして破壊になる()
+    {
+        var dogma = OracleInterpreter.Interpret("SYM_TREE", "RUNE_MADNESS", TestRules.Dream, TestRules.OracleWuxing);
+
+        Assert.NotNull(dogma);
+        Assert.Equal(DogmaType.Destruction, dogma.Type);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-wuxing-006")]
+    public void Validate_五行の定義が正しくない_例外になる()
+    {
+        var symbols = new HashSet<string> { "SYM_TREE", "SYM_FIRE", "SYM_EARTH", "SYM_METAL", "SYM_WATER", "SYM_BLOOD" };
+        var wuxing = TestRules.OracleWuxing.Wuxing!;
+
+        void Check(OracleRules rules) => rules.Validate(symbols);
+
+        Check(TestRules.OracleWuxing);
+        Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = null }));
+        Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = wuxing with { Cycle = ["SYM_TREE", "SYM_FIRE", "SYM_EARTH", "SYM_METAL"] } }));
+        Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = wuxing with { Cycle = ["SYM_TREE", "SYM_TREE", "SYM_EARTH", "SYM_METAL", "SYM_WATER"] } }));
+        Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = wuxing with { Impure = [] } }));
+        Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = wuxing with { Impure = ["SYM_BLOOD", "SYM_TREE"] } }));
+        Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = wuxing with { Multipliers = wuxing.Multipliers with { Leak = -0.1f } } }));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-wuxing-004")]
+    public void Interpret_種別の決め方が極性_今までどおり極性の和で決まる()
+    {
+        // 土 +0.3 と金 −0.3 の和は 0 で破壊。五行なら、対象の土が金を生む（漏れる）ので崇拝になる
+        var dogma = OracleInterpreter.Interpret("SYM_EARTH", "SYM_METAL", TestRules.Dream, TestRules.OracleWuxing with { TypeRule = OracleTypeRule.Polarity });
+
+        Assert.NotNull(dogma);
+        Assert.Equal(DogmaType.Destruction, dogma.Type);
+    }
 }

@@ -112,7 +112,18 @@ internal static class TestRules
         new CorruptionRules(
             Thresholds: [50f, 80f],
             Runes: [new CorruptedRune("RUNE_MADNESS", "SYM_BLOOD"), new CorruptedRune("RUNE_DECAY", "SYM_TREE"), new CorruptedRune("RUNE_CURSE", "SYM_WATER")],
-            ChaosPerRune: 10f));
+            ChaosPerRune: 10f),
+        new WuxingRules(
+            Cycle: ["SYM_TREE", "SYM_FIRE", "SYM_EARTH", "SYM_METAL", "SYM_WATER"],
+            Impure: ["SYM_BLOOD"],
+            Multipliers: new WuxingMultipliers(Same: 1.3f, Generated: 1.0f, Overcome: 1.0f, Rebel: 1.0f, Leak: 0.5f)));
+
+    // docs/domain/oracle-wuxing.md の受け入れ条件の値（重みはすべて 0.7、種別は五行の関係で決める）。
+    public static readonly OracleRules OracleWuxing = Oracle with
+    {
+        RuneWeights = [.. new[] { "SYM_TREE", "SYM_WATER", "SYM_BLOOD", "SYM_FIRE", "SYM_EARTH", "SYM_METAL" }.Select(id => new RuneWeight(id, 0.7f))],
+        TypeRule = OracleTypeRule.Wuxing,
+    };
 
     // docs/domain/dream-tampering.md と prophet-request.md のルールの値。
     public static readonly ProphetDreamRules ProphetDreams = new(

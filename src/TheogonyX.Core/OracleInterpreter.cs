@@ -2,7 +2,8 @@ namespace TheogonyX.Core;
 
 /// <summary>
 /// 手札から選んだ 2 枚のルーンから、ドグマを決める（docs/domain/oracle-pair.md）。
-/// 衝撃度・種別・強度の式は夢の解釈（<see cref="DreamInterpreter"/>）と同じで、夢ノードの重みの代わりにルーンの重みを使う。
+/// 種別の決め方は <see cref="OracleRules.TypeRule"/> で選ぶ。極性の和（旧い方式）では、衝撃度・種別・強度の式は夢の解釈と同じで、
+/// 夢ノードの重みの代わりにルーンの重みを使う。五行の関係では <see cref="WuxingInterpreter"/> に任せる。
 /// </summary>
 public static class OracleInterpreter
 {
@@ -15,6 +16,10 @@ public static class OracleInterpreter
         ArgumentNullException.ThrowIfNull(secondCardId);
         ArgumentNullException.ThrowIfNull(dreamRules);
         ArgumentNullException.ThrowIfNull(oracleRules);
+        if (oracleRules.TypeRule == OracleTypeRule.Wuxing)
+        {
+            return WuxingInterpreter.Interpret(firstCardId, secondCardId, oracleRules);
+        }
 
         var firstSymbolId = oracleRules.SymbolOf(firstCardId);
         var secondSymbolId = oracleRules.SymbolOf(secondCardId);
