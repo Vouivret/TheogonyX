@@ -73,9 +73,9 @@ autowrap_mode = 3
 
 [node name="DreamPanel" type="VBoxContainer" parent="Hud" unique_id=745983899]
 offset_left = 16.0
-offset_top = 209.0
-offset_right = 280.0
-offset_bottom = 268.0
+offset_top = 274.0
+offset_right = 464.0
+offset_bottom = 332.0
 
 [node name="DreamGuide" type="Label" parent="Hud/DreamPanel" unique_id=2090383597]
 unique_name_in_owner = true
@@ -168,7 +168,7 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "BUTTON_RESET_SESSIONS"
 
-[node name="LayerButton" type="Button" parent="Hud/Panel/Buttons"]
+[node name="LayerButton" type="Button" parent="Hud/Panel/Buttons" unique_id=765322327]
 unique_name_in_owner = true
 layout_mode = 2
 text = "BUTTON_LAYER_SURFACE"
