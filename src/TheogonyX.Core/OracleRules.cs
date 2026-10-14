@@ -17,9 +17,32 @@ public sealed record FaithRules(float Max, float PerYear, float Cost, float Init
 /// <param name="ChaosGain">超えた分 1 つにつき、カオス度が増える量。</param>
 public sealed record OverloadRules(int WindowYears, int FreeCount, double SanityLoss, float ChaosGain);
 
+/// <summary>汚染ルーン 1 種類の定義。</summary>
+/// <param name="Id">ルーン（カード）の ID（例: <c>RUNE_MADNESS</c>）。記号の ID とは別。</param>
+/// <param name="SymbolId">このルーンが持つ記号。夢の解釈では、この記号の極性と重みで計算する。</param>
+public sealed record CorruptedRune(string Id, string SymbolId);
+
+/// <summary>汚染ルーン（docs/domain/oracle-deck.md の「汚染」）の定義。</summary>
+/// <param name="Thresholds">カオス度の閾値（小さい順）。初めて越えたとき、汚染ルーンを山札に 1 枚混ぜる。</param>
+/// <param name="Runes">混ざる汚染ルーン。閾値の順に、定義の順で混ざる（足りなければ最初から巡る）。</param>
+/// <param name="ChaosPerRune">汚染ルーンを神託に使ったとき、1 枚につき上がるカオス度。</param>
+public sealed record CorruptionRules(IReadOnlyList<float> Thresholds, IReadOnlyList<CorruptedRune> Runes, float ChaosPerRune);
+
 /// <summary>神託の作り方（ルーンの組）のゲームデータ定義（docs/domain/oracle-pair.md）。</summary>
-public sealed record OracleRules(IReadOnlyList<RuneWeight> RuneWeights, FaithRules Faith, OverloadRules Overload)
+/// <param name="Corruption">汚染ルーンの定義。省略したら、汚染ルーンは混ざらない。</param>
+public sealed record OracleRules(IReadOnlyList<RuneWeight> RuneWeights, FaithRules Faith, OverloadRules Overload, CorruptionRules? Corruption = null)
 {
+    private static readonly CorruptionRules NoCorruption = new([], [], 0f);
+
+    /// <summary>汚染ルーンの定義（無ければ、混ざらない定義）。</summary>
+    public CorruptionRules CorruptionOrNone => Corruption ?? NoCorruption;
+
+    /// <summary>汚染ルーンの ID か。</summary>
+    public bool IsCorrupted(string cardId) => CorruptionOrNone.Runes.Any(rune => rune.Id == cardId);
+
+    /// <summary>カードが持つ記号。汚染ルーンなら定義の記号、基本ルーンなら ID そのもの。</summary>
+    public string SymbolOf(string cardId) => CorruptionOrNone.Runes.FirstOrDefault(rune => rune.Id == cardId)?.SymbolId ?? cardId;
+
     /// <summary>ルーン（記号）の重み。定義に無ければ <see cref="ArgumentException"/>。</summary>
     public float WeightOf(string symbolId)
     {
@@ -57,6 +80,23 @@ public sealed record OracleRules(IReadOnlyList<RuneWeight> RuneWeights, FaithRul
         if (Overload.WindowYears < 1 || Overload.FreeCount < 0 || Overload.SanityLoss < 0 || Overload.ChaosGain < 0)
         {
             throw new ArgumentException("神の歪みの定義の値が範囲外");
+        }
+
+        var corruption = CorruptionOrNone;
+        if (corruption.Thresholds is null || corruption.Runes is null || corruption.ChaosPerRune < 0
+            || corruption.Thresholds.Any(threshold => threshold is <= 0f or > 100f)
+            || corruption.Thresholds.Zip(corruption.Thresholds.Skip(1), (a, b) => a >= b).Any(notAscending => notAscending)
+            || (corruption.Thresholds.Count > 0 && corruption.Runes.Count == 0))
+        {
+            throw new ArgumentException("汚染ルーンの定義の値が範囲外");
+        }
+        foreach (var rune in corruption.Runes)
+        {
+            if (string.IsNullOrEmpty(rune.Id) || symbolIds.Contains(rune.Id) || !symbolIds.Contains(rune.SymbolId)
+                || corruption.Runes.Count(other => other.Id == rune.Id) > 1)
+            {
+                throw new ArgumentException($"汚染ルーンの定義が正しくない: id={rune.Id} symbolId={rune.SymbolId}");
+            }
         }
     }
 }

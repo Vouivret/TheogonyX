@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 12;
+    public const int SaveVersion = 13;
 
     /// <summary>受け付ける「直近の神託の年」の数の上限。</summary>
     public const int MaxRecentOracleYears = 1000;
@@ -188,6 +188,7 @@ public static class SaveDataSerializer
                 hand = data.Deck.Hand,
                 discardPile = data.Deck.DiscardPile,
                 shuffleCount = data.Deck.ShuffleCount,
+                corruptionStage = data.Deck.CorruptionStage,
             },
             faith = new { value = data.Faith.Value, recentYears = data.Faith.RecentYears },
         });
@@ -197,7 +198,13 @@ public static class SaveDataSerializer
     /// <param name="reason">失敗したときの理由（ログの <c>reason</c>）。成功したときは空文字。</param>
     public static bool TryParse(
         string text, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, NeedsRules needsRules,
-        out SaveData? data, out string reason)
+        out SaveData? data, out string reason) =>
+        TryParse(text, dreamRules, rules, civilizationRules, needsRules, null, out data, out reason);
+
+    /// <param name="oracleRules">神託の定義。汚染ルーンの ID と、混ぜた回数の範囲を確かめるのに使う。null なら、汚染ルーンは無い定義として読む。</param>
+    public static bool TryParse(
+        string text, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, NeedsRules needsRules,
+        OracleRules? oracleRules, out SaveData? data, out string reason)
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(dreamRules);
@@ -221,7 +228,7 @@ public static class SaveDataSerializer
         {
             try
             {
-                data = Read(document.RootElement, dreamRules, rules, civilizationRules, needsRules);
+                data = Read(document.RootElement, dreamRules, rules, civilizationRules, needsRules, oracleRules);
             }
             catch (InvalidSaveDataException ex)
             {
@@ -235,7 +242,8 @@ public static class SaveDataSerializer
     }
 
     private static SaveData Read(
-        JsonElement root, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, NeedsRules needsRules)
+        JsonElement root, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, NeedsRules needsRules,
+        OracleRules? oracleRules)
     {
         if (root.ValueKind != JsonValueKind.Object)
         {
@@ -312,18 +320,20 @@ public static class SaveDataSerializer
         var chapter = new ChapterStart(
             ReadYearUpTo(Property(chapterElement, "year", JsonValueKind.Number), world.Year), ReadChaos(chapterElement, "chaos", "invalid_number"));
 
-        var deck = ReadDeck(Property(root, "deck", JsonValueKind.Object), symbolIds);
+        var corruption = oracleRules?.CorruptionOrNone ?? new CorruptionRules([], [], 0f);
+        var deck = ReadDeck(Property(root, "deck", JsonValueKind.Object), symbolIds, corruption);
         var faith = ReadFaith(Property(root, "faith", JsonValueKind.Object), world.Year);
 
         return new SaveData(
             seed, world, dogmas, requestId, answeredYears, speed.Key, elapsedSeconds, civilization, residents, history, chapter, deck, faith);
     }
 
-    // 神託のデッキ。カードは定義にある記号。シャッフルの回数は 0 以上
-    private static OracleDeckState ReadDeck(JsonElement element, HashSet<string> symbolIds)
+    // 神託のデッキ。カードは定義にある記号か汚染ルーン。シャッフルの回数は 0 以上、混ぜた回数は 0 以上で閾値の数以下
+    private static OracleDeckState ReadDeck(JsonElement element, HashSet<string> symbolIds, CorruptionRules corruption)
     {
         List<string> ReadCards(string name) => Property(element, name, JsonValueKind.Array).EnumerateArray()
-            .Select(card => card.ValueKind == JsonValueKind.String && card.GetString() is { } id && symbolIds.Contains(id)
+            .Select(card => card.ValueKind == JsonValueKind.String && card.GetString() is { } id
+                && (symbolIds.Contains(id) || corruption.Runes.Any(rune => rune.Id == id))
                 ? id
                 : throw new InvalidSaveDataException("invalid_deck"))
             .ToList();
@@ -332,11 +342,12 @@ public static class SaveDataSerializer
         var hand = ReadCards("hand");
         var discardPile = ReadCards("discardPile");
         var shuffleCount = ReadInt(element, "shuffleCount");
-        if (shuffleCount < 0)
+        var corruptionStage = ReadInt(element, "corruptionStage");
+        if (shuffleCount < 0 || corruptionStage < 0 || corruptionStage > corruption.Thresholds.Count)
         {
             throw new InvalidSaveDataException("invalid_deck");
         }
-        return new OracleDeckState(drawPile, hand, discardPile, shuffleCount);
+        return new OracleDeckState(drawPile, hand, discardPile, shuffleCount, corruptionStage);
     }
 
     // 神威（0 以上）と、直近の神託を下した年（0 以上、今の年以下。古い順）

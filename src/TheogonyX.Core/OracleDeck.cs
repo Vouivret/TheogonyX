@@ -5,11 +5,13 @@ namespace TheogonyX.Core;
 /// <param name="Hand">手札。</param>
 /// <param name="DiscardPile">捨札。</param>
 /// <param name="ShuffleCount">これまでのシャッフルの回数。次のシャッフルの乱数を決める。</param>
+/// <param name="CorruptionStage">カオス度の閾値を越えて、汚染ルーンを混ぜた回数（世界再創生まで、同じ閾値では混ぜない）。</param>
 public sealed record OracleDeckState(
     IReadOnlyList<string> DrawPile,
     IReadOnlyList<string> Hand,
     IReadOnlyList<string> DiscardPile,
-    int ShuffleCount);
+    int ShuffleCount,
+    int CorruptionStage = 0);
 
 /// <summary>
 /// 神託のデッキ（docs/domain/oracle-deck.md）。山札・手札・捨札でルーンを回す。第 1 段では、ルーンの ID は記号の ID と同じ。
@@ -47,6 +49,23 @@ public sealed class OracleDeck
 
     public int ShuffleCount { get; private set; }
 
+    /// <summary>カオス度の閾値を越えて、汚染ルーンを混ぜた回数。</summary>
+    public int CorruptionStage { get; private set; }
+
+    /// <summary>
+    /// 汚染ルーンを山札の中に混ぜる。位置は (シード, 混ぜた回数) から決める（同じ並びを再現できる）。
+    /// </summary>
+    public void InjectCorrupted(string cardId)
+    {
+        ArgumentNullException.ThrowIfNull(cardId);
+        var random = new Random(unchecked(_seed + ((CorruptionStage + 1) * (int)0x85EBCA6B)));
+        _drawPile.Insert(random.Next(_drawPile.Count + 1), cardId);
+        CorruptionStage++;
+    }
+
+    /// <summary>世界再創生: 汚染ルーンを混ぜた回数を 0 に戻す（混ざった汚染ルーンは、デッキに残る）。</summary>
+    public void ResetCorruption() => CorruptionStage = 0;
+
     /// <summary>
     /// 手札の 2 枚（番号は手札の位置）を捨札へ移し、山札から 2 枚を手札に引く（神託の作り方「ルーンの組」）。
     /// 番号が手札の範囲外か同じなら <see cref="ArgumentException"/>。
@@ -68,7 +87,7 @@ public sealed class OracleDeck
         Draw(2);
     }
 
-    public OracleDeckState Capture() => new([.. _drawPile], [.. _hand], [.. _discardPile], ShuffleCount);
+    public OracleDeckState Capture() => new([.. _drawPile], [.. _hand], [.. _discardPile], ShuffleCount, CorruptionStage);
 
     /// <summary>セーブの状態に戻す。値の検証は読み込む側で済ませておく。</summary>
     public void Restore(OracleDeckState state)
@@ -81,6 +100,7 @@ public sealed class OracleDeck
         _discardPile.Clear();
         _discardPile.AddRange(state.DiscardPile);
         ShuffleCount = state.ShuffleCount;
+        CorruptionStage = state.CorruptionStage;
     }
 
     // 山札が足りなければ、捨札をシャッフルして山札に戻す。捨札も空なら、引けるだけ引く

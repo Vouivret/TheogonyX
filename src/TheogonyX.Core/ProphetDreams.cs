@@ -82,9 +82,10 @@ public sealed class ProphetDreams
             Faith.Advance(world.Year - _faithYear);
         }
         _faithYear = world.Year;
+        var corrupted = InjectCorruption(world.ChaosLevel);
         if (world.IsDestroyed)
         {
-            return new ProphetUpdate(null, false);
+            return new ProphetUpdate(null, false, corrupted);
         }
 
         // 依頼のあいだにプレイヤーが自動進行を再開したら、神託のときに再開し直す必要は無い
@@ -107,7 +108,7 @@ public sealed class ProphetDreams
             _pausedForRequest = true;
             paused = true;
         }
-        return new ProphetUpdate(newRequest, paused);
+        return new ProphetUpdate(newRequest, paused, corrupted);
     }
 
     /// <summary>
@@ -148,12 +149,19 @@ public sealed class ProphetDreams
         }
 
         var world = _timeControl.World;
+        var corruptedCount = new[] { Deck.Hand[first], Deck.Hand[second] }.Count(_oracleRules.IsCorrupted);
         var dogma = OracleInterpreter.Interpret(Deck.Hand[first], Deck.Hand[second], _dreamRules, _oracleRules);
         if (dogma is not null)
         {
             _timeControl.AddDogma(dogma);
         }
         Deck.SpendPair(first, second);
+
+        if (corruptedCount > 0)
+        {
+            // 汚染ルーンは、使った枚数だけ、その年にカオス度を上げる
+            _timeControl.AddChaos(_oracleRules.CorruptionOrNone.ChaosPerRune * corruptedCount);
+        }
 
         var overload = Faith.Pronounce(world.Year);
         if (overload > 0)
@@ -175,13 +183,14 @@ public sealed class ProphetDreams
             resumed = true;
         }
         _pausedForRequest = false;
-        return new OracleResult(dogma, answered, resumed, overload);
+        return new OracleResult(dogma, answered, resumed, overload, corruptedCount);
     }
 
     /// <summary>世界再創生: 依頼・同じ困りごとを待つ年数を消し、神威を最初の量に戻す。デッキは保つ。</summary>
     public void Reset()
     {
         Faith.Reset();
+        Deck.ResetCorruption();
         _faithYear = _timeControl.World.Year;
         ActiveRequest = RequestTransitions[(ActiveRequest is not null, RequestTrigger.Reset)] ? ActiveRequest : null;
         _answeredYears.Clear();
@@ -217,6 +226,20 @@ public sealed class ProphetDreams
             _answeredYears[id] = year;
         }
         _pausedForRequest = false;
+    }
+
+    // カオス度がまだ越えていない閾値を越えたら、越えた数だけ、次の汚染ルーンを山札に混ぜる
+    private int InjectCorruption(float chaosLevel)
+    {
+        var corruption = _oracleRules.CorruptionOrNone;
+        var added = 0;
+        while (Deck.CorruptionStage < corruption.Thresholds.Count && chaosLevel >= corruption.Thresholds[Deck.CorruptionStage])
+        {
+            var rune = corruption.Runes[Deck.CorruptionStage % corruption.Runes.Count];
+            Deck.InjectCorrupted(rune.Id);
+            added++;
+        }
+        return added;
     }
 
     private ProphetRequestRule? FindRequest(WorldState world)

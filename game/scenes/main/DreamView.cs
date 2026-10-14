@@ -69,6 +69,10 @@ public sealed class DreamView
         {
             GD.Print(FormattableString.Invariant($"event=prophet_prayed year={year} requestType={request.Id}"));
         }
+        if (update.CorruptedAdded > 0)
+        {
+            GD.Print(FormattableString.Invariant($"event=deck_corrupted year={year} count={update.CorruptedAdded} chaosLevel={_timeControl.World.ChaosLevel}"));
+        }
         if (update.PausedAutoPlay)
         {
             GD.Print(FormattableString.Invariant($"event=auto_play_paused year={year} reason=prophet_prayer"));
@@ -103,6 +107,11 @@ public sealed class DreamView
         if (result.AnsweredRequest is { } request)
         {
             GD.Print(FormattableString.Invariant($"event=prayer_answered year={year} requestType={request.Id}"));
+        }
+        if (result.CorruptedCount > 0)
+        {
+            GD.Print(FormattableString.Invariant(
+                $"event=oracle_corrupted year={year} count={result.CorruptedCount} chaosLevel={_timeControl.World.ChaosLevel}"));
         }
         if (result.OverloadCount > 0)
         {

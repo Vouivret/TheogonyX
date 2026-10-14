@@ -39,6 +39,7 @@
 - PC とスマホは、同じ手札から同時に神託を下せる。先に届いた操作が勝つ。今は下せない `PRONOUNCE`（崩壊・手札が 2 枚未満・神威がコスト未満）、手札の範囲外の番号、同じ番号 2 つは、ホストが捨てて `Warn` で記録し、その接続に今の `ORACLE_STATE` を送り直す。`ERROR` は送らず、接続も切らない。
 - コンパニオンは、手札から 2 枚を選んでいる途中の状態を自分だけで持ち、「神託を下す」を押したときに `PRONOUNCE` を送る。
 - `requestType` は困りごとの ID（`THIRST`・`FAMINE`・`HEAT`・`COLD`・`CHAOS`）。記号と困りごとの名前は、コンパニオンの文言に持つ。
+- `hand` には、基本ルーン（記号の ID。例: `SYM_TREE`）に加えて、汚染ルーンの ID（例: `RUNE_MADNESS`）が入りうる。名前は、コンパニオンの文言（`SYMBOL_<ID>`）に持つ。`PRONOUNCE` の `first`・`second` は、手札の番号なので変わらない。
 - `faith.value` は今の神威、`faith.max` は上限、`faith.cost` は神託 1 回のコスト。`canPronounce` は、崩壊しておらず、手札が 2 枚以上あり、`faith.value` が `faith.cost` 以上のときだけ真。
 
 ### `ERROR` の `reason`

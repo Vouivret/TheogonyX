@@ -99,7 +99,11 @@ internal static class TestRules
     public static readonly OracleRules Oracle = new(
         [new RuneWeight("SYM_TREE", 0.5f), new RuneWeight("SYM_RAIN", 0.5f), new RuneWeight("SYM_BLOOD", 0.9f), new RuneWeight("SYM_FIRE", 0.4f)],
         new FaithRules(Max: 3f, PerYear: 0.1f, Cost: 1f, Initial: 3f),
-        new OverloadRules(WindowYears: 10, FreeCount: 2, SanityLoss: 20, ChaosGain: 5f));
+        new OverloadRules(WindowYears: 10, FreeCount: 2, SanityLoss: 20, ChaosGain: 5f),
+        new CorruptionRules(
+            Thresholds: [50f, 80f],
+            Runes: [new CorruptedRune("RUNE_MADNESS", "SYM_BLOOD"), new CorruptedRune("RUNE_DECAY", "SYM_TREE"), new CorruptedRune("RUNE_CURSE", "SYM_RAIN")],
+            ChaosPerRune: 10f));
 
     // docs/domain/dream-tampering.md と prophet-request.md のルールの値。
     public static readonly ProphetDreamRules ProphetDreams = new(

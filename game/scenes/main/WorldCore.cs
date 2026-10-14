@@ -76,7 +76,8 @@ public partial class WorldCore : Node2D
 
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
         _saveStore = new SaveStore("user://save", TimeProvider.System);
-        var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, needsRules, out var loadFailed);
+        var oracleRules = GameDataLoader.ParseOracleRules(rulesJson, dreamRules);
+        var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, needsRules, oracleRules, out var loadFailed);
 
         // シードはセーブのもの、無ければ起動時の時刻から作り、記録する（同じシードで同じデッキの並びを再現できる）
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
@@ -90,7 +91,7 @@ public partial class WorldCore : Node2D
             [AutoPlaySpeed.RealTime] = timeSettings.RealTimeSecondsPerYear,
         });
         var deck = new OracleDeck(seed, GameDataLoader.ParseDeck(rulesJson, dreamRules));
-        var prophet = new ProphetDreams(timeControl, dreamRules, prophetDreamRules, deck, GameDataLoader.ParseOracleRules(rulesJson, dreamRules));
+        var prophet = new ProphetDreams(timeControl, dreamRules, prophetDreamRules, deck, oracleRules);
         if (saved is not null)
         {
             SaveGame.Apply(saved, timeControl, prophet, clock);
@@ -184,7 +185,7 @@ public partial class WorldCore : Node2D
     /// <returns>読めたセーブ。無いか、読めなかったら null。</returns>
     private static SaveData? LoadSave(
         SaveStore store, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, NeedsRules needsRules,
-        out bool broken)
+        OracleRules oracleRules, out bool broken)
     {
         broken = false;
         var text = store.Load();
@@ -192,7 +193,7 @@ public partial class WorldCore : Node2D
         {
             return null;
         }
-        if (SaveDataSerializer.TryParse(text, dreamRules, rules, civilizationRules, needsRules, out var data, out var reason))
+        if (SaveDataSerializer.TryParse(text, dreamRules, rules, civilizationRules, needsRules, oracleRules, out var data, out var reason))
         {
             return data;
         }

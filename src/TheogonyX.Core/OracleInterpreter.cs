@@ -6,15 +6,18 @@ namespace TheogonyX.Core;
 /// </summary>
 public static class OracleInterpreter
 {
-    /// <param name="firstSymbolId">1 枚目のルーンの記号。ドグマの対象になる。</param>
-    /// <param name="secondSymbolId">2 枚目のルーンの記号。</param>
+    /// <param name="firstCardId">1 枚目のカード（記号の ID か汚染ルーンの ID）。持つ記号がドグマの対象になる。</param>
+    /// <param name="secondCardId">2 枚目のカード。</param>
     /// <returns>生成されたドグマ。衝撃度が 0 なら null。</returns>
-    public static Dogma? Interpret(string firstSymbolId, string secondSymbolId, DreamRules dreamRules, OracleRules oracleRules)
+    public static Dogma? Interpret(string firstCardId, string secondCardId, DreamRules dreamRules, OracleRules oracleRules)
     {
-        ArgumentNullException.ThrowIfNull(firstSymbolId);
-        ArgumentNullException.ThrowIfNull(secondSymbolId);
+        ArgumentNullException.ThrowIfNull(firstCardId);
+        ArgumentNullException.ThrowIfNull(secondCardId);
         ArgumentNullException.ThrowIfNull(dreamRules);
         ArgumentNullException.ThrowIfNull(oracleRules);
+
+        var firstSymbolId = oracleRules.SymbolOf(firstCardId);
+        var secondSymbolId = oracleRules.SymbolOf(secondCardId);
 
         var firstPolarity = PolarityOf(firstSymbolId, dreamRules);
         var secondPolarity = PolarityOf(secondSymbolId, dreamRules);

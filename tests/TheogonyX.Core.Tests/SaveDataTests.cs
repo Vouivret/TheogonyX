@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 12, "seed": 42,
+          "saveVersion": 13, "seed": 42,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -47,7 +47,7 @@ public class SaveDataTests
           },
           "historyChapterStart": { "year": 300, "chaos": 12.5 },
           "deck": { "drawPile": ["SYM_TREE", "SYM_RAIN"], "hand": ["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_RAIN"],
-                    "discardPile": ["SYM_FIRE"], "shuffleCount": 2 },
+                    "discardPile": ["SYM_FIRE"], "shuffleCount": 2, "corruptionStage": 1 },
           "faith": { "value": 1.5, "recentYears": [300, 310] },
           "history": [
             { "year": 200, "type": "DOGMA_FORMED", "symbolId": "SYM_TREE", "dogmaType": "Taboo", "name": null, "epithet": null, "breakdown": null,
@@ -89,7 +89,7 @@ public class SaveDataTests
     private static Game RoundTrip(Game game)
     {
         var json = SaveDataSerializer.Write(SaveGame.Capture(game.Time, game.Prophet, Seed, game.Clock));
-        Assert.True(SaveDataSerializer.TryParse(json, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, out var data, out var reason), reason);
+        Assert.True(SaveDataSerializer.TryParse(json, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var data, out var reason), reason);
         var loaded = CreateGame();
         SaveGame.Apply(data!, loaded.Time, loaded.Prophet, loaded.Clock);
         return loaded;
@@ -279,7 +279,7 @@ public class SaveDataTests
     [Trait("TS", "TS-ai-presentation-005")]
     public void TryParse_正しいセーブ_読める()
     {
-        var ok = SaveDataSerializer.TryParse(ValidSave, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, out var data, out var reason);
+        var ok = SaveDataSerializer.TryParse(ValidSave, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var data, out var reason);
 
         Assert.True(ok, reason);
         Assert.Equal(312, data!.World.Year);
@@ -288,6 +288,7 @@ public class SaveDataTests
         Assert.Equal(["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_RAIN"], data.Deck.Hand);
         Assert.Equal(["SYM_FIRE"], data.Deck.DiscardPile);
         Assert.Equal(2, data.Deck.ShuffleCount);
+        Assert.Equal(1, data.Deck.CorruptionStage);
         Assert.Equal(1.5, data.Faith.Value, 6);
         Assert.Equal([300, 310], data.Faith.RecentYears);
         Assert.Equal(new RegionCivilization(0.25, 0.1, 1, 0), data.Civilization.Regions[0]);
@@ -364,8 +365,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 12", "\"saveVersion\": 11", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 12, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 13", "\"saveVersion\": 12", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 13, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"year\": 312", "\"year\": -1", "invalid_year")]
     [InlineData("\"forestAmount\": 50", "\"forestAmount\": 1e999", "invalid_number")]
@@ -428,6 +429,7 @@ public class SaveDataTests
     [InlineData("\"chaos\": 12.5", "\"chaos\": -1", "invalid_number")]
     [InlineData("\"drawPile\": [\"SYM_TREE\"", "\"drawPile\": [\"SYM_STONE\"", "invalid_deck")] // 定義に無い記号のカード
     [InlineData("\"shuffleCount\": 2", "\"shuffleCount\": -1", "invalid_deck")]
+    [InlineData("\"corruptionStage\": 1", "\"corruptionStage\": -1", "invalid_deck")]
     [InlineData("\"value\": 1.5", "\"value\": -1", "invalid_faith")]
     [InlineData("\"recentYears\": [300, 310]", "\"recentYears\": [300, 313]", "invalid_year")] // 今の年より後
     [InlineData("\"recentYears\": [300, 310]", "\"recentYears\": [310, 300]", "invalid_faith")] // 古い順でない
@@ -447,7 +449,7 @@ public class SaveDataTests
         Assert.Contains(original, ValidSave);
         var text = original == "{" ? "{" : ValidSave.Replace(original, replacement, StringComparison.Ordinal);
 
-        var ok = SaveDataSerializer.TryParse(text, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, out var data, out var reason);
+        var ok = SaveDataSerializer.TryParse(text, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var data, out var reason);
 
         Assert.False(ok);
         Assert.Null(data);

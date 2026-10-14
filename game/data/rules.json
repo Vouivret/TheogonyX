@@ -207,7 +207,16 @@
       { "symbolId": "SYM_FIRE", "weight": 0.7 }
     ],
     "faith": { "max": 3.0, "perYear": 0.1, "cost": 1.0, "initial": 3.0 },
-    "overload": { "windowYears": 10, "freeCount": 2, "sanityLoss": 20.0, "chaosGain": 5.0 }
+    "overload": { "windowYears": 10, "freeCount": 2, "sanityLoss": 20.0, "chaosGain": 5.0 },
+    "corruption": {
+      "thresholds": [50.0, 80.0],
+      "chaosPerRune": 10.0,
+      "runes": [
+        { "id": "RUNE_MADNESS", "symbolId": "SYM_BLOOD" },
+        { "id": "RUNE_DECAY", "symbolId": "SYM_TREE" },
+        { "id": "RUNE_CURSE", "symbolId": "SYM_RAIN" }
+      ]
+    }
   },
   "deck": {
     "initialRunes": [
