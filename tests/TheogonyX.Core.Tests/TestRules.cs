@@ -137,6 +137,7 @@ internal static class TestRules
             new ProphetRequestRule("HEAT", WorldMetric.Temperature, ThresholdComparison.AtOrAbove, 40f, "SYM_WATER"),
             new ProphetRequestRule("COLD", WorldMetric.Temperature, ThresholdComparison.AtOrBelow, -10f, "SYM_FIRE"),
             new ProphetRequestRule("CHAOS", WorldMetric.ChaosLevel, ThresholdComparison.AtOrAbove, 60f, "SYM_TREE"),
+            new ProphetRequestRule("UNREST", WorldMetric.HarmonyLevel, ThresholdComparison.AtOrBelow, 20f, "SYM_EARTH"),
         ]);
 
     // docs/domain/emergent-progression.md の「受け入れ条件の計算に使った値」。地表は 16 列 × 9 行（Terrain と同じ）なので、地域は 8 個。

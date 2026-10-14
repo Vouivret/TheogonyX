@@ -7,4 +7,5 @@ public enum WorldMetric
     WaterAmount,
     Temperature,
     ChaosLevel,
+    HarmonyLevel,
 }

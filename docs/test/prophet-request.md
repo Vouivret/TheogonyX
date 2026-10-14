@@ -9,7 +9,7 @@
 
 | ID | 受け入れ条件 | 観点 | 前提 | 操作 | 期待結果 | 種別 | 実装場所 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TS-prophet-request-001 | AC-prophet-request-001, 002 | 困りごとで依頼が出る | 受け入れ条件のとおり | 年を進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
+| TS-prophet-request-001 | AC-prophet-request-001, 002, 014 | 困りごとで依頼が出る | 受け入れ条件のとおり | 年を進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
 | TS-prophet-request-002 | AC-prophet-request-003 | 複数の困りごとは優先の順 | 受け入れ条件のとおり | 年を進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
 | TS-prophet-request-003 | AC-prophet-request-004, 008 | 神託で依頼が済み、困りごとが消えても依頼は残る | 受け入れ条件のとおり | 神託を下す・年を進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |
 | TS-prophet-request-004 | AC-prophet-request-005, 006, 007 | 同じ困りごとは 50 年あける（49 年では出ず、50 年で出る。ほかの困りごとは出る） | 受け入れ条件のとおり | 年を進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ProphetDreamsTests.cs` |

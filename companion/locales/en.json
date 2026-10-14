@@ -29,6 +29,7 @@
   "TROUBLE_HEAT": "heat",
   "TROUBLE_COLD": "cold",
   "TROUBLE_CHAOS": "chaos",
+  "TROUBLE_UNREST": "unrest",
   "ORACLE_GUIDE_CHOOSE": "Choose 2 cards (the first is the target).",
   "ORACLE_GUIDE_READY": "Deliver the oracle.",
   "ORACLE_GUIDE_NO_FAITH": "Not enough divine power.",

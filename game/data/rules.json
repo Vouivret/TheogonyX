@@ -258,7 +258,8 @@
       { "id": "FAMINE", "metric": "ForestAmount", "comparison": "AtOrBelow", "threshold": 30.0, "symbolId": "SYM_TREE" },
       { "id": "HEAT", "metric": "Temperature", "comparison": "AtOrAbove", "threshold": 40.0, "symbolId": "SYM_WATER" },
       { "id": "COLD", "metric": "Temperature", "comparison": "AtOrBelow", "threshold": -10.0, "symbolId": "SYM_FIRE" },
-      { "id": "CHAOS", "metric": "ChaosLevel", "comparison": "AtOrAbove", "threshold": 60.0, "symbolId": "SYM_TREE" }
+      { "id": "CHAOS", "metric": "ChaosLevel", "comparison": "AtOrAbove", "threshold": 60.0, "symbolId": "SYM_TREE" },
+      { "id": "UNREST", "metric": "HarmonyLevel", "comparison": "AtOrBelow", "threshold": 20.0, "symbolId": "SYM_EARTH" }
     ]
   }
 }

@@ -17,6 +17,7 @@ public sealed class WorldState
         WorldMetric.WaterAmount => WaterAmount,
         WorldMetric.Temperature => Temperature,
         WorldMetric.ChaosLevel => ChaosLevel,
+        WorldMetric.HarmonyLevel => HarmonyLevel,
         _ => throw new ArgumentOutOfRangeException(nameof(metric), metric, null),
     };
 

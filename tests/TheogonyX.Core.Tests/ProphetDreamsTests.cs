@@ -103,6 +103,20 @@ public class ProphetDreamsTests
     }
 
     [Fact]
+    [Trait("TS", "TS-prophet-request-001")]
+    public void OnTimeAdvanced_調和度が20になる_荒れの依頼で大地を示す()
+    {
+        var (prophet, time) = Create();
+        SetYear(time, 10);
+        time.World.HarmonyLevel = 20f;
+
+        var update = prophet.OnTimeAdvanced();
+
+        Assert.Equal("UNREST", update.NewRequest?.Id);
+        Assert.Equal("SYM_EARTH", prophet.ActiveRequest?.SymbolId);
+    }
+
+    [Fact]
     [Trait("TS", "TS-prophet-request-002")]
     public void OnTimeAdvanced_渇きと混乱の両方に当てはまる_優先の渇きが出る()
     {
