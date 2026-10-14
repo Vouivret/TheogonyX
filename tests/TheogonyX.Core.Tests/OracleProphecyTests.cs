@@ -51,6 +51,24 @@ public class OracleProphecyTests
     }
 
     [Fact]
+    [Trait("TS", "TS-ai-presentation-001")]
+    public void BuildPrompt_2枚目と関係がある_2枚目の記号と間柄の雰囲気を渡し関係の名前は渡さない()
+    {
+        var dogma = new Dogma("SYM_FIRE", DogmaType.Worship, 0.85f);
+
+        var ja = OracleProphecy.BuildPrompt(dogma, "火", "崇拝", World(5f, 80f), "ja", "木", WuxingRelation.Generated);
+        var en = OracleProphecy.BuildPrompt(dogma, "Fire", "Worship", World(5f, 80f), "en", "Tree", WuxingRelation.Overcome);
+        var none = OracleProphecy.BuildPrompt(dogma, "火", "崇拝", World(5f, 80f), "ja");
+
+        Assert.Contains("「火」に「木」が重なった", ja);
+        Assert.Contains("調和した間柄", ja);
+        Assert.DoesNotContain("相生", ja);
+        Assert.Contains("\"Tree\" was laid over \"Fire\"", en);
+        Assert.Contains("in tension", en);
+        Assert.DoesNotContain("啓示の組", none);
+    }
+
+    [Fact]
     [Trait("TS", "TS-ai-presentation-002")]
     public void ParseResponse_3つの文がある_前後の空白を除いて取り出す()
     {

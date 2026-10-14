@@ -78,6 +78,9 @@ public sealed class DreamView
     /// <summary>神託を下したとき。HUD のドグマの一覧と、時間のボタンを描き直すのに使う。</summary>
     public event Action? OraclePronounced;
 
+    /// <summary>直近に下した神託の、2 枚目の記号と五行の関係（予言者の語りに使う。保存しない）。</summary>
+    public OraclePairing? LastPairing { get; private set; }
+
     /// <summary>精査でルーンを削除・融合したとき。保存に使う。</summary>
     public event Action? DeckPruned;
 
@@ -153,6 +156,7 @@ public sealed class DreamView
         {
             GD.Print(FormattableString.Invariant($"event=auto_play_resumed year={year} reason=oracle_pronounced"));
         }
+        LastPairing = result.Pairing;
         _selected.Clear();
         Redraw();
         OraclePronounced?.Invoke();

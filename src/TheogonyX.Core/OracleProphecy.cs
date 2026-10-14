@@ -54,7 +54,9 @@ public static class OracleProphecy
     /// <param name="symbolName">記号の表示名（表示している言語）。</param>
     /// <param name="dogmaTypeName">ドグマの種別の表示名（表示している言語）。</param>
     /// <param name="language">表示している言語のコード（<c>ja</c> なら日本語で、ほかは英語で答えさせる）。</param>
-    public static string BuildRequest(OracleAiRules rules, Dogma dogma, string symbolName, string dogmaTypeName, WorldState world, string language)
+    /// <param name="secondSymbolName">重ねた 2 枚目の記号の表示名。無ければ（null）2 枚目には触れない。</param>
+    /// <param name="relation">2 枚の五行の関係。<c>null</c> で <paramref name="secondSymbolName"/> があれば、穢れ。</param>
+    public static string BuildRequest(OracleAiRules rules, Dogma dogma, string symbolName, string dogmaTypeName, WorldState world, string language, string? secondSymbolName = null, WuxingRelation? relation = null)
     {
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(dogma);
@@ -62,14 +64,15 @@ public static class OracleProphecy
         return JsonSerializer.Serialize(new
         {
             model = rules.Model,
-            prompt = BuildPrompt(dogma, symbolName, dogmaTypeName, world, language),
+            prompt = BuildPrompt(dogma, symbolName, dogmaTypeName, world, language, secondSymbolName, relation),
             stream = false,
             format = "json",
         });
     }
 
     /// <summary>LLM への頼みの文。記号・種別・強度と、予言者の心の状態としてカオス度・調和度を渡す。</summary>
-    public static string BuildPrompt(Dogma dogma, string symbolName, string dogmaTypeName, WorldState world, string language)
+    public static string BuildPrompt(
+        Dogma dogma, string symbolName, string dogmaTypeName, WorldState world, string language, string? secondSymbolName = null, WuxingRelation? relation = null)
     {
         ArgumentNullException.ThrowIfNull(dogma);
         ArgumentNullException.ThrowIfNull(world);
@@ -81,7 +84,13 @@ public static class OracleProphecy
         if (language.StartsWith("ja", StringComparison.Ordinal))
         {
             prompt.AppendLine("あなたは滅びゆく星の予言者だ。神から夢で啓示を受けたが、その意図を誤解したまま人々に伝える。");
-            prompt.AppendLine(culture, $"啓示: 「{symbolName}」の{dogmaTypeName}（強さ {intensity}。-1〜1）。");
+            prompt.AppendLine(culture, $"啓示: 「{symbolName}」の{dogmaTypeName}（強さ {intensity}。0〜1）。");
+            if (secondSymbolName is not null)
+            {
+                // 関係の名前は渡さず、間柄の雰囲気だけを言葉にして渡す（予言者が誤解して語るため）
+                prompt.AppendLine(culture, $"啓示の組: 「{symbolName}」に「{secondSymbolName}」が重なった。二つは{MoodJa(relation)}。");
+                prompt.AppendLine("五行や関係の名前は口にせず、この間柄の気配を言葉に滲ませよ。");
+            }
             prompt.AppendLine(culture, $"いまの星: カオス度 {chaos}（0〜100）、調和度 {harmony}（0〜100）。");
             prompt.AppendLine("カオス度が高いほど、狂気じみた不吉で歪んだ言葉にせよ。調和度が高いほど、穏やかだが的外れな言葉にせよ。");
             prompt.AppendLine("自分が誤解していることには触れず、予言者自身の言葉として、信じきって語れ。");
@@ -90,7 +99,12 @@ public static class OracleProphecy
         else
         {
             prompt.AppendLine("You are the prophet of a dying star. A god sent you a revelation in a dream, but you misunderstand it and preach it to the people.");
-            prompt.AppendLine(culture, $"Revelation: {dogmaTypeName} of \"{symbolName}\" (strength {intensity}, from -1 to 1).");
+            prompt.AppendLine(culture, $"Revelation: {dogmaTypeName} of \"{symbolName}\" (strength {intensity}, from 0 to 1).");
+            if (secondSymbolName is not null)
+            {
+                prompt.AppendLine(culture, $"Pairing: \"{secondSymbolName}\" was laid over \"{symbolName}\". The two are {MoodEn(relation)}.");
+                prompt.AppendLine("Never name the elements or the relation; let the mood of this pairing seep into your words.");
+            }
             prompt.AppendLine(culture, $"The star now: chaos {chaos} (0-100), harmony {harmony} (0-100).");
             prompt.AppendLine("The higher the chaos, the more insane, ominous and twisted your words. The higher the harmony, the calmer but more misguided.");
             prompt.AppendLine("Never mention that you misunderstand. Speak in your own words as the prophet, with total conviction.");
@@ -98,6 +112,27 @@ public static class OracleProphecy
         }
         return prompt.ToString();
     }
+
+    // 五行の関係の雰囲気（関係の名前は出さない）。null は穢れ
+    private static string MoodJa(WuxingRelation? relation) => relation switch
+    {
+        WuxingRelation.Same => "同じ性質どうしで、強く響き合っている",
+        WuxingRelation.Generated => "一方が一方を育むような、調和した間柄にある",
+        WuxingRelation.Overcome => "一方が一方を抑え込むような、張り詰めた間柄にある",
+        WuxingRelation.Rebel => "ねじれ、反発し合う間柄にある",
+        WuxingRelation.Leak => "力が流れ出して薄まっていくような間柄にある",
+        _ => "穢れが混じった、不吉な間柄にある",
+    };
+
+    private static string MoodEn(WuxingRelation? relation) => relation switch
+    {
+        WuxingRelation.Same => "of one nature, resonating strongly",
+        WuxingRelation.Generated => "in harmony, one nurturing the other",
+        WuxingRelation.Overcome => "in tension, one suppressing the other",
+        WuxingRelation.Rebel => "twisted, repelling each other",
+        WuxingRelation.Leak => "draining, one's strength flowing away",
+        _ => "tainted by impurity, ominous",
+    };
 
     /// <summary>
     /// Ollama の生成 API の応答（JSON の <c>response</c> に、LLM が書いた JSON の文字列が入る）から、神託の文を取り出す。

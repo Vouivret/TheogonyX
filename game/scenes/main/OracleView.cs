@@ -15,6 +15,7 @@ namespace TheogonyX.Scenes.Main;
 public sealed class OracleView
 {
     private readonly TimeControl _timeControl;
+    private readonly DreamView _dreams;
     private readonly OracleAiRules _rules;
     private readonly OllamaClient _client;
     private readonly PanelContainer _bubble;
@@ -28,6 +29,7 @@ public sealed class OracleView
     public OracleView(Node owner, TimeControl timeControl, DreamView dreams, OracleAiRules rules, OllamaClient client)
     {
         _timeControl = timeControl;
+        _dreams = dreams;
         _rules = rules;
         _client = client;
         _label = new Label { Name = "OracleText", AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(200, 0) };
@@ -66,7 +68,7 @@ public sealed class OracleView
         }
         var dogma = dogmas[^1];
         var entry = entries[^1];
-        var request = new Request(dogma, _timeControl.World.Year);
+        var request = new Request(dogma, _timeControl.World.Year, _dreams.LastPairing);
         _latest = request;
         if (!_rules.Enabled)
         {
@@ -90,7 +92,7 @@ public sealed class OracleView
             while (_queue.Count > 0)
             {
                 var (entry, dogma, request) = _queue.Dequeue();
-                var (text, reason, durationMs) = await GenerateAsync(dogma);
+                var (text, reason, durationMs) = await GenerateAsync(dogma, request.Pairing);
                 if (text is not null)
                 {
                     GD.Print(FormattableString.Invariant(
@@ -125,11 +127,12 @@ public sealed class OracleView
     }
 
     // LLM に頼む。失敗の理由は、つながらない・時間切れ・HTTP のエラー・形の崩れ
-    private async Task<(OracleText? Text, string Reason, long DurationMs)> GenerateAsync(Dogma dogma)
+    private async Task<(OracleText? Text, string Reason, long DurationMs)> GenerateAsync(Dogma dogma, OraclePairing? pairing)
     {
         var body = OracleProphecy.BuildRequest(
             _rules, dogma, Tr($"SYMBOL_{dogma.TargetSymbolId}"), Tr($"DOGMA_TYPE_{dogma.Type.ToString().ToUpperInvariant()}"),
-            _timeControl.World, TranslationServer.GetLocale());
+            _timeControl.World, TranslationServer.GetLocale(),
+            pairing is not null ? Tr($"SYMBOL_{pairing.SecondSymbolId}") : null, pairing?.Relation);
         var (reply, failure, durationMs) = await _client.PostAsync(body);
         if (reply is null)
         {
@@ -153,5 +156,5 @@ public sealed class OracleView
     private static string Tr(string key) => TranslationServer.Translate(key).ToString();
 
     // 頼みの印（いちばん新しい神託か見分けるのに参照を使う）
-    private sealed record Request(Dogma Dogma, int Year);
+    private sealed record Request(Dogma Dogma, int Year, OraclePairing? Pairing);
 }

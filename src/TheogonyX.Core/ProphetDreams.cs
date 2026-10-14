@@ -198,6 +198,8 @@ public sealed class ProphetDreams
         var world = _timeControl.World;
         var corruptedCount = new[] { Deck.Hand[first], Deck.Hand[second] }.Count(_oracleRules.IsCorrupted);
         var dogma = WuxingInterpreter.Interpret(Deck.Hand[first], Deck.Hand[second], _oracleRules);
+        var pairing = new OraclePairing(
+            _oracleRules.SymbolOf(Deck.Hand[second]), WuxingInterpreter.Judge(Deck.Hand[first], Deck.Hand[second], _oracleRules).Relation);
         if (dogma is not null)
         {
             _timeControl.AddDogma(dogma);
@@ -230,7 +232,7 @@ public sealed class ProphetDreams
             resumed = true;
         }
         _pausedForRequest = false;
-        return new OracleResult(dogma, answered, resumed, overload, corruptedCount);
+        return new OracleResult(dogma, answered, resumed, overload, corruptedCount, pairing);
     }
 
     /// <summary>世界再創生: 依頼・同じ困りごとを待つ年数を消し、神威を最初の量に戻し、精査の持ち分を与える。デッキは保つ。</summary>
