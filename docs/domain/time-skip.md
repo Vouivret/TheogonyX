@@ -64,6 +64,8 @@ status: draft   # draft | approved | as-is
 
 ### 星の崩壊
 
+2026-10-15 に、[人の数](population.md)ができた段で、星の崩壊を「星の人口が 0 になったとき」に切り替えると決めた（[星の崩壊と文明の崩壊](collapse.md)）。下の決まりは、それまでのもの。
+
 次のどれかを満たした時点で、星は崩壊する（`IsDestroyed` が true）。閾値は `world.collapse` にある。
 
 1. カオス度が `chaosAtOrAbove` 以上
