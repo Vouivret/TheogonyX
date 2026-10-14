@@ -47,7 +47,7 @@ public class SaveDataTests
           },
           "historyChapterStart": { "year": 300, "chaos": 12.5 },
           "deck": { "drawPile": ["SYM_TREE", "SYM_WATER"], "hand": ["SYM_BLOOD", "SYM_FIRE", "SYM_TREE", "SYM_WATER"],
-                    "discardPile": ["SYM_FIRE"], "shuffleCount": 2, "corruptionStage": 1, "lastBuildingId": 3 },
+                    "discardPile": ["SYM_FIRE"], "shuffleCount": 2, "corruptionStage": 1, "lastBuildingId": 3, "pruneCharges": 1 },
           "faith": { "value": 1.5, "recentYears": [300, 310] },
           "history": [
             { "year": 200, "type": "DOGMA_FORMED", "symbolId": "SYM_TREE", "dogmaType": "Taboo", "name": null, "epithet": null, "breakdown": null,
@@ -432,6 +432,7 @@ public class SaveDataTests
     [InlineData("\"shuffleCount\": 2", "\"shuffleCount\": -1", "invalid_deck")]
     [InlineData("\"corruptionStage\": 1", "\"corruptionStage\": -1", "invalid_deck")]
     [InlineData("\"lastBuildingId\": 3", "\"lastBuildingId\": -2", "invalid_deck")]
+    [InlineData("\"pruneCharges\": 1", "\"pruneCharges\": -1", "invalid_deck")]
     [InlineData("\"value\": 1.5", "\"value\": -1", "invalid_faith")]
     [InlineData("\"recentYears\": [300, 310]", "\"recentYears\": [300, 313]", "invalid_year")] // 今の年より後
     [InlineData("\"recentYears\": [300, 310]", "\"recentYears\": [310, 300]", "invalid_faith")] // 古い順でない

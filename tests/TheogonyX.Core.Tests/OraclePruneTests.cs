@@ -19,6 +19,24 @@ public class OraclePruneTests
         deck.Restore(new OracleDeckState(drawPile, hand, discardPile, ShuffleCount: 1));
 
     [Fact]
+    [Trait("TS", "TS-oracle-deck-021")]
+    public void Restore_持ち分が残っている_捕えて戻すと持ち分も戻る()
+    {
+        var (prophet, time, deck) = Create();
+        time.Reset();
+        prophet.Reset();
+        prophet.Prune("SYM_TREE");
+
+        var captured = deck.Capture();
+        deck.Restore(new OracleDeckState([], [], [], ShuffleCount: 0));
+
+        Assert.Equal(1, captured.PruneCharges);
+        Assert.Equal(0, deck.PruneCharges);
+        deck.Restore(captured);
+        Assert.Equal(1, deck.PruneCharges);
+    }
+
+    [Fact]
     [Trait("TS", "TS-oracle-deck-014")]
     public void Reset_世界再創生_持ち分が2回になりデッキは変わらない()
     {

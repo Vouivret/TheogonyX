@@ -190,6 +190,7 @@ public static class SaveDataSerializer
                 shuffleCount = data.Deck.ShuffleCount,
                 corruptionStage = data.Deck.CorruptionStage,
                 lastBuildingId = data.Deck.LastBuildingId,
+                pruneCharges = data.Deck.PruneCharges,
             },
             faith = new { value = data.Faith.Value, recentYears = data.Faith.RecentYears },
         });
@@ -345,11 +346,13 @@ public static class SaveDataSerializer
         var shuffleCount = ReadInt(element, "shuffleCount");
         var corruptionStage = ReadInt(element, "corruptionStage");
         var lastBuildingId = ReadInt(element, "lastBuildingId");
-        if (shuffleCount < 0 || corruptionStage < 0 || corruptionStage > corruption.Thresholds.Count || lastBuildingId < -1)
+        // 精査の持ち分は後から足した項目。無ければ 0（次の世界再創生で付与される）
+        var pruneCharges = element.TryGetProperty("pruneCharges", out _) ? ReadInt(element, "pruneCharges") : 0;
+        if (shuffleCount < 0 || corruptionStage < 0 || corruptionStage > corruption.Thresholds.Count || lastBuildingId < -1 || pruneCharges < 0)
         {
             throw new InvalidSaveDataException("invalid_deck");
         }
-        return new OracleDeckState(drawPile, hand, discardPile, shuffleCount, corruptionStage, lastBuildingId);
+        return new OracleDeckState(drawPile, hand, discardPile, shuffleCount, corruptionStage, lastBuildingId, pruneCharges);
     }
 
     // 神威（0 以上）と、直近の神託を下した年（0 以上、今の年以下。古い順）

@@ -106,7 +106,7 @@ public class OracleFusionTests
     public void FuseRejection_木が1枚だけ_card_not_in_deck()
     {
         var (prophet, _, deck) = CreateAfterReset();
-        deck.Restore(new OracleDeckState(["SYM_FIRE", "SYM_FIRE"], ["SYM_TREE", "SYM_WATER", "SYM_EARTH", "SYM_METAL"], [], ShuffleCount: 1));
+        deck.Restore(new OracleDeckState(["SYM_FIRE", "SYM_FIRE"], ["SYM_TREE", "SYM_WATER", "SYM_EARTH", "SYM_METAL"], [], ShuffleCount: 1, PruneCharges: 2));
 
         Assert.Equal("card_not_in_deck", prophet.FuseRejection("SYM_TREE"));
     }
@@ -116,7 +116,7 @@ public class OracleFusionTests
     public void FuseRejection_デッキが木2枚だけ_deck_too_small()
     {
         var (prophet, _, deck) = CreateAfterReset();
-        deck.Restore(new OracleDeckState([], ["SYM_TREE", "SYM_TREE"], [], ShuffleCount: 1));
+        deck.Restore(new OracleDeckState([], ["SYM_TREE", "SYM_TREE"], [], ShuffleCount: 1, PruneCharges: 2));
 
         Assert.Equal("deck_too_small", prophet.FuseRejection("SYM_TREE"));
     }

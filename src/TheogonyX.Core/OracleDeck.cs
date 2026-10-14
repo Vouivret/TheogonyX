@@ -7,13 +7,15 @@ namespace TheogonyX.Core;
 /// <param name="ShuffleCount">これまでのシャッフルの回数。次のシャッフルの乱数を決める。</param>
 /// <param name="CorruptionStage">カオス度の閾値を越えて、汚染ルーンを混ぜた回数（世界再創生まで、同じ閾値では混ぜない）。</param>
 /// <param name="LastBuildingId">建物のルーンを加えるために数えた、一番大きい建物の ID（まだ数えていなければ -1）。</param>
+/// <param name="PruneCharges">精査の持ち分（世界再創生で付与し、削除・融合で減る）。</param>
 public sealed record OracleDeckState(
     IReadOnlyList<string> DrawPile,
     IReadOnlyList<string> Hand,
     IReadOnlyList<string> DiscardPile,
     int ShuffleCount,
     int CorruptionStage = 0,
-    int LastBuildingId = -1);
+    int LastBuildingId = -1,
+    int PruneCharges = 0);
 
 /// <summary>
 /// 神託のデッキ（docs/domain/oracle-deck.md）。山札・手札・捨札でルーンを回す。第 1 段では、ルーンの ID は記号の ID と同じ。
@@ -215,7 +217,7 @@ public sealed class OracleDeck
         Draw(2);
     }
 
-    public OracleDeckState Capture() => new([.. _drawPile], [.. _hand], [.. _discardPile], ShuffleCount, CorruptionStage, LastBuildingId);
+    public OracleDeckState Capture() => new([.. _drawPile], [.. _hand], [.. _discardPile], ShuffleCount, CorruptionStage, LastBuildingId, PruneCharges);
 
     /// <summary>セーブの状態に戻す。値の検証は読み込む側で済ませておく。</summary>
     public void Restore(OracleDeckState state)
@@ -230,6 +232,7 @@ public sealed class OracleDeck
         ShuffleCount = state.ShuffleCount;
         CorruptionStage = state.CorruptionStage;
         LastBuildingId = state.LastBuildingId;
+        PruneCharges = Math.Min(state.PruneCharges, _pruneChargesPerReset);
     }
 
     // 同じカードが複数あるときは、捨札・山札・手札の順に 1 枚を消す

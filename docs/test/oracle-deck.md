@@ -38,6 +38,7 @@
 | TS-oracle-deck-018 | AC-oracle-deck-021 | デッキの総数が上限に達したら加わらないが、数えたことになる | 受け入れ条件のとおり | 建物が建つ | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleBuildingRuneTests.cs` |
 | TS-oracle-deck-019 | AC-oracle-deck-022 | 建物のルーンの定義の検証 | 受け入れ条件のとおり | 検証する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleBuildingRuneTests.cs` |
 | TS-oracle-deck-020 | AC-oracle-deck-020 | 画面で、建物が建つと捨札にルーンが加わり、手札・精査の枚数に反映される。読み込み直しても二重に加わらない | Godot 4.7.2 で動かす | 下の手順 | 下の手順のとおり | 手動 | — |
+| TS-oracle-deck-021 | AC-oracle-deck-021 | 精査の持ち分が、保存と読み込みで残る。無い項目は 0、負の値は拒否 | 持ち分 1 回 | 保存して読み込む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePruneTests.cs`・`SaveDataTests.cs` |
 
 ## 手動テストの手順（汚染ルーン）
 
