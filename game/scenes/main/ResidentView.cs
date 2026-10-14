@@ -48,6 +48,8 @@ public sealed class ResidentView
     private readonly Texture2D _graveTexture;
     private readonly ResidentIconSettings _icons;
     private readonly Texture2D[] _iconTextures;
+    private readonly Texture2D _rampageIcon;
+    private readonly Texture2D _catatoniaIcon;
     private readonly Node2D _iconRow;
     private readonly PanelContainer _infoPanel;
     private readonly Label _infoLabel;
@@ -76,6 +78,8 @@ public sealed class ResidentView
             LoadIcon("shelter", new Color(0.55f, 0.35f, 0.2f)),
             LoadIcon("sanity", new Color(0.6f, 0.3f, 0.8f)),
         ];
+        _rampageIcon = LoadIcon("state_rampage", new Color(0.85f, 0.15f, 0.15f));
+        _catatoniaIcon = LoadIcon("state_catatonia", new Color(0.55f, 0.55f, 0.6f));
         _iconRow = new Node2D { Name = "NeedIcons", Visible = false, ZIndex = 1 };
         _layer.AddChild(_iconRow);
 
@@ -220,6 +224,16 @@ public sealed class ResidentView
             child.QueueFree();
         }
         var urgent = new List<Texture2D>();
+        // 精神崩壊中は、状態の印を先頭に出す
+        switch (person.Breakdown)
+        {
+            case BreakdownKind.Rampage:
+                urgent.Add(_rampageIcon);
+                break;
+            case BreakdownKind.Catatonia:
+                urgent.Add(_catatoniaIcon);
+                break;
+        }
         if (person.Hunger >= _icons.Hunger)
         {
             urgent.Add(_iconTextures[0]);
@@ -294,7 +308,7 @@ public sealed class ResidentView
 
     private static Texture2D LoadIcon(string name, Color color)
     {
-        var path = $"res://assets/sprites/icon_need_{name}.png";
+        var path = $"res://assets/sprites/icon_{(name.StartsWith("state_", System.StringComparison.Ordinal) ? name : "need_" + name)}.png";
         if (ResourceLoader.Exists(path))
         {
             return GD.Load<Texture2D>(path);
