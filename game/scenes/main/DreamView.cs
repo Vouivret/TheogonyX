@@ -26,6 +26,9 @@ public sealed class DreamView
     private readonly HBoxContainer _dreamCards;
     private readonly Label _requestBubble;
     private readonly HFlowContainer _pruneRow;
+    private readonly PanelContainer _prunePanel;
+    private readonly Button _pruneToggle;
+    private readonly List<Button> _cardButtons = [];
 
     // 選んだ手札の番号（1 枚目・2 枚目の順）。
     private readonly List<int> _selected = [];
@@ -45,15 +48,29 @@ public sealed class DreamView
 
         // 夢のコマは無い（神託は手札のルーンの組で作る）。コマの段には「神託を下す」だけを残す。
         owner.GetNode<HBoxContainer>("%DreamNodes").Visible = false;
-        _dreamRow.Visible = true;
+        _dreamRow.Visible = false;
         _dreamCards.Visible = true;
+        _dreamGuide.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _dreamGuide.CustomMinimumSize = new Vector2(440, 0);
+
+        // 下の帯は 1 行（手札・神託を下す・精査）に収める。精査のルーンの一覧は、世界の絵の上に重ねる別の枠に出す
+        _oracleButton.Reparent(_dreamCards);
         _oracleButton.Pressed += OnOracleButtonPressed;
 
         // 精査（世界再創生の後に、ルーンを削除する）の欄。持ち分があるときだけ出す。シーンは変えず、手札の下に足す
-        // 左の帯は幅が狭い（264px）ので、ボタンは折り返す
-        _pruneRow = new HFlowContainer { Visible = false };
-        _dreamCards.GetParent().AddChild(_pruneRow);
-        _dreamCards.GetParent().MoveChild(_pruneRow, _dreamCards.GetIndex() + 1);
+        _pruneToggle = new Button { Visible = false };
+        _dreamCards.AddChild(_pruneToggle);
+        _pruneRow = new HFlowContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        var scroll = new ScrollContainer
+        {
+            CustomMinimumSize = new Vector2(440, 150),
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+        };
+        scroll.AddChild(_pruneRow);
+        _prunePanel = new PanelContainer { Visible = false, Position = new Vector2(16, 40) };
+        _prunePanel.AddChild(scroll);
+        owner.GetNode<Node>("Hud").AddChild(_prunePanel);
+        _pruneToggle.Pressed += () => _prunePanel.Visible = !_prunePanel.Visible;
 
         Redraw();
     }
@@ -185,11 +202,15 @@ public sealed class DreamView
             child.QueueFree();
         }
 
-        _pruneRow.Visible = _prophet.PruneCharges > 0;
-        if (!_pruneRow.Visible)
+        var hasCharges = _prophet.PruneCharges > 0;
+        _pruneToggle.Visible = hasCharges;
+        if (!hasCharges)
         {
+            _prunePanel.Visible = false;
             return;
         }
+
+        _pruneToggle.Text = string.Format(CultureInfo.CurrentCulture, Tr("PRUNE_OPEN"), _prophet.PruneCharges);
 
         _pruneRow.AddChild(new Label
         {
@@ -247,17 +268,20 @@ public sealed class DreamView
     // 手札のカードのボタンを作り直す。手札は神託を下すたびに変わる
     private void RebuildCards()
     {
-        foreach (var child in _dreamCards.GetChildren())
+        foreach (var child in _cardButtons)
         {
             _dreamCards.RemoveChild(child);
             child.QueueFree();
         }
+        _cardButtons.Clear();
         for (var i = 0; i < _prophet.Hand.Count; i++)
         {
-            var card = new Button();
+            var card = new Button { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true };
             var index = i;
             card.Pressed += () => OnCardPressed(index);
             _dreamCards.AddChild(card);
+            _dreamCards.MoveChild(card, _cardButtons.Count);
+            _cardButtons.Add(card);
         }
         _handShown = [.. _prophet.Hand];
     }
@@ -271,7 +295,7 @@ public sealed class DreamView
         }
         _selected.RemoveAll(index => index >= _prophet.Hand.Count);
 
-        var buttons = _dreamCards.GetChildren().OfType<Button>().ToList();
+        var buttons = _cardButtons;
         for (var i = 0; i < buttons.Count && i < _prophet.Hand.Count; i++)
         {
             // 選んだ順に「①」「②」を付ける

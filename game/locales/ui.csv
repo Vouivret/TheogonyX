@@ -58,6 +58,7 @@ WUXING_IMPURE,穢れ,Impurity
 ORACLE_GUIDE_NO_FAITH,神威が足りない,Not enough divine power.
 ORACLE_GUIDE_NO_CARDS,手札が足りない,Not enough cards.
 PRUNE_LABEL,精査 残り {0} 回（消すルーンを選ぶ）,Prune: {0} left (choose a rune to remove)
+PRUNE_OPEN,精査 ×{0},Prune x{0}
 PRUNE_CARD,{0} ×{1},{0} x{1}
 SYMBOL_RUNE_GREAT_TREE,大樹,Great Tree
 SYMBOL_RUNE_GREAT_FIRE,業火,Hellfire
