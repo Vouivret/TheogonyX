@@ -251,7 +251,17 @@ function guideText(state) {
   } else if (selected.length === 2) {
     key = "ORACLE_GUIDE_READY";
   }
-  return format("ORACLE_GUIDE_FAITH", text(key), state.faith.value.toFixed(1), state.faith.max.toFixed(1));
+  let guide = text(key);
+  if (key === "ORACLE_GUIDE_READY") {
+    // 選んだ 2 枚の五行の関係と種別の予告（PC と同じ。ホストが計算して送る）
+    const pair = state.pairs?.find((p) => p.first === selected[0] && p.second === selected[1]);
+    if (pair !== undefined) {
+      guide = format(
+        "ORACLE_PREVIEW", symbolName(state.hand[selected[0]]), symbolName(state.hand[selected[1]]),
+        text(`WUXING_${pair.relation}`), text(`DOGMA_TYPE_${pair.dogmaType}`));
+    }
+  }
+  return format("ORACLE_GUIDE_FAITH", guide, state.faith.value.toFixed(1), state.faith.max.toFixed(1));
 }
 
 // 同じカードをもう一度押すと選びを外す。3 枚目を押したら、1 枚目を外して 2 枚目と 3 枚目にする

@@ -16,7 +16,7 @@
 | `ERROR` | 1 | ホスト → コンパニオン | `reason`: 文字列（下の表） | 受け付けられない。ホストは送った後に接続を閉じる |
 | `START_STREAM` | 1 | コンパニオン → ホスト | なし | この接続への画面の配信（`FRAME`）を始めてほしい。配信中に受け取っても何もしない |
 | `STOP_STREAM` | 1 | コンパニオン → ホスト | なし | この接続への画面の配信をやめてほしい。配信していないときに受け取っても何もしない |
-| `ORACLE_STATE` | 1 | ホスト → コンパニオン | `hand`: 手札の記号 ID の配列（同じ記号が重なりうる。順番は手札の順）、`faith`: `{value: 数, max: 数, cost: 数}`、`canPronounce`: 真偽、`isDestroyed`: 真偽、`request`: `{requestType: 文字列, symbolId: 文字列}` か `null` | 神託の今の状態（下の「神託の状態」） |
+| `ORACLE_STATE` | 1 | ホスト → コンパニオン | `hand`: 手札の記号 ID の配列（同じ記号が重なりうる。順番は手札の順）、`faith`: `{value: 数, max: 数, cost: 数}`、`canPronounce`: 真偽、`isDestroyed`: 真偽、`request`: `{requestType: 文字列, symbolId: 文字列}` か `null`、`pairs`: 手札の 2 枚の組ごとの予告 `{first, second, relation, dogmaType}` の配列（下の「神託の状態」。無くてもよい） | 神託の今の状態（下の「神託の状態」） |
 | `PRONOUNCE` | 2 | コンパニオン → ホスト | `first`: 0 以上の整数、`second`: 0 以上の整数 | 手札の `first` 番（1 枚目。ドグマの対象）と `second` 番（2 枚目）のルーンで神託を下す。番号は 0 から数える。version 1（引数なし）と `TAMPER` は廃止した |
 
 例:
@@ -40,6 +40,7 @@
 - コンパニオンは、手札から 2 枚を選んでいる途中の状態を自分だけで持ち、「神託を下す」を押したときに `PRONOUNCE` を送る。
 - `requestType` は困りごとの ID（`THIRST`・`FAMINE`・`HEAT`・`COLD`・`CHAOS`）。記号と困りごとの名前は、コンパニオンの文言に持つ。
 - `hand` には、基本ルーン（記号の ID。例: `SYM_TREE`）に加えて、汚染ルーンの ID（例: `RUNE_MADNESS`）と上位のルーンの ID（例: `RUNE_GREAT_TREE`）が入りうる。名前は、コンパニオンの文言（`SYMBOL_<ID>`）に持つ。`PRONOUNCE` の `first`・`second` は、手札の番号なので変わらない。
+- `pairs` は、手札の番号の組（`first` が 1 枚目、`second` が 2 枚目。同じ番号は無い）ごとの、五行の関係と種別の予告。`relation` は `SAME`・`GENERATED`・`OVERCOME`・`REBEL`・`LEAK`・`IMPURE`（血を含む組）、`dogmaType` は `WORSHIP`・`TABOO`・`DESTRUCTION`。コンパニオンは、選んだ 2 枚の予告を案内に出す。形は変えずに足したので version は 1 のまま。名前は、コンパニオンの文言（`WUXING_<relation>`・`DOGMA_TYPE_<dogmaType>`）に持つ。
 - `faith.value` は今の神威、`faith.max` は上限、`faith.cost` は神託 1 回のコスト。`canPronounce` は、崩壊しておらず、手札が 2 枚以上あり、`faith.value` が `faith.cost` 以上のときだけ真。
 
 ### `ERROR` の `reason`

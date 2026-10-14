@@ -64,6 +64,25 @@ public class HostMessageWriterTests
 
     [Fact]
     [Trait("TS", "TS-oracle-pair-011")]
+    public void OracleState_手札が木と水_組ごとに五行の関係と種別が入る()
+    {
+        var (prophet, _) = CreateProphet();
+
+        using var json = JsonDocument.Parse(HostMessageWriter.OracleState(prophet, isDestroyed: false));
+        var pairs = json.RootElement.GetProperty("pairs").EnumerateArray()
+            .ToDictionary(
+                pair => (pair.GetProperty("first").GetInt32(), pair.GetProperty("second").GetInt32()),
+                pair => (pair.GetProperty("relation").GetString(), pair.GetProperty("dogmaType").GetString()));
+
+        // 木 ← 水は水が木を生む（相生）。水 ← 木は分流。どちらも崇拝
+        var treeFirst = prophet.Hand[0] == "SYM_TREE";
+        Assert.Equal(2, pairs.Count);
+        Assert.Equal(treeFirst ? ("GENERATED", "WORSHIP") : ("LEAK", "WORSHIP"), pairs[(0, 1)]);
+        Assert.Equal(treeFirst ? ("LEAK", "WORSHIP") : ("GENERATED", "WORSHIP"), pairs[(1, 0)]);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-pair-011")]
     public void OracleState_渇きの依頼中_困りごとと示す記号が入る()
     {
         var (prophet, time) = CreateProphet();

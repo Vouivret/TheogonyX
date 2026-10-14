@@ -32,6 +32,25 @@ public static class HostMessageWriter
         ArgumentNullException.ThrowIfNull(prophet);
         var faith = prophet.Faith;
         var request = prophet.ActiveRequest is { } active ? new { requestType = active.Id, symbolId = active.SymbolId } : null;
+        // 手札の 2 枚の組（1 枚目 → 2 枚目の順）ごとの、五行の関係と種別の予告。コンパニオンは、選んだ 2 枚の予告をここから引く
+        var hand = prophet.Hand;
+        var pairs = new List<object>();
+        for (var first = 0; first < hand.Count; first++)
+        {
+            for (var second = 0; second < hand.Count; second++)
+            {
+                if (prophet.PreviewPair(first, second) is { } judgement)
+                {
+                    pairs.Add(new
+                    {
+                        first,
+                        second,
+                        relation = judgement.Relation?.ToString().ToUpperInvariant() ?? "IMPURE",
+                        dogmaType = judgement.Type.ToString().ToUpperInvariant(),
+                    });
+                }
+            }
+        }
         return JsonSerializer.Serialize(new
         {
             type = "ORACLE_STATE",
@@ -41,6 +60,7 @@ public static class HostMessageWriter
             canPronounce = prophet.CanPronounce,
             isDestroyed,
             request,
+            pairs,
         });
     }
 }

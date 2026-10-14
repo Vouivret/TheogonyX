@@ -35,5 +35,15 @@
   "ORACLE_GUIDE_NO_CARDS": "手札が足りない",
   "ORACLE_GUIDE_DESTROYED": "星は滅びた",
   "ORACLE_GUIDE_FAITH": "{0}　神威 {1} / {2}",
+  "ORACLE_PREVIEW": "{0} ← {1}：{2} → {3}",
+  "WUXING_SAME": "比和",
+  "WUXING_GENERATED": "相生",
+  "WUXING_OVERCOME": "相剋",
+  "WUXING_REBEL": "逆らう",
+  "WUXING_LEAK": "分流",
+  "WUXING_IMPURE": "穢れ",
+  "DOGMA_TYPE_TABOO": "禁忌（陰）",
+  "DOGMA_TYPE_WORSHIP": "崇拝（陽）",
+  "DOGMA_TYPE_DESTRUCTION": "破壊（乱れ）",
   "ORACLE_GUIDE_OFFLINE": "PC とつながると、ここで神託を下せます。"
 }

@@ -37,7 +37,8 @@ export const FRAME_HEADER_LENGTH = 2;
  * @typedef {{ requestType: string, symbolId: string }} ProphetRequest
  * @typedef {{ value: number, max: number, cost: number }} Faith
  * @typedef {{ type: "ORACLE_STATE", version: 1, hand: string[], faith: Faith,
- *   canPronounce: boolean, isDestroyed: boolean, request: ProphetRequest | null }} OracleStateMessage
+ *   canPronounce: boolean, isDestroyed: boolean, request: ProphetRequest | null,
+ *   pairs?: { first: number, second: number, relation: string, dogmaType: string }[] }} OracleStateMessage
  * @typedef {PairedMessage | ErrorMessage | OracleStateMessage} HostMessage
  */
 
@@ -62,6 +63,10 @@ export const pronounce = (first, second) =>
 /** @param {unknown} value */
 const isText = (value) => typeof value === "string" && value !== "";
 
+/** @param {any} value */
+const isPair = (value) => value !== null && typeof value === "object"
+  && Number.isInteger(value.first) && Number.isInteger(value.second) && isText(value.relation) && isText(value.dogmaType);
+
 /** @param {any} message */
 function isOracleState(message) {
   return Array.isArray(message.hand)
@@ -70,6 +75,7 @@ function isOracleState(message) {
     && Number.isFinite(message.faith.value) && Number.isFinite(message.faith.max) && Number.isFinite(message.faith.cost)
     && typeof message.canPronounce === "boolean"
     && typeof message.isDestroyed === "boolean"
+    && (message.pairs === undefined || (Array.isArray(message.pairs) && message.pairs.every(isPair)))
     && (message.request === null
       || (typeof message.request === "object" && isText(message.request.requestType) && isText(message.request.symbolId)));
 }

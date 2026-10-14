@@ -35,5 +35,15 @@
   "ORACLE_GUIDE_NO_CARDS": "Not enough cards.",
   "ORACLE_GUIDE_DESTROYED": "The planet has perished.",
   "ORACLE_GUIDE_FAITH": "{0}  Faith {1} / {2}",
+  "ORACLE_PREVIEW": "{0} ← {1}: {2} → {3}",
+  "WUXING_SAME": "Kinship",
+  "WUXING_GENERATED": "Generating",
+  "WUXING_OVERCOME": "Overcoming",
+  "WUXING_REBEL": "Rebelling",
+  "WUXING_LEAK": "Diverting",
+  "WUXING_IMPURE": "Impurity",
+  "DOGMA_TYPE_TABOO": "Taboo (Yin)",
+  "DOGMA_TYPE_WORSHIP": "Worship (Yang)",
+  "DOGMA_TYPE_DESTRUCTION": "Destruction (Disorder)",
   "ORACLE_GUIDE_OFFLINE": "Connect to the PC to deliver oracles here."
 }
