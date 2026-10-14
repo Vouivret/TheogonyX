@@ -1,10 +1,10 @@
 {
   "symbols": [
-    { "id": "SYM_TREE", "emotionalPolarity": 0.4 },
-    { "id": "SYM_WATER", "emotionalPolarity": 0.6 },
-    { "id": "SYM_BLOOD", "emotionalPolarity": -0.9 },
-    { "id": "SYM_FIRE", "emotionalPolarity": 0.1 },
-    { "id": "SYM_EARTH", "emotionalPolarity": 0.3 },
-    { "id": "SYM_METAL", "emotionalPolarity": -0.3 }
+    { "id": "SYM_TREE" },
+    { "id": "SYM_WATER" },
+    { "id": "SYM_BLOOD" },
+    { "id": "SYM_FIRE" },
+    { "id": "SYM_EARTH" },
+    { "id": "SYM_METAL" }
   ]
 }

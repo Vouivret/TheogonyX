@@ -8,7 +8,7 @@ public class ProphetDreamsTests
     private static (ProphetDreams Prophet, TimeControl Time) Create()
     {
         var time = new TimeControl(TestRules.World, TestRules.JumpYears);
-        var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, new OracleDeck(42, TestRules.Deck), TestRules.Oracle);
+        var prophet = new ProphetDreams(time, TestRules.ProphetDreams, new OracleDeck(42, TestRules.Deck), TestRules.Oracle);
         return (prophet, time);
     }
 

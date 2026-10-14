@@ -10,7 +10,7 @@ public class OracleCommandQueueTests
     private static (OracleCommandQueue Queue, ProphetDreams Prophet, TimeControl Time) Create()
     {
         var time = new TimeControl(TestRules.World, TestRules.JumpYears);
-        var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
+        var prophet = new ProphetDreams(time, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
         return (new OracleCommandQueue(prophet, time), prophet, time);
     }
 

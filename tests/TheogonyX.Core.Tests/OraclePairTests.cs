@@ -18,7 +18,7 @@ public class OraclePairTests
         var time = new TimeControl(
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, seed, TestRules.Needs), TestRules.History);
         var oracleDeck = new OracleDeck(seed, deck ?? TestRules.Deck);
-        var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, oracleDeck, oracle ?? TestRules.Oracle);
+        var prophet = new ProphetDreams(time, TestRules.ProphetDreams, oracleDeck, oracle ?? TestRules.Oracle);
         return (prophet, time, oracleDeck);
     }
 
@@ -41,13 +41,12 @@ public class OraclePairTests
 
     [Theory]
     [Trait("TS", "TS-oracle-pair-001")]
-    [InlineData("SYM_TREE", "SYM_BLOOD", "SYM_TREE", DogmaType.Taboo, 1.0f)]
-    [InlineData("SYM_BLOOD", "SYM_TREE", "SYM_BLOOD", DogmaType.Taboo, 1.0f)]
-    [InlineData("SYM_TREE", "SYM_WATER", "SYM_TREE", DogmaType.Worship, 0.5f)]
+    [InlineData("SYM_TREE", "SYM_BLOOD", "SYM_TREE", DogmaType.Destruction, 0.7f)] // 穢れ。(0.5 + 0.9) ÷ 2
+    [InlineData("SYM_BLOOD", "SYM_TREE", "SYM_BLOOD", DogmaType.Destruction, 0.7f)]
+    [InlineData("SYM_TREE", "SYM_WATER", "SYM_TREE", DogmaType.Worship, 0.5f)] // 水が木を生む。(0.5 + 0.5) ÷ 2
     public void PronouncePair_2枚を選ぶ_1枚目が対象のドグマが加わる(string first, string second, string target, DogmaType type, float intensity)
     {
-        // 旧い方式（極性の和）。段階 2c で旧い方式とともに消す（docs/domain/oracle-wuxing.md）
-        var (prophet, time, deck) = CreatePair(first, second, TestRules.Oracle with { TypeRule = OracleTypeRule.Polarity });
+        var (prophet, time, deck) = CreatePair(first, second);
 
         var result = prophet.PronouncePair(IndexOf(deck, first), IndexOf(deck, second));
 

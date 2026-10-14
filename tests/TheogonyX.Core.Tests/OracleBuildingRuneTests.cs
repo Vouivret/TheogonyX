@@ -74,7 +74,7 @@ public class OracleBuildingRuneTests
         var time = new TimeControl(
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
         var deck = Create();
-        var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, TestRules.Oracle);
+        var prophet = new ProphetDreams(time, TestRules.ProphetDreams, deck, TestRules.Oracle);
 
         Assert.Equal(0, prophet.OnTimeAdvanced().RunesGained);
 

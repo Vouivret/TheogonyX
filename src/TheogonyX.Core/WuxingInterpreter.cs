@@ -48,7 +48,7 @@ public static class WuxingInterpreter
         ArgumentNullException.ThrowIfNull(firstCardId);
         ArgumentNullException.ThrowIfNull(secondCardId);
         ArgumentNullException.ThrowIfNull(oracleRules);
-        var wuxing = oracleRules.Wuxing ?? throw new ArgumentException("五行の定義が無い", nameof(oracleRules));
+        var wuxing = oracleRules.Wuxing;
 
         var first = PositionOf(oracleRules.SymbolOf(firstCardId), wuxing);
         var second = PositionOf(oracleRules.SymbolOf(secondCardId), wuxing);

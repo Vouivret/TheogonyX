@@ -136,7 +136,7 @@ public class OracleDeckTests
     {
         var time = new TimeControl(TestRules.World, TestRules.JumpYears);
         var deck = new OracleDeck(Seed, TestRules.Deck);
-        var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, TestRules.Oracle);
+        var prophet = new ProphetDreams(time, TestRules.ProphetDreams, deck, TestRules.Oracle);
         prophet.PronouncePair(0, 1);
         var before = deck.Capture();
 

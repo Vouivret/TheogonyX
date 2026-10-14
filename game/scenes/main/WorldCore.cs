@@ -91,7 +91,7 @@ public partial class WorldCore : Node2D
             [AutoPlaySpeed.RealTime] = timeSettings.RealTimeSecondsPerYear,
         });
         var deck = new OracleDeck(seed, GameDataLoader.ParseDeck(rulesJson, dreamRules));
-        var prophet = new ProphetDreams(timeControl, dreamRules, prophetDreamRules, deck, oracleRules);
+        var prophet = new ProphetDreams(timeControl, prophetDreamRules, deck, oracleRules);
         if (saved is not null)
         {
             SaveGame.Apply(saved, timeControl, prophet, clock);

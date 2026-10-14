@@ -2,45 +2,11 @@ using TheogonyX.Core;
 
 namespace TheogonyX.Core.Tests;
 
-// 神託の五行の段階 1（docs/domain/oracle-wuxing.md）。土・金の記号を足し、種別はまだ極性の和で決める。
+// 神託の五行（docs/domain/oracle-wuxing.md）。土・金の記号と、五行の関係によるドグマの種別・強度・予告。
 public class OracleWuxingTests
 {
     private const int Seed = 42;
     private const float Tolerance = 0.001f;
-
-    // 2 枚だけの山札（記号は a, b）を、手札に引いた状態で作る
-    private static (ProphetDreams Prophet, TimeControl Time) CreatePair(string a, string b)
-    {
-        var time = new TimeControl(
-            TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
-        var rules = a == b
-            ? new DeckRules([new DeckRuneCount(a, 2)], HandSize: 2)
-            : new DeckRules([new DeckRuneCount(a, 1), new DeckRuneCount(b, 1)], HandSize: 2);
-        var deck = new OracleDeck(Seed, rules);
-        // 段階 1 の旧い方式（極性の和）。段階 2c で旧い方式とともに消す
-        var oracle = TestRules.Oracle with { TypeRule = OracleTypeRule.Polarity };
-        return (new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, oracle), time);
-    }
-
-    [Theory]
-    [Trait("TS", "TS-oracle-wuxing-001")]
-    [InlineData("SYM_EARTH", "SYM_EARTH", DogmaType.Worship)]
-    [InlineData("SYM_METAL", "SYM_METAL", DogmaType.Taboo)]
-    [InlineData("SYM_EARTH", "SYM_METAL", DogmaType.Destruction)]
-    public void PronouncePair_土と金_極性の和で種別が決まる(string first, string second, DogmaType type)
-    {
-        var (prophet, time) = CreatePair(first, second);
-        var firstIndex = prophet.Hand.ToList().IndexOf(first);
-        var secondIndex = first == second ? 1 - firstIndex : prophet.Hand.ToList().IndexOf(second);
-
-        prophet.PronouncePair(firstIndex, secondIndex);
-
-        var dogma = Assert.Single(time.Dogmas);
-        Assert.Equal(first, dogma.TargetSymbolId);
-        Assert.Equal(type, dogma.Type);
-        // 衝撃度 = 0.7 × 0.3 ＋ 0.7 × 0.3
-        Assert.Equal(0.42f, dogma.Intensity, Tolerance);
-    }
 
     [Fact]
     [Trait("TS", "TS-oracle-wuxing-002")]
@@ -79,7 +45,7 @@ public class OracleWuxingTests
     [InlineData("SYM_BLOOD", "SYM_TREE", DogmaType.Destruction, 0.7f)]
     public void Interpret_五行の関係_種別と強度が決まり1枚目が対象(string first, string second, DogmaType type, float intensity)
     {
-        var dogma = OracleInterpreter.Interpret(first, second, TestRules.Dream, TestRules.OracleWuxing);
+        var dogma = WuxingInterpreter.Interpret(first, second, TestRules.OracleWuxing);
 
         Assert.NotNull(dogma);
         Assert.Equal(first, dogma.TargetSymbolId);
@@ -126,7 +92,7 @@ public class OracleWuxingTests
     [Trait("TS", "TS-oracle-wuxing-004")]
     public void Interpret_汚染ルーンの狂乱_穢れとして破壊になる()
     {
-        var dogma = OracleInterpreter.Interpret("SYM_TREE", "RUNE_MADNESS", TestRules.Dream, TestRules.OracleWuxing);
+        var dogma = WuxingInterpreter.Interpret("SYM_TREE", "RUNE_MADNESS", TestRules.OracleWuxing);
 
         Assert.NotNull(dogma);
         Assert.Equal(DogmaType.Destruction, dogma.Type);
@@ -142,23 +108,12 @@ public class OracleWuxingTests
         void Check(OracleRules rules) => rules.Validate(symbols);
 
         Check(TestRules.OracleWuxing);
-        Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = null }));
+        Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = null! }));
         Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = wuxing with { Cycle = ["SYM_TREE", "SYM_FIRE", "SYM_EARTH", "SYM_METAL"] } }));
         Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = wuxing with { Cycle = ["SYM_TREE", "SYM_TREE", "SYM_EARTH", "SYM_METAL", "SYM_WATER"] } }));
         Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = wuxing with { Impure = [] } }));
         Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = wuxing with { Impure = ["SYM_BLOOD", "SYM_TREE"] } }));
         Assert.Throws<ArgumentException>(() => Check(TestRules.OracleWuxing with { Wuxing = wuxing with { Multipliers = wuxing.Multipliers with { Leak = -0.1f } } }));
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-wuxing-004")]
-    public void Interpret_種別の決め方が極性_今までどおり極性の和で決まる()
-    {
-        // 土 +0.3 と金 −0.3 の和は 0 で破壊。五行なら、対象の土が金を生む（漏れる）ので崇拝になる
-        var dogma = OracleInterpreter.Interpret("SYM_EARTH", "SYM_METAL", TestRules.Dream, TestRules.OracleWuxing with { TypeRule = OracleTypeRule.Polarity });
-
-        Assert.NotNull(dogma);
-        Assert.Equal(DogmaType.Destruction, dogma.Type);
     }
 
     // 手札を指定した ProphetDreams（種別は五行の関係で決める）
@@ -169,7 +124,7 @@ public class OracleWuxingTests
         var deck = new OracleDeck(Seed, TestRules.Deck);
         var state = deck.Capture();
         deck.Restore(state with { Hand = hand, DrawPile = [.. state.DrawPile, .. state.Hand] });
-        return (new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, TestRules.OracleWuxing), time);
+        return (new ProphetDreams(time, TestRules.ProphetDreams, deck, TestRules.OracleWuxing), time);
     }
 
     [Fact]
@@ -199,17 +154,5 @@ public class OracleWuxingTests
         var (prophet, _) = CreateWithHand("SYM_FIRE", "SYM_WATER", "SYM_TREE", "SYM_EARTH");
 
         Assert.Null(prophet.PreviewPair(first, second));
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-wuxing-007")]
-    public void PreviewPair_種別の決め方が極性_予告しない()
-    {
-        var time = new TimeControl(
-            TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
-        var prophet = new ProphetDreams(
-            time, TestRules.Dream, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle with { TypeRule = OracleTypeRule.Polarity });
-
-        Assert.Null(prophet.PreviewPair(0, 1));
     }
 }

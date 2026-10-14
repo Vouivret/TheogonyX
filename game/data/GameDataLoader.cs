@@ -27,8 +27,7 @@ public static class GameDataLoader
     public static DreamRules ParseDreamRules(string symbolsJson, string rulesJson)
     {
         var symbols = Parse<SymbolsFile>(symbolsJson, "symbols.json");
-        var rules = Parse<RulesFile>(rulesJson, "rules.json");
-        return new DreamRules(symbols.Symbols, rules.DogmaTypeThresholds.TabooAtOrBelow, rules.DogmaTypeThresholds.WorshipAtOrAbove);
+        return new DreamRules(symbols.Symbols);
     }
 
     public static WorldRules ParseWorldRules(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").World;
@@ -344,8 +343,6 @@ public static class GameDataLoader
 
     private sealed record SymbolsFile(IReadOnlyList<Symbol> Symbols);
 
-    private sealed record DogmaTypeThresholds(float TabooAtOrBelow, float WorshipAtOrAbove);
-
     private sealed record LakeFile(IReadOnlyList<TerrainCell> Cells);
 
     private sealed record TerrainFile(int Columns, int Rows, IReadOnlyList<TerrainAnomaly> Anomalies, LakeFile Lake);
@@ -398,7 +395,6 @@ public static class GameDataLoader
     private sealed record ProphetRequestsFile(int CooldownYears, IReadOnlyList<ProphetRequestRule> Requests);
 
     private sealed record RulesFile(
-        DogmaTypeThresholds DogmaTypeThresholds,
         WorldRules World,
         TerrainFile Terrain,
         TimeControlSettings TimeControl,

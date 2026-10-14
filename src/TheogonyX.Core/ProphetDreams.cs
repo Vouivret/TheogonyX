@@ -27,7 +27,6 @@ public sealed class ProphetDreams
     };
 
     private readonly TimeControl _timeControl;
-    private readonly DreamRules _dreamRules;
     private readonly ProphetDreamRules _rules;
     private readonly OracleRules _oracleRules;
     private readonly Dictionary<string, int> _answeredYears = [];
@@ -38,16 +37,14 @@ public sealed class ProphetDreams
 
     /// <param name="deck">神託のデッキ（手札・山札・捨札）。</param>
     /// <param name="oracleRules">神託の作り方（ルーンの組）と神威・歪みの定義。</param>
-    public ProphetDreams(TimeControl timeControl, DreamRules dreamRules, ProphetDreamRules rules, OracleDeck deck, OracleRules oracleRules)
+    public ProphetDreams(TimeControl timeControl, ProphetDreamRules rules, OracleDeck deck, OracleRules oracleRules)
     {
         ArgumentNullException.ThrowIfNull(timeControl);
-        ArgumentNullException.ThrowIfNull(dreamRules);
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(deck);
         ArgumentNullException.ThrowIfNull(oracleRules);
 
         _timeControl = timeControl;
-        _dreamRules = dreamRules;
         _rules = rules;
         Deck = deck;
         _oracleRules = oracleRules;
@@ -124,12 +121,11 @@ public sealed class ProphetDreams
 
     /// <summary>
     /// 手札の 2 枚（番号は手札の位置。1 枚目が対象）で神託を下したときの、五行の関係と種別の予告（画面の案内に使う）。
-    /// 種別を五行で決めていない、または番号が正しくなければ null。
+    /// 番号が正しくなければ null。
     /// </summary>
     public WuxingJudgement? PreviewPair(int first, int second)
     {
-        if (_oracleRules.TypeRule != OracleTypeRule.Wuxing
-            || first < 0 || second < 0 || first >= Deck.Hand.Count || second >= Deck.Hand.Count || first == second)
+        if (first < 0 || second < 0 || first >= Deck.Hand.Count || second >= Deck.Hand.Count || first == second)
         {
             return null;
         }
@@ -175,7 +171,7 @@ public sealed class ProphetDreams
 
         var world = _timeControl.World;
         var corruptedCount = new[] { Deck.Hand[first], Deck.Hand[second] }.Count(_oracleRules.IsCorrupted);
-        var dogma = OracleInterpreter.Interpret(Deck.Hand[first], Deck.Hand[second], _dreamRules, _oracleRules);
+        var dogma = WuxingInterpreter.Interpret(Deck.Hand[first], Deck.Hand[second], _oracleRules);
         if (dogma is not null)
         {
             _timeControl.AddDogma(dogma);

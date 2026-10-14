@@ -34,7 +34,7 @@ public class HostMessageWriterTests
     {
         var time = new TimeControl(TestRules.World, TestRules.JumpYears);
         var deck = new OracleDeck(1, new DeckRules([new DeckRuneCount("SYM_TREE", 1), new DeckRuneCount("SYM_WATER", 1)], HandSize: 2));
-        return (new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, TestRules.Oracle), time);
+        return (new ProphetDreams(time, TestRules.ProphetDreams, deck, TestRules.Oracle), time);
     }
 
     [Fact]

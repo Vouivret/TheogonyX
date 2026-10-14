@@ -75,7 +75,7 @@ public class SaveDataTests
     {
         var time = new TimeControl(
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
-        var prophet = new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
+        var prophet = new ProphetDreams(time, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
             [AutoPlaySpeed.Normal] = 1.0,

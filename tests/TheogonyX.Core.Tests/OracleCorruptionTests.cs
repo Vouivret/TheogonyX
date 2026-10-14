@@ -13,7 +13,7 @@ public class OracleCorruptionTests
         var time = new TimeControl(
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, seed, TestRules.Needs), TestRules.History);
         var deck = new OracleDeck(seed, TestRules.Deck);
-        return (new ProphetDreams(time, TestRules.Dream, TestRules.ProphetDreams, deck, TestRules.Oracle), time, deck);
+        return (new ProphetDreams(time, TestRules.ProphetDreams, deck, TestRules.Oracle), time, deck);
     }
 
     private static int Count(OracleDeck deck, string cardId) =>

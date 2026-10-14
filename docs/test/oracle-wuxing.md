@@ -5,17 +5,17 @@
 
 ## テスト観点
 
-種別は「自動」「手動」「廃止」のどれか。自動テストの手順はテストコードに書き、ここには書かない。段階 1（土・金の記号を足す）と段階 2a・2b（五行の判定を足し、種別の決め方を五行に切り替える）を対象にする。段階 3（融合）は、実装するときに観点を足す。TS-oracle-wuxing-001 と、004 のうち極性の場合は、段階 2c で旧い方式とともに廃止する。
+種別は「自動」「手動」「廃止」のどれか。自動テストの手順はテストコードに書き、ここには書かない。段階 1（土・金の記号を足す）と段階 2（種別を五行の関係で決める）を対象にする。段階 3（融合）は、実装するときに観点を足す。
 
 | ID | 受け入れ条件 | 観点 | 前提 | 操作 | 期待結果 | 種別 | 実装場所 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TS-oracle-wuxing-001 | AC-oracle-wuxing-014 | 土・金のルーンで神託を下すと、極性の和で種別が決まる（段階 1） | 受け入れ条件のとおり | 神託を下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleWuxingTests.cs` |
+| TS-oracle-wuxing-001 | AC-oracle-wuxing-014 | （廃止）段階 1 の極性の和による種別。段階 2c で旧い方式とともに廃止 | | | | 廃止 | — |
 | TS-oracle-wuxing-002 | AC-oracle-wuxing-013, 015 | 最初のデッキは五行が 3 枚ずつで血が無い。工房で金が加わる | 受け入れ条件のとおり | デッキを作る・工房が建つ | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleWuxingTests.cs` |
 | TS-oracle-wuxing-003 | AC-oracle-wuxing-013 | 画面とスマホの手札に、大地・鉄の名前が出る。大地・鉄で神託を下すと、ドグマの一覧に名前が出る | Godot 4.7.2 で動かす。スマホはペアリング済み | 下の手順 | 下の手順のとおり | 手動 | — |
-| TS-oracle-wuxing-004 | AC-oracle-wuxing-001〜007, 017 | 五行の関係で、種別・強度・対象が決まる（穢れ・汚染ルーンを含む）。種別の決め方が極性なら、今までどおり | 受け入れ条件のとおり | 判定する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleWuxingTests.cs` |
+| TS-oracle-wuxing-004 | AC-oracle-wuxing-001〜007 | 五行の関係で、種別・強度・対象が決まる（穢れ・汚染ルーンを含む） | 受け入れ条件のとおり | 判定する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleWuxingTests.cs` |
 | TS-oracle-wuxing-005 | AC-oracle-wuxing-008 | 順序付きの 25 通りの関係の数と、相生・相剋の並びの向き | 受け入れ条件のとおり | 判定する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleWuxingTests.cs` |
 | TS-oracle-wuxing-006 | AC-oracle-wuxing-016 | 五行の定義の検証 | 受け入れ条件のとおり | 検証する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleWuxingTests.cs` |
-| TS-oracle-wuxing-007 | AC-oracle-wuxing-018 | 2 枚の予告が、下した神託と一致する。予告できないときは null | 受け入れ条件のとおり | 予告して下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleWuxingTests.cs` |
+| TS-oracle-wuxing-007 | AC-oracle-wuxing-018 | 2 枚の予告が、下した神託と一致する。番号が正しくなければ予告しない | 受け入れ条件のとおり | 予告して下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleWuxingTests.cs` |
 | TS-oracle-wuxing-008 | AC-oracle-wuxing-001〜006, 018 | 画面で、2 枚を選ぶと予告が出て、下した神託が予告どおりの種別になる。種別の名前に陰陽が添えられる | Godot 4.7.2 で動かす | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順

@@ -11,15 +11,13 @@ internal static class TestRules
 {
     public static readonly DreamRules Dream = new(
         [
-            new Symbol("SYM_TREE", 0.4f),
-            new Symbol("SYM_WATER", 0.6f),
-            new Symbol("SYM_BLOOD", -0.9f),
-            new Symbol("SYM_FIRE", 0.1f),
-            new Symbol("SYM_EARTH", 0.3f),
-            new Symbol("SYM_METAL", -0.3f),
-        ],
-        TabooAtOrBelow: -0.3f,
-        WorshipAtOrAbove: 0.3f);
+            new Symbol("SYM_TREE"),
+            new Symbol("SYM_WATER"),
+            new Symbol("SYM_BLOOD"),
+            new Symbol("SYM_FIRE"),
+            new Symbol("SYM_EARTH"),
+            new Symbol("SYM_METAL"),
+        ]);
 
     public static readonly WorldRules World = new(
         Initial: new EnvironmentValues(ForestAmount: 100f, WaterAmount: 100f, Temperature: 15f, ChaosLevel: 0f, HarmonyLevel: 50f),
@@ -109,21 +107,19 @@ internal static class TestRules
             new RuneWeight("SYM_EARTH", 0.7f), new RuneWeight("SYM_METAL", 0.7f)],
         new FaithRules(Max: 3f, PerYear: 0.1f, Cost: 1f, Initial: 3f),
         new OverloadRules(WindowYears: 10, FreeCount: 2, SanityLoss: 20, ChaosGain: 5f),
-        new CorruptionRules(
-            Thresholds: [50f, 80f],
-            Runes: [new CorruptedRune("RUNE_MADNESS", "SYM_BLOOD"), new CorruptedRune("RUNE_DECAY", "SYM_TREE"), new CorruptedRune("RUNE_CURSE", "SYM_WATER")],
-            ChaosPerRune: 10f),
         new WuxingRules(
             Cycle: ["SYM_TREE", "SYM_FIRE", "SYM_EARTH", "SYM_METAL", "SYM_WATER"],
             Impure: ["SYM_BLOOD"],
             Multipliers: new WuxingMultipliers(Same: 1.3f, Generated: 1.0f, Overcome: 1.0f, Rebel: 1.0f, Leak: 0.5f)),
-        TypeRule: OracleTypeRule.Wuxing);
+        new CorruptionRules(
+            Thresholds: [50f, 80f],
+            Runes: [new CorruptedRune("RUNE_MADNESS", "SYM_BLOOD"), new CorruptedRune("RUNE_DECAY", "SYM_TREE"), new CorruptedRune("RUNE_CURSE", "SYM_WATER")],
+            ChaosPerRune: 10f));
 
-    // docs/domain/oracle-wuxing.md の受け入れ条件の値（重みはすべて 0.7、種別は五行の関係で決める）。
+    // docs/domain/oracle-wuxing.md の受け入れ条件の値（重みはすべて 0.7）。
     public static readonly OracleRules OracleWuxing = Oracle with
     {
         RuneWeights = [.. new[] { "SYM_TREE", "SYM_WATER", "SYM_BLOOD", "SYM_FIRE", "SYM_EARTH", "SYM_METAL" }.Select(id => new RuneWeight(id, 0.7f))],
-        TypeRule = OracleTypeRule.Wuxing,
     };
 
     // docs/domain/dream-tampering.md と prophet-request.md のルールの値。

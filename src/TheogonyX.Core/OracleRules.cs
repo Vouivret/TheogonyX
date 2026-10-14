@@ -28,16 +28,6 @@ public sealed record CorruptedRune(string Id, string SymbolId);
 /// <param name="ChaosPerRune">汚染ルーンを神託に使ったとき、1 枚につき上がるカオス度。</param>
 public sealed record CorruptionRules(IReadOnlyList<float> Thresholds, IReadOnlyList<CorruptedRune> Runes, float ChaosPerRune);
 
-/// <summary>神託のドグマの種別の決め方。</summary>
-public enum OracleTypeRule
-{
-    /// <summary>2 枚の感情の極性の和（旧い方式。docs/domain/oracle-pair.md）。</summary>
-    Polarity,
-
-    /// <summary>2 枚の五行の関係（docs/domain/oracle-wuxing.md）。</summary>
-    Wuxing,
-}
-
 /// <summary>五行の関係ごとの、強度の倍率。</summary>
 public sealed record WuxingMultipliers(float Same, float Generated, float Overcome, float Rebel, float Leak)
 {
@@ -59,16 +49,14 @@ public sealed record WuxingMultipliers(float Same, float Generated, float Overco
 public sealed record WuxingRules(IReadOnlyList<string> Cycle, IReadOnlyList<string> Impure, WuxingMultipliers Multipliers);
 
 /// <summary>神託の作り方（ルーンの組）のゲームデータ定義（docs/domain/oracle-pair.md）。</summary>
+/// <param name="Wuxing">五行の定義。ドグマの種別と強度の倍率を決める（docs/domain/oracle-wuxing.md）。</param>
 /// <param name="Corruption">汚染ルーンの定義。省略したら、汚染ルーンは混ざらない。</param>
-/// <param name="Wuxing">五行の定義。<paramref name="TypeRule"/> が <see cref="OracleTypeRule.Wuxing"/> なら必須。</param>
-/// <param name="TypeRule">ドグマの種別の決め方。</param>
 public sealed record OracleRules(
     IReadOnlyList<RuneWeight> RuneWeights,
     FaithRules Faith,
     OverloadRules Overload,
-    CorruptionRules? Corruption = null,
-    WuxingRules? Wuxing = null,
-    OracleTypeRule TypeRule = OracleTypeRule.Polarity)
+    WuxingRules Wuxing,
+    CorruptionRules? Corruption = null)
 {
     private static readonly CorruptionRules NoCorruption = new([], [], 0f);
 
@@ -137,14 +125,11 @@ public sealed record OracleRules(
             }
         }
 
-        if (TypeRule == OracleTypeRule.Wuxing && Wuxing is null)
+        if (Wuxing is null)
         {
-            throw new ArgumentException("種別を五行で決めるのに、五行の定義が無い");
+            throw new ArgumentException("五行の定義が無い");
         }
-        if (Wuxing is not null)
-        {
-            ValidateWuxing(Wuxing, symbolIds);
-        }
+        ValidateWuxing(Wuxing, symbolIds);
     }
 
     // 相生の並びは 5 つで重ならず、すべての記号が五行か穢れのどちらか 1 つだけに入る
