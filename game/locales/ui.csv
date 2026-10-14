@@ -75,6 +75,7 @@ TROUBLE_HEAT,暑さ,heat
 TROUBLE_COLD,寒さ,cold
 TROUBLE_CHAOS,混乱,chaos
 TROUBLE_UNREST,荒れ,unrest
+TROUBLE_RUIN,荒廃,ruin
 SAVE_LOAD_FAILED,セーブを読めなかったので、新しい星で始めました,Could not read the save. Started a new planet.
 NAME_ART_ORIUS,アルトリウス,Artorius
 NAME_ART_US,アルトゥス,Artus

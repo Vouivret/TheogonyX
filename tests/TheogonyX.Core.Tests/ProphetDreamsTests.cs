@@ -116,6 +116,20 @@ public class ProphetDreamsTests
         Assert.Equal("SYM_EARTH", prophet.ActiveRequest?.SymbolId);
     }
 
+    [Theory]
+    [Trait("TS", "TS-prophet-request-001")]
+    [InlineData(7, false)]
+    [InlineData(8, true)]
+    public void Matches_地上の廃墟の数_8以上で荒廃に当てはまり鉄を示す(int ruinCount, bool expected)
+    {
+        var rule = TestRules.ProphetDreams.Requests.Single(r => r.Id == "RUIN");
+        var ruins = Enumerable.Range(0, ruinCount).Select(id => new Ruin(id, BuildingType.HouseHut, 0, id, 0, 10));
+        var civilization = new Civilization([new RegionCivilization(0, 0, 0, 0)], [], ruins, [], 0);
+
+        Assert.Equal(expected, rule.Matches(new WorldState(), civilization));
+        Assert.Equal("SYM_METAL", rule.SymbolId);
+    }
+
     [Fact]
     [Trait("TS", "TS-prophet-request-002")]
     public void OnTimeAdvanced_渇きと混乱の両方に当てはまる_優先の渇きが出る()

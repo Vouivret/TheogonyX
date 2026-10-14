@@ -10,10 +10,11 @@ public sealed record ProphetRequestRule(
     float Threshold,
     string SymbolId)
 {
-    public bool Matches(WorldState world)
+    /// <param name="civilization">廃墟の数（<see cref="WorldMetric.RuinCount"/>）を数える文明。無ければ廃墟は 0。</param>
+    public bool Matches(WorldState world, Civilization? civilization = null)
     {
         ArgumentNullException.ThrowIfNull(world);
-        var value = world.ValueOf(Metric);
+        var value = Metric == WorldMetric.RuinCount ? civilization?.Ruins.Count ?? 0 : world.ValueOf(Metric);
         return Comparison == ThresholdComparison.AtOrBelow ? value <= Threshold : value >= Threshold;
     }
 }

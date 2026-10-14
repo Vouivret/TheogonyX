@@ -302,7 +302,7 @@ public sealed class ProphetDreams
             {
                 continue;
             }
-            if (request.Matches(world))
+            if (request.Matches(world, _timeControl.Civilization))
             {
                 return request;
             }
