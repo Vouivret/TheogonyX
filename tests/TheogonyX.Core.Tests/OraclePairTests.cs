@@ -69,7 +69,7 @@ public class OraclePairTests
         prophet.PronouncePair(0, 1);
 
         Assert.Equal(4, deck.Hand.Count);
-        Assert.Equal(6, deck.DrawPile.Count);
+        Assert.Equal(9, deck.DrawPile.Count);
         Assert.Equal([first, second], deck.DiscardPile);
         Assert.Equal(nextTwo, deck.Hand.Skip(2).ToList());
     }

@@ -17,7 +17,14 @@
       { "symbolId": "SYM_FIRE", "dogmaType": "Taboo", "perYear": { "temperature": -0.2 } },
       { "symbolId": "SYM_FIRE", "dogmaType": "Destruction", "perYear": { "forestAmount": -1.5, "temperature": 0.3, "chaosLevel": 1.0 } },
       { "symbolId": "SYM_BLOOD", "dogmaType": "Worship", "perYear": { "chaosLevel": 1.5, "harmonyLevel": -1.0 } },
-      { "symbolId": "SYM_BLOOD", "dogmaType": "Destruction", "perYear": { "chaosLevel": 1.5, "harmonyLevel": -1.0 } }
+      { "symbolId": "SYM_BLOOD", "dogmaType": "Destruction", "perYear": { "chaosLevel": 1.5, "harmonyLevel": -1.0 } },
+      { "symbolId": "SYM_FIRE", "dogmaType": "Worship", "perYear": { "temperature": 0.05, "harmonyLevel": 0.2 } },
+      { "symbolId": "SYM_EARTH", "dogmaType": "Worship", "perYear": { "forestAmount": 0.3, "harmonyLevel": 0.2 } },
+      { "symbolId": "SYM_EARTH", "dogmaType": "Taboo", "perYear": { "forestAmount": 0.2, "waterAmount": 0.2 } },
+      { "symbolId": "SYM_EARTH", "dogmaType": "Destruction", "perYear": { "forestAmount": -1.0, "waterAmount": -1.0, "chaosLevel": 0.5 } },
+      { "symbolId": "SYM_METAL", "dogmaType": "Worship", "perYear": { "temperature": -0.05, "harmonyLevel": 0.2 } },
+      { "symbolId": "SYM_METAL", "dogmaType": "Taboo", "perYear": { "temperature": 0.05 } },
+      { "symbolId": "SYM_METAL", "dogmaType": "Destruction", "perYear": { "temperature": -0.2, "chaosLevel": 1.2 } }
     ],
     "chaosDecayPerYear": 0.2,
     "collapse": {
@@ -204,7 +211,9 @@
       { "symbolId": "SYM_TREE", "weight": 0.7 },
       { "symbolId": "SYM_WATER", "weight": 0.7 },
       { "symbolId": "SYM_BLOOD", "weight": 0.7 },
-      { "symbolId": "SYM_FIRE", "weight": 0.7 }
+      { "symbolId": "SYM_FIRE", "weight": 0.7 },
+      { "symbolId": "SYM_EARTH", "weight": 0.7 },
+      { "symbolId": "SYM_METAL", "weight": 0.7 }
     ],
     "faith": { "max": 3.0, "perYear": 0.1, "cost": 1.0, "initial": 3.0 },
     "overload": { "windowYears": 10, "freeCount": 2, "sanityLoss": 20.0, "chaosGain": 5.0 },
@@ -222,14 +231,15 @@
     "initialRunes": [
       { "symbolId": "SYM_TREE", "count": 3 },
       { "symbolId": "SYM_WATER", "count": 3 },
-      { "symbolId": "SYM_BLOOD", "count": 3 },
-      { "symbolId": "SYM_FIRE", "count": 3 }
+      { "symbolId": "SYM_FIRE", "count": 3 },
+      { "symbolId": "SYM_EARTH", "count": 3 },
+      { "symbolId": "SYM_METAL", "count": 3 }
     ],
     "handSize": 4,
     "pruneChargesPerReset": 2,
-    "maxSize": 20,
+    "maxSize": 25,
     "buildingRunes": [
-      { "buildingType": "Workshop", "symbolId": "SYM_FIRE" },
+      { "buildingType": "Workshop", "symbolId": "SYM_METAL" },
       { "buildingType": "Shrine", "symbolId": "SYM_WATER" }
     ]
   },

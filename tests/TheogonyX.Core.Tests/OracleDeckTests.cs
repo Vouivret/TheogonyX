@@ -21,16 +21,16 @@ public class OracleDeckTests
 
     [Fact]
     [Trait("TS", "TS-oracle-deck-001")]
-    public void Constructor_最初のデッキ_12枚のうち4枚が手札で8枚が山札()
+    public void Constructor_最初のデッキ_15枚のうち4枚が手札で11枚が山札()
     {
         var deck = new OracleDeck(Seed, TestRules.Deck);
 
         Assert.Equal(4, deck.Hand.Count);
-        Assert.Equal(8, deck.DrawPile.Count);
+        Assert.Equal(11, deck.DrawPile.Count);
         Assert.Empty(deck.DiscardPile);
         var all = deck.Hand.Concat(deck.DrawPile).OrderBy(id => id).ToList();
         Assert.Equal(
-            [.. new[] { "SYM_BLOOD", "SYM_FIRE", "SYM_WATER", "SYM_TREE" }.SelectMany(id => Enumerable.Repeat(id, 3)).OrderBy(id => id)],
+            [.. new[] { "SYM_TREE", "SYM_FIRE", "SYM_EARTH", "SYM_METAL", "SYM_WATER" }.SelectMany(id => Enumerable.Repeat(id, 3)).OrderBy(id => id)],
             all);
     }
 
@@ -59,7 +59,7 @@ public class OracleDeckTests
         deck.SpendPair(1, 3);
 
         Assert.Equal(4, deck.Hand.Count);
-        Assert.Equal(6, deck.DrawPile.Count);
+        Assert.Equal(9, deck.DrawPile.Count);
         Assert.Equal([first, second], deck.DiscardPile);
         Assert.Equal(nextTwo, deck.Hand.Skip(2).ToList());
     }

@@ -33,7 +33,7 @@ public class OracleCorruptionTests
         var (prophet, time, deck) = Create();
         time.World.ChaosLevel = 49.9f;
         Assert.Equal(0, prophet.OnTimeAdvanced().CorruptedAdded);
-        Assert.Equal(12, deck.DrawPile.Count + deck.Hand.Count);
+        Assert.Equal(15, deck.DrawPile.Count + deck.Hand.Count);
 
         time.World.ChaosLevel = 50f;
         var update = prophet.OnTimeAdvanced();
@@ -41,7 +41,7 @@ public class OracleCorruptionTests
         Assert.Equal(1, update.CorruptedAdded);
         Assert.Equal(1, Count(deck, "RUNE_MADNESS"));
         Assert.Contains("RUNE_MADNESS", deck.DrawPile);
-        Assert.Equal(9, deck.DrawPile.Count);
+        Assert.Equal(12, deck.DrawPile.Count);
         Assert.Equal(1, deck.CorruptionStage);
     }
 

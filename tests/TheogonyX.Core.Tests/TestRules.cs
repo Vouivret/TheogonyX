@@ -15,6 +15,8 @@ internal static class TestRules
             new Symbol("SYM_WATER", 0.6f),
             new Symbol("SYM_BLOOD", -0.9f),
             new Symbol("SYM_FIRE", 0.1f),
+            new Symbol("SYM_EARTH", 0.3f),
+            new Symbol("SYM_METAL", -0.3f),
         ],
         TabooAtOrBelow: -0.3f,
         WorshipAtOrAbove: 0.3f);
@@ -90,17 +92,21 @@ internal static class TestRules
             new TerrainAnomaly(TileType.Jungle, WorldMetric.ForestAmount, ThresholdComparison.AtOrAbove, Threshold: 70f, ZeroColumnValue: 70f, FullColumnValue: 100f),
         ];
 
-    // docs/domain/oracle-deck.md の第 1 段（4 記号を各 3 枚、手札 4 枚）。
+    // docs/domain/oracle-wuxing.md の段階 1（五行の 5 記号を各 3 枚、血は入れない、手札 4 枚、上限 25 枚、工房は金）。
     public static readonly DeckRules Deck = new(
-        [new DeckRuneCount("SYM_TREE", 3), new DeckRuneCount("SYM_WATER", 3), new DeckRuneCount("SYM_BLOOD", 3), new DeckRuneCount("SYM_FIRE", 3)],
+        [
+            new DeckRuneCount("SYM_TREE", 3), new DeckRuneCount("SYM_WATER", 3), new DeckRuneCount("SYM_FIRE", 3),
+            new DeckRuneCount("SYM_EARTH", 3), new DeckRuneCount("SYM_METAL", 3),
+        ],
         HandSize: 4,
         PruneChargesPerReset: 2,
-        BuildingRunes: [new BuildingRune("Workshop", "SYM_FIRE"), new BuildingRune("Shrine", "SYM_WATER")],
-        MaxSize: 20);
+        BuildingRunes: [new BuildingRune("Workshop", "SYM_METAL"), new BuildingRune("Shrine", "SYM_WATER")],
+        MaxSize: 25);
 
     // docs/domain/oracle-pair.md の受け入れ条件の値（重みは AC の記号の重みと同じ。神威は上限 3・1 年に 0.1・コスト 1。歪みは 10 年に 2 回まで、超えた分 SAN 値 −20・カオス度 +5）。
     public static readonly OracleRules Oracle = new(
-        [new RuneWeight("SYM_TREE", 0.5f), new RuneWeight("SYM_WATER", 0.5f), new RuneWeight("SYM_BLOOD", 0.9f), new RuneWeight("SYM_FIRE", 0.4f)],
+        [new RuneWeight("SYM_TREE", 0.5f), new RuneWeight("SYM_WATER", 0.5f), new RuneWeight("SYM_BLOOD", 0.9f), new RuneWeight("SYM_FIRE", 0.4f),
+            new RuneWeight("SYM_EARTH", 0.7f), new RuneWeight("SYM_METAL", 0.7f)],
         new FaithRules(Max: 3f, PerYear: 0.1f, Cost: 1f, Initial: 3f),
         new OverloadRules(WindowYears: 10, FreeCount: 2, SanityLoss: 20, ChaosGain: 5f),
         new CorruptionRules(

@@ -20,7 +20,7 @@ public class OracleBuildingRuneTests
         var gained = deck.GainFromBuildings([Build(0, BuildingType.Workshop), Build(1, BuildingType.Shrine)]);
 
         Assert.Equal(2, gained);
-        Assert.Equal(["SYM_FIRE", "SYM_WATER"], deck.DiscardPile);
+        Assert.Equal(["SYM_METAL", "SYM_WATER"], deck.DiscardPile);
         Assert.Equal(1, deck.LastBuildingId);
     }
 
@@ -56,14 +56,14 @@ public class OracleBuildingRuneTests
     public void GainFromBuildings_総数が上限_加わらないが数えたことになる()
     {
         var deck = Create();
-        Building[] many = [.. Enumerable.Range(0, 10).Select(id => Build(id, BuildingType.Workshop))];
+        Building[] many = [.. Enumerable.Range(0, 12).Select(id => Build(id, BuildingType.Workshop))];
 
         var gained = deck.GainFromBuildings(many);
 
-        // 最初のデッキは 12 枚、上限は 20 枚
-        Assert.Equal(8, gained);
-        Assert.Equal(20, deck.TotalCount);
-        Assert.Equal(9, deck.LastBuildingId);
+        // 最初のデッキは 15 枚、上限は 25 枚
+        Assert.Equal(10, gained);
+        Assert.Equal(25, deck.TotalCount);
+        Assert.Equal(11, deck.LastBuildingId);
         Assert.Equal(0, deck.GainFromBuildings(many));
     }
 
@@ -90,12 +90,12 @@ public class OracleBuildingRuneTests
     [Trait("TS", "TS-oracle-deck-019")]
     public void Validate_建物のルーンの定義が正しくない_例外になる()
     {
-        var symbols = new HashSet<string> { "SYM_TREE", "SYM_WATER", "SYM_BLOOD", "SYM_FIRE" };
+        var symbols = new HashSet<string> { "SYM_TREE", "SYM_WATER", "SYM_BLOOD", "SYM_FIRE", "SYM_EARTH", "SYM_METAL" };
 
         void Check(DeckRules rules) => rules.Validate(symbols);
 
         Check(TestRules.Deck);
-        Assert.Throws<ArgumentException>(() => Check(TestRules.Deck with { BuildingRunes = [new BuildingRune("HouseHut", "SYM_FIRE")] }));
+        Assert.Throws<ArgumentException>(() => Check(TestRules.Deck with { BuildingRunes = [new BuildingRune("HouseHut", "SYM_METAL")] }));
         Assert.Throws<ArgumentException>(() => Check(TestRules.Deck with { BuildingRunes = [new BuildingRune("Castle", "SYM_FIRE")] }));
         Assert.Throws<ArgumentException>(() => Check(TestRules.Deck with { BuildingRunes = [new BuildingRune("Workshop", "SYM_UNKNOWN")] }));
         Assert.Throws<ArgumentException>(() => Check(TestRules.Deck with { MaxSize = -1 }));
