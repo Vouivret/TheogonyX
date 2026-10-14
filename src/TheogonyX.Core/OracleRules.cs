@@ -48,15 +48,23 @@ public sealed record WuxingMultipliers(float Same, float Generated, float Overco
 /// <param name="Multipliers">関係ごとの強度の倍率。</param>
 public sealed record WuxingRules(IReadOnlyList<string> Cycle, IReadOnlyList<string> Impure, WuxingMultipliers Multipliers);
 
+/// <summary>上位のルーン（同じ五行の基本ルーン 2 枚を融合して得る。docs/domain/oracle-wuxing.md の「融合」）。</summary>
+/// <param name="Id">ルーン（カード）の ID（例: <c>RUNE_GREAT_TREE</c>）。記号の ID とは別。</param>
+/// <param name="SymbolId">持つ記号（五行の 1 つ）。融合の元になる基本ルーンも、この記号。</param>
+/// <param name="Weight">重み（0.0〜1.0）。</param>
+public sealed record GreaterRune(string Id, string SymbolId, float Weight);
+
 /// <summary>神託の作り方（ルーンの組）のゲームデータ定義（docs/domain/oracle-pair.md）。</summary>
 /// <param name="Wuxing">五行の定義。ドグマの種別と強度の倍率を決める（docs/domain/oracle-wuxing.md）。</param>
 /// <param name="Corruption">汚染ルーンの定義。省略したら、汚染ルーンは混ざらない。</param>
+/// <param name="GreaterRunes">上位のルーンの定義。省略したら、融合できない。</param>
 public sealed record OracleRules(
     IReadOnlyList<RuneWeight> RuneWeights,
     FaithRules Faith,
     OverloadRules Overload,
     WuxingRules Wuxing,
-    CorruptionRules? Corruption = null)
+    CorruptionRules? Corruption = null,
+    IReadOnlyList<GreaterRune>? GreaterRunes = null)
 {
     private static readonly CorruptionRules NoCorruption = new([], [], 0f);
 
@@ -66,8 +74,25 @@ public sealed record OracleRules(
     /// <summary>汚染ルーンの ID か。</summary>
     public bool IsCorrupted(string cardId) => CorruptionOrNone.Runes.Any(rune => rune.Id == cardId);
 
-    /// <summary>カードが持つ記号。汚染ルーンなら定義の記号、基本ルーンなら ID そのもの。</summary>
-    public string SymbolOf(string cardId) => CorruptionOrNone.Runes.FirstOrDefault(rune => rune.Id == cardId)?.SymbolId ?? cardId;
+    /// <summary>上位のルーンの定義（無ければ空）。</summary>
+    public IReadOnlyList<GreaterRune> GreaterRunesOrNone => GreaterRunes ?? [];
+
+    /// <summary>カードが持つ記号。汚染ルーン・上位のルーンなら定義の記号、基本ルーンなら ID そのもの。</summary>
+    public string SymbolOf(string cardId) =>
+        CorruptionOrNone.Runes.FirstOrDefault(rune => rune.Id == cardId)?.SymbolId
+        ?? GreaterRunesOrNone.FirstOrDefault(rune => rune.Id == cardId)?.SymbolId
+        ?? cardId;
+
+    /// <summary>記号の ID 以外で、デッキに入りうるカード（汚染ルーン・上位のルーン）か。</summary>
+    public bool IsSpecialCard(string cardId) => IsCorrupted(cardId) || GreaterRunesOrNone.Any(rune => rune.Id == cardId);
+
+    /// <summary>カードの重み。上位のルーンなら定義の重み、ほかは持つ記号の重み。</summary>
+    public float CardWeight(string cardId) =>
+        GreaterRunesOrNone.FirstOrDefault(rune => rune.Id == cardId)?.Weight ?? WeightOf(SymbolOf(cardId));
+
+    /// <summary>基本ルーン 2 枚から融合してできる上位のルーン。融合できない（基本ルーンでない・定義が無い）なら null。</summary>
+    public GreaterRune? FusionOf(string cardId) =>
+        IsSpecialCard(cardId) ? null : GreaterRunesOrNone.FirstOrDefault(rune => rune.SymbolId == cardId);
 
     /// <summary>ルーン（記号）の重み。定義に無ければ <see cref="ArgumentException"/>。</summary>
     public float WeightOf(string symbolId)
@@ -130,6 +155,23 @@ public sealed record OracleRules(
             throw new ArgumentException("五行の定義が無い");
         }
         ValidateWuxing(Wuxing, symbolIds);
+        ValidateGreaterRunes(symbolIds);
+    }
+
+    // ID は重ならず、記号・汚染ルーンとも重ならない。持つ記号は五行で、1 つの五行に 1 つまで。重みは 0〜1
+    private void ValidateGreaterRunes(IReadOnlySet<string> symbolIds)
+    {
+        foreach (var rune in GreaterRunesOrNone)
+        {
+            if (string.IsNullOrEmpty(rune.Id) || symbolIds.Contains(rune.Id) || IsCorrupted(rune.Id)
+                || GreaterRunesOrNone.Count(other => other.Id == rune.Id) > 1
+                || !Wuxing.Cycle.Contains(rune.SymbolId)
+                || GreaterRunesOrNone.Count(other => other.SymbolId == rune.SymbolId) > 1
+                || rune.Weight is < 0f or > 1f)
+            {
+                throw new ArgumentException($"上位のルーンの定義が正しくない: id={rune.Id} symbolId={rune.SymbolId} weight={rune.Weight}");
+            }
+        }
     }
 
     // 相生の並びは 5 つで重ならず、すべての記号が五行か穢れのどちらか 1 つだけに入る

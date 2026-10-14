@@ -114,7 +114,12 @@ internal static class TestRules
         new CorruptionRules(
             Thresholds: [50f, 80f],
             Runes: [new CorruptedRune("RUNE_MADNESS", "SYM_BLOOD"), new CorruptedRune("RUNE_DECAY", "SYM_TREE"), new CorruptedRune("RUNE_CURSE", "SYM_WATER")],
-            ChaosPerRune: 10f));
+            ChaosPerRune: 10f),
+        [
+            new GreaterRune("RUNE_GREAT_TREE", "SYM_TREE", 1.0f), new GreaterRune("RUNE_GREAT_FIRE", "SYM_FIRE", 1.0f),
+            new GreaterRune("RUNE_GREAT_EARTH", "SYM_EARTH", 1.0f), new GreaterRune("RUNE_GREAT_METAL", "SYM_METAL", 1.0f),
+            new GreaterRune("RUNE_GREAT_WATER", "SYM_WATER", 1.0f),
+        ]);
 
     // docs/domain/oracle-wuxing.md の受け入れ条件の値（重みはすべて 0.7）。
     public static readonly OracleRules OracleWuxing = Oracle with

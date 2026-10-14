@@ -322,19 +322,19 @@ public static class SaveDataSerializer
             ReadYearUpTo(Property(chapterElement, "year", JsonValueKind.Number), world.Year), ReadChaos(chapterElement, "chaos", "invalid_number"));
 
         var corruption = oracleRules?.CorruptionOrNone ?? new CorruptionRules([], [], 0f);
-        var deck = ReadDeck(Property(root, "deck", JsonValueKind.Object), symbolIds, corruption);
+        var deck = ReadDeck(Property(root, "deck", JsonValueKind.Object), symbolIds, corruption, oracleRules);
         var faith = ReadFaith(Property(root, "faith", JsonValueKind.Object), world.Year);
 
         return new SaveData(
             seed, world, dogmas, requestId, answeredYears, speed.Key, elapsedSeconds, civilization, residents, history, chapter, deck, faith);
     }
 
-    // 神託のデッキ。カードは定義にある記号か汚染ルーン。シャッフルの回数は 0 以上、混ぜた回数は 0 以上で閾値の数以下
-    private static OracleDeckState ReadDeck(JsonElement element, HashSet<string> symbolIds, CorruptionRules corruption)
+    // 神託のデッキ。カードは定義にある記号か、汚染ルーン・上位のルーン。シャッフルの回数は 0 以上、混ぜた回数は 0 以上で閾値の数以下
+    private static OracleDeckState ReadDeck(JsonElement element, HashSet<string> symbolIds, CorruptionRules corruption, OracleRules? oracleRules)
     {
         List<string> ReadCards(string name) => Property(element, name, JsonValueKind.Array).EnumerateArray()
             .Select(card => card.ValueKind == JsonValueKind.String && card.GetString() is { } id
-                && (symbolIds.Contains(id) || corruption.Runes.Any(rune => rune.Id == id))
+                && (symbolIds.Contains(id) || (oracleRules?.IsSpecialCard(id) ?? false))
                 ? id
                 : throw new InvalidSaveDataException("invalid_deck"))
             .ToList();

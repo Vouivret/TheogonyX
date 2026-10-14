@@ -61,7 +61,7 @@ public sealed class DreamView
     /// <summary>神託を下したとき。HUD のドグマの一覧と、時間のボタンを描き直すのに使う。</summary>
     public event Action? OraclePronounced;
 
-    /// <summary>精査でルーンを削除したとき。保存に使う。</summary>
+    /// <summary>精査でルーンを削除・融合したとき。保存に使う。</summary>
     public event Action? DeckPruned;
 
     /// <summary>描き直したとき。手札・神威・依頼・できる操作が変わったかもしれない。</summary>
@@ -159,7 +159,24 @@ public sealed class DreamView
         DeckPruned?.Invoke();
     }
 
-    // 精査の欄を作り直す。デッキのルーンを種類ごとにまとめて、ボタンにする
+    /// <summary>基本ルーンを 2 枚融合して、上位のルーンにする（精査）。</summary>
+    private void TryFuse(string cardId)
+    {
+        if (_prophet.FuseRejection(cardId) is { } reason)
+        {
+            GD.Print(FormattableString.Invariant(
+                $"event=deck_fuse_rejected year={_timeControl.World.Year} runeId={cardId} reason={reason}"));
+            return;
+        }
+
+        var greater = _prophet.Fuse(cardId);
+        GD.Print(FormattableString.Invariant(
+            $"event=deck_fused year={_timeControl.World.Year} runeId={greater.Id}"));
+        Redraw();
+        DeckPruned?.Invoke();
+    }
+
+    // 精査の欄を作り直す。デッキのルーンを種類ごとにまとめて、削除のボタンにする。融合できるルーンには、融合のボタンも足す
     private void RedrawPrune()
     {
         foreach (var child in _pruneRow.GetChildren())
@@ -187,6 +204,20 @@ public sealed class DreamView
                 Text = string.Format(CultureInfo.CurrentCulture, Tr("PRUNE_CARD"), Tr($"SYMBOL_{cardId}"), group.Count()),
             };
             button.Pressed += () => TryPrune(cardId);
+            _pruneRow.AddChild(button);
+        }
+        foreach (var group in cards.GroupBy(id => id))
+        {
+            var cardId = group.Key;
+            if (_prophet.FusionOf(cardId) is not { } greater || _prophet.FuseRejection(cardId) is not null)
+            {
+                continue;
+            }
+            var button = new Button
+            {
+                Text = string.Format(CultureInfo.CurrentCulture, Tr("PRUNE_FUSE"), Tr($"SYMBOL_{cardId}"), Tr($"SYMBOL_{greater.Id}")),
+            };
+            button.Pressed += () => TryFuse(cardId);
             _pruneRow.AddChild(button);
         }
     }

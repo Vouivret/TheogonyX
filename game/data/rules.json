@@ -226,7 +226,14 @@
         { "id": "RUNE_DECAY", "symbolId": "SYM_TREE" },
         { "id": "RUNE_CURSE", "symbolId": "SYM_WATER" }
       ]
-    }
+    },
+    "greaterRunes": [
+      { "id": "RUNE_GREAT_TREE", "symbolId": "SYM_TREE", "weight": 1.0 },
+      { "id": "RUNE_GREAT_FIRE", "symbolId": "SYM_FIRE", "weight": 1.0 },
+      { "id": "RUNE_GREAT_EARTH", "symbolId": "SYM_EARTH", "weight": 1.0 },
+      { "id": "RUNE_GREAT_METAL", "symbolId": "SYM_METAL", "weight": 1.0 },
+      { "id": "RUNE_GREAT_WATER", "symbolId": "SYM_WATER", "weight": 1.0 }
+    ]
   },
   "deck": {
     "initialRunes": [

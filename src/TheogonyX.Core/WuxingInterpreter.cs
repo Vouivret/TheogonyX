@@ -62,12 +62,12 @@ public static class WuxingInterpreter
         return new WuxingJudgement(relation, type, wuxing.Multipliers.Of(relation));
     }
 
-    /// <summary>神託のドグマ。強度 = min(1.0, 2 枚の重みの平均 × 倍率)。強度が 0 なら null。</summary>
+    /// <summary>神託のドグマ。強度 = min(1.0, 2 枚の重み（上位のルーンは定義の重み）の平均 × 倍率)。強度が 0 なら null。</summary>
     public static Dogma? Interpret(string firstCardId, string secondCardId, OracleRules oracleRules)
     {
         var judgement = Judge(firstCardId, secondCardId, oracleRules);
         var firstSymbolId = oracleRules.SymbolOf(firstCardId);
-        var average = (oracleRules.WeightOf(firstSymbolId) + oracleRules.WeightOf(oracleRules.SymbolOf(secondCardId))) / 2f;
+        var average = (oracleRules.CardWeight(firstCardId) + oracleRules.CardWeight(secondCardId)) / 2f;
         var intensity = MathF.Min(1.0f, average * judgement.Multiplier);
         return intensity <= 0f ? null : new Dogma(firstSymbolId, judgement.Type, intensity);
     }

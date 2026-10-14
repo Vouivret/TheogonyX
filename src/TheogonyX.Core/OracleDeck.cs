@@ -129,10 +129,50 @@ public sealed class OracleDeck
             throw new InvalidOperationException($"削除できない: reason={reason}");
         }
 
-        if (!_discardPile.Remove(cardId) && !_drawPile.Remove(cardId))
+        RemoveOne(cardId);
+        PruneCharges--;
+        if (_hand.Count < _handSize)
         {
-            _hand.Remove(cardId);
+            Draw(_handSize - _hand.Count);
         }
+    }
+
+    /// <summary>
+    /// <paramref name="cardId"/> を 2 枚融合できない理由（デッキの側で分かるもの）。できるなら null。
+    /// 理由は <c>no_prune_charges</c>・<c>card_not_in_deck</c>（2 枚に満たない）・<c>deck_too_small</c>（融合するとデッキが 2 枚未満になる）。
+    /// </summary>
+    public string? FuseRejection(string cardId)
+    {
+        ArgumentNullException.ThrowIfNull(cardId);
+        if (PruneCharges < 1)
+        {
+            return "no_prune_charges";
+        }
+        if (_drawPile.Count(id => id == cardId) + _hand.Count(id => id == cardId) + _discardPile.Count(id => id == cardId) < 2)
+        {
+            return "card_not_in_deck";
+        }
+        return TotalCount - 1 < 2 ? "deck_too_small" : null;
+    }
+
+    /// <summary>
+    /// <paramref name="cardId"/> を 2 枚消して、<paramref name="resultId"/> を 1 枚捨札に加える（精査の融合）。
+    /// 消すカードは、削除と同じく捨札・山札・手札の順に選ぶ。精査の持ち分を 1 使い、手札から消えたら山札から補う。
+    /// </summary>
+    /// <exception cref="InvalidOperationException">融合できない（<see cref="FuseRejection"/> が null でない）。</exception>
+    public void Fuse(string cardId, string resultId)
+    {
+        ArgumentNullException.ThrowIfNull(resultId);
+        if (FuseRejection(cardId) is { } reason)
+        {
+            throw new InvalidOperationException($"融合できない: reason={reason}");
+        }
+
+        for (var i = 0; i < 2; i++)
+        {
+            RemoveOne(cardId);
+        }
+        _discardPile.Add(resultId);
         PruneCharges--;
         if (_hand.Count < _handSize)
         {
@@ -190,6 +230,15 @@ public sealed class OracleDeck
         ShuffleCount = state.ShuffleCount;
         CorruptionStage = state.CorruptionStage;
         LastBuildingId = state.LastBuildingId;
+    }
+
+    // 同じカードが複数あるときは、捨札・山札・手札の順に 1 枚を消す
+    private void RemoveOne(string cardId)
+    {
+        if (!_discardPile.Remove(cardId) && !_drawPile.Remove(cardId))
+        {
+            _hand.Remove(cardId);
+        }
     }
 
     // 山札が足りなければ、捨札をシャッフルして山札に戻す。捨札も空なら、引けるだけ引く

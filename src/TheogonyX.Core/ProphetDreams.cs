@@ -77,6 +77,32 @@ public sealed class ProphetDreams
     /// <exception cref="InvalidOperationException">削除できない。</exception>
     public void Prune(string cardId) => Deck.Prune(cardId);
 
+    /// <summary>基本ルーン <paramref name="cardId"/> を 2 枚融合してできる上位のルーン。融合できないルーンなら null。</summary>
+    public GreaterRune? FusionOf(string cardId) => _oracleRules.FusionOf(cardId);
+
+    /// <summary>
+    /// 基本ルーン <paramref name="cardId"/> を 2 枚融合できない理由。できるなら null。
+    /// 理由は <c>not_fusable</c>（基本ルーンでない・上位のルーンの定義が無い）と、<see cref="OracleDeck.FuseRejection"/> の理由。
+    /// </summary>
+    public string? FuseRejection(string cardId)
+    {
+        ArgumentNullException.ThrowIfNull(cardId);
+        return _oracleRules.FusionOf(cardId) is null ? "not_fusable" : Deck.FuseRejection(cardId);
+    }
+
+    /// <summary>基本ルーン <paramref name="cardId"/> を 2 枚融合して、上位のルーンを捨札に加える。加えた上位のルーンを返す。</summary>
+    /// <exception cref="InvalidOperationException">融合できない。</exception>
+    public GreaterRune Fuse(string cardId)
+    {
+        if (FuseRejection(cardId) is { } reason)
+        {
+            throw new InvalidOperationException($"融合できない: reason={reason}");
+        }
+        var greater = _oracleRules.FusionOf(cardId)!;
+        Deck.Fuse(cardId, greater.Id);
+        return greater;
+    }
+
     /// <summary>神託を下せるか。崩壊しておらず、手札が 2 枚以上あり、神威がコスト以上ある。</summary>
     public bool CanPronounce => !_timeControl.World.IsDestroyed && Deck.Hand.Count >= 2 && Faith.CanAfford;
 

@@ -59,6 +59,12 @@ ORACLE_GUIDE_NO_FAITH,神威が足りない,Not enough divine power.
 ORACLE_GUIDE_NO_CARDS,手札が足りない,Not enough cards.
 PRUNE_LABEL,精査 残り {0} 回（消すルーンを選ぶ）,Prune: {0} left (choose a rune to remove)
 PRUNE_CARD,{0} ×{1},{0} x{1}
+SYMBOL_RUNE_GREAT_TREE,大樹,Great Tree
+SYMBOL_RUNE_GREAT_FIRE,業火,Hellfire
+SYMBOL_RUNE_GREAT_EARTH,巨岩,Great Rock
+SYMBOL_RUNE_GREAT_METAL,神鉄,Divine Iron
+SYMBOL_RUNE_GREAT_WATER,霊泉,Sacred Spring
+PRUNE_FUSE,融合: {0}×2 → {1},Fuse: {0} x2 → {1}
 ORACLE_GUIDE_DESTROYED,星は滅びた,The planet has perished.
 ORACLE_GUIDE_FAITH,{0}　神威 {1:F1} / {2:F1},{0}  Faith {1:F1} / {2:F1}
 REQUEST_BUBBLE,{0}に苦しんでいます。{1}をお恵みください,We suffer from {0}. Please grant us {1}.
