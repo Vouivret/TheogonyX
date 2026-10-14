@@ -168,11 +168,11 @@
   | `event` | 出来事の名前（スネークケース。例: `dogma_formed`） |
   | `seed` | シミュレーションの乱数シード |
   | `year` | 星の暦での年（`WorldState.Year`） |
-  | `symbolId` | 記号のID（例: `SYM_RAIN`） |
+  | `symbolId` | 記号のID（例: `SYM_WATER`） |
   | `dogmaType` | ドグマの種別（`DogmaType`） |
   | `clientId` | コンパニオンの接続ごとの内部ID（IPアドレスではない） |
   | `durationMs` | 処理時間（ミリ秒） |
-  | `dreamNodes` | 夢ノードの並び（`記号ID:重み` をカンマでつなぐ。例: `SYM_TREE:0.5,SYM_RAIN:0.6`） |
+  | `dreamNodes` | 夢ノードの並び（`記号ID:重み` をカンマでつなぐ。例: `SYM_TREE:0.5,SYM_WATER:0.6`） |
   | `intensity` | ドグマの強度（`Dogma.Intensity`） |
   | `years` | 時代跳躍で指定した年数 |
   | `forestAmount` | 森林量（`WorldState.ForestAmount`） |
@@ -192,6 +192,7 @@
   | `stepMs` | 群衆の 1 歩の計算時間（ミリ秒。GPU 版は読み戻しを含む） |
   | `drawMs` | 群衆の位置を描画のバッファに書き込む時間（ミリ秒） |
   | `fps` | 1 秒あたりのフレーム数 |
+  | `runeId` | ルーンID |
 
 - 例外を握りつぶさない。catch したら、記録するか、文脈を足して投げ直す。
 
