@@ -83,6 +83,10 @@ public sealed class DreamView
         {
             GD.Print(FormattableString.Invariant($"event=deck_corrupted year={year} count={update.CorruptedAdded} chaosLevel={_timeControl.World.ChaosLevel}"));
         }
+        if (update.RunesGained > 0)
+        {
+            GD.Print(FormattableString.Invariant($"event=deck_rune_gained year={year} count={update.RunesGained}"));
+        }
         if (update.PausedAutoPlay)
         {
             GD.Print(FormattableString.Invariant($"event=auto_play_paused year={year} reason=prophet_prayer"));

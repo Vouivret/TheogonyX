@@ -34,6 +34,10 @@
 | TS-oracle-deck-014 | AC-oracle-deck-016, 017, 018 | 世界再創生で精査の持ち分が増え、削除するとルーンがデッキから消えて持ち分が減る。手札から消えたら補う | 受け入れ条件のとおり | 世界再創生・削除 | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePruneTests.cs` |
 | TS-oracle-deck-015 | AC-oracle-deck-019 | 持ち分が無い・デッキに無い・デッキが 2 枚になる削除は拒否され、状態は変わらない | 受け入れ条件のとおり | 削除する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePruneTests.cs` |
 | TS-oracle-deck-016 | AC-oracle-deck-017 | 画面で、世界再創生の後に精査の欄が出て、押すとルーンが消え、持ち分が減って、0 で欄が消える | Godot 4.7.2 で動かす | 下の手順 | 下の手順のとおり | 手動 | — |
+| TS-oracle-deck-017 | AC-oracle-deck-020 | 工房・祠が建つと対応する基本ルーンが捨札に加わる。二度数えない。家では加わらない。世界再創生で数えた ID が戻る | 受け入れ条件のとおり | 建物が建つ | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleBuildingRuneTests.cs` |
+| TS-oracle-deck-018 | AC-oracle-deck-021 | デッキの総数が上限に達したら加わらないが、数えたことになる | 受け入れ条件のとおり | 建物が建つ | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleBuildingRuneTests.cs` |
+| TS-oracle-deck-019 | AC-oracle-deck-022 | 建物のルーンの定義の検証 | 受け入れ条件のとおり | 検証する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleBuildingRuneTests.cs` |
+| TS-oracle-deck-020 | AC-oracle-deck-020 | 画面で、建物が建つと捨札にルーンが加わり、手札・精査の枚数に反映される。読み込み直しても二重に加わらない | Godot 4.7.2 で動かす | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順（汚染ルーン）
 
@@ -48,6 +52,12 @@
 2. 帯に「精査 残り 2 回」と、デッキのルーンごとのボタン（名前と枚数）が出ることを確かめる。
 3. ボタンを 1 つ押す。そのルーンの枚数が 1 減り、「残り 1 回」になり、ログに `event=deck_pruned` が出ることを確かめる。手札から消えたときは、手札が補われる。
 4. もう一度押して「残り 0 回」になると、精査の欄が消えることを確かめる。
+
+### TS-oracle-deck-020
+1. メインシーンを実行し、崇拝のドグマなどで地域の技術・文化を上げて、工房か祠が建つのを待つ（跳躍を繰り返す）。
+2. ログに `event=deck_rune_gained` が出ることを確かめる（`count` が加わった枚数）。
+3. 世界再創生して精査の欄を出し、そのルーンの枚数が増えていることを確かめる。
+4. 終了して起動し直し、続きから始めても、すでに建っている建物の分が二重に加わらない（ログが出ない）ことを確かめる。
 
 ## 対象外
 

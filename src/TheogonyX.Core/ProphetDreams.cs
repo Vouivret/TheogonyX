@@ -93,9 +93,10 @@ public sealed class ProphetDreams
         }
         _faithYear = world.Year;
         var corrupted = InjectCorruption(world.ChaosLevel);
+        var gained = Deck.GainFromBuildings(_timeControl.Civilization?.Buildings ?? []);
         if (world.IsDestroyed)
         {
-            return new ProphetUpdate(null, false, corrupted);
+            return new ProphetUpdate(null, false, corrupted, gained);
         }
 
         // 依頼のあいだにプレイヤーが自動進行を再開したら、神託のときに再開し直す必要は無い
@@ -118,7 +119,7 @@ public sealed class ProphetDreams
             _pausedForRequest = true;
             paused = true;
         }
-        return new ProphetUpdate(newRequest, paused, corrupted);
+        return new ProphetUpdate(newRequest, paused, corrupted, gained);
     }
 
     /// <summary>
@@ -202,6 +203,7 @@ public sealed class ProphetDreams
         Faith.Reset();
         Deck.ResetCorruption();
         Deck.GrantPruneCharges();
+        Deck.ResetBuildingCount();
         _faithYear = _timeControl.World.Year;
         ActiveRequest = RequestTransitions[(ActiveRequest is not null, RequestTrigger.Reset)] ? ActiveRequest : null;
         _answeredYears.Clear();

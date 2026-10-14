@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 13;
+    public const int SaveVersion = 14;
 
     /// <summary>受け付ける「直近の神託の年」の数の上限。</summary>
     public const int MaxRecentOracleYears = 1000;
@@ -189,6 +189,7 @@ public static class SaveDataSerializer
                 discardPile = data.Deck.DiscardPile,
                 shuffleCount = data.Deck.ShuffleCount,
                 corruptionStage = data.Deck.CorruptionStage,
+                lastBuildingId = data.Deck.LastBuildingId,
             },
             faith = new { value = data.Faith.Value, recentYears = data.Faith.RecentYears },
         });
@@ -343,11 +344,12 @@ public static class SaveDataSerializer
         var discardPile = ReadCards("discardPile");
         var shuffleCount = ReadInt(element, "shuffleCount");
         var corruptionStage = ReadInt(element, "corruptionStage");
-        if (shuffleCount < 0 || corruptionStage < 0 || corruptionStage > corruption.Thresholds.Count)
+        var lastBuildingId = ReadInt(element, "lastBuildingId");
+        if (shuffleCount < 0 || corruptionStage < 0 || corruptionStage > corruption.Thresholds.Count || lastBuildingId < -1)
         {
             throw new InvalidSaveDataException("invalid_deck");
         }
-        return new OracleDeckState(drawPile, hand, discardPile, shuffleCount, corruptionStage);
+        return new OracleDeckState(drawPile, hand, discardPile, shuffleCount, corruptionStage, lastBuildingId);
     }
 
     // 神威（0 以上）と、直近の神託を下した年（0 以上、今の年以下。古い順）

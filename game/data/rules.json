@@ -226,7 +226,12 @@
       { "symbolId": "SYM_FIRE", "count": 3 }
     ],
     "handSize": 4,
-    "pruneChargesPerReset": 2
+    "pruneChargesPerReset": 2,
+    "maxSize": 20,
+    "buildingRunes": [
+      { "buildingType": "Workshop", "symbolId": "SYM_FIRE" },
+      { "buildingType": "Shrine", "symbolId": "SYM_RAIN" }
+    ]
   },
   "prophetRequests": {
     "cooldownYears": 50,
