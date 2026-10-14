@@ -116,6 +116,14 @@ public partial class WorldCore : Node2D
         _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
+        // 詳細の視点は住人の絵、中拡大・大陸は群衆の点（docs/domain/camera-views.md の「群衆の描き方」）
+        var showDetail = (bool detail) =>
+        {
+            _residents.SetShown(detail);
+            _crowd.SetShown(!detail);
+        };
+        _camera.DetailChanged += showDetail;
+        showDetail(_camera.IsDetail);
         _screen.WorldReset += _crowd.OnWorldReset;
         _dreams = new DreamView(this, prophet, new OracleCommandQueue(prophet, timeControl), timeControl);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;

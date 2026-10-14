@@ -25,6 +25,7 @@ public sealed class CrowdView : IDisposable
     private readonly Crowd _crowd;
     private readonly GpuCrowd? _gpu;
     private readonly MultiMesh _multiMesh;
+    private readonly MultiMeshInstance2D _node;
     private readonly float[] _buffer;
     // GPU 版から読み戻した位置
     private readonly float[] _gpuX;
@@ -55,7 +56,7 @@ public sealed class CrowdView : IDisposable
         _gpuX = _gpu is null ? [] : new float[_crowd.Count];
         _gpuY = _gpu is null ? [] : new float[_crowd.Count];
 
-        var node = owner.GetNode<MultiMeshInstance2D>("%Crowd");
+        var node = _node = owner.GetNode<MultiMeshInstance2D>("%Crowd");
         node.Position = owner.GetNode<TileMapLayer>("%Terrain").Position;
         node.SelfModulate = new Color(look.DotColor.R, look.DotColor.G, look.DotColor.B);
         _multiMesh = CreateMultiMesh(_crowd.Count, look);
@@ -120,6 +121,9 @@ public sealed class CrowdView : IDisposable
     }
 
     public void Dispose() => _gpu?.Dispose();
+
+    /// <summary>群衆の点を出す・隠す（視点で切り替える。計算は止めない）。</summary>
+    public void SetShown(bool shown) => _node.Visible = shown;
 
     /// <summary>群衆の点を描く MultiMesh を作る（計測用のシーンでも使う）。</summary>
     internal static MultiMesh CreateMultiMesh(int count, CrowdLook look) => new()

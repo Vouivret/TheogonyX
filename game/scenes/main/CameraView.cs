@@ -25,6 +25,16 @@ public sealed class CameraView
     // ズームの中心にするマウスの位置（画面の中心から見た px）
     private Vector2 _anchorOffset;
     private bool _dragging;
+    private bool _detail;
+
+    // 詳細の視点になる倍率（docs/domain/camera-views.md の詳細は 1.5〜4.0 倍）。これ以上で住人の絵を出し、群衆の点を隠す
+    private const double DetailZoom = 1.5;
+
+    /// <summary>詳細の視点になった（true）か、中拡大・大陸に戻った（false）とき。</summary>
+    public event System.Action<bool>? DetailChanged;
+
+    /// <summary>今、詳細の視点か。</summary>
+    public bool IsDetail => _zoom >= DetailZoom;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
     public CameraView(Node owner, CameraSettings settings)
@@ -103,5 +113,10 @@ public sealed class CameraView
         var y = settled ? CameraZoom.SnapCenter(_centerY, _zoom) : _centerY;
         _camera.Position = new Vector2((float)x, (float)y);
         _camera.Zoom = new Vector2((float)_zoom, (float)_zoom);
+        if (IsDetail != _detail)
+        {
+            _detail = IsDetail;
+            DetailChanged?.Invoke(_detail);
+        }
     }
 }

@@ -180,6 +180,16 @@ public sealed class ResidentView
         ShowInfo();
     }
 
+    /// <summary>住人の絵を出す・隠す（視点で切り替える）。隠すとき、情報の枠も閉じる。</summary>
+    public void SetShown(bool shown)
+    {
+        _layer.Visible = shown;
+        if (!shown)
+        {
+            _infoPanel.Visible = false;
+        }
+    }
+
     private void ShowInfo()
     {
         if (_selectedId is not { } id || !_walkers.TryGetValue(id, out var walker))
