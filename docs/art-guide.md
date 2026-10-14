@@ -28,6 +28,20 @@
 
 ファイルが無い間は、コードで作る仮の絵（単色の人形）を表示する。ファイルを置いたら Godot エディタで一度開き、読み込み（`.import`）をエディタに作らせる。
 
+## 住人の欲求の印
+
+出典: 2026-10-14 のチャット（[カメラの視点](domain/camera-views.md)）。
+
+| 項目 | 規格 |
+| :--- | :--- |
+| ファイル（欲求） | `game/assets/sprites/icon_need_hunger.png`（空腹）・`icon_need_shelter.png`（住居）・`icon_need_sanity.png`（SAN 値。今の画面で使う 3 枚）、`icon_need_social.png`（交流）・`icon_need_esteem.png`（承認）・`icon_need_actualization.png`（自己実現）・`icon_need_health.png`（体力） |
+| ファイル（状態） | `icon_state_rampage.png`（狂乱）・`icon_state_catatonia.png`（自閉・絶望）・`icon_state_dead.png`（死） |
+| ファイル形式 | PNG（RGBA 8bit、背景は透明。半透明やアンチエイリアスは使わない） |
+| 大きさ | 12 × 12 px（2026-10-14 に 8 × 8 から変更。王冠・電球・剣の細部が残るため） |
+| 色 | 自由な色でよい |
+
+出典: 画像生成で作った 1 枚の絵（5 × 3）から 10 個を切り出し、白い背景を透明にして 12 × 12 px に縮め、縁を 2 値（透明か不透明）にそろえた。自閉・絶望の顔だけ、左右対称に手で整えた。画面で使うのは今は欲求の 3 枚だけで、残りは置いてあるだけ。ファイルが無いときは、コードで作る単色の仮の絵（橙・茶・紫）を表示する。ファイルを置いたら Godot エディタで一度開き、`.import` を作る。
+
 ## 画面（`project.godot`）
 | 設定 | 値 |
 | :--- | :--- |
