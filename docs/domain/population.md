@@ -9,7 +9,7 @@ status: draft   # draft | approved | as-is
 - 通信: なし（スマホに人口を送るかは未決）
 - 画面デザイン: なし
 - 出典: 2026-10-15 のチャット。「近代のことを考えているか」を受けて、近代の都市の人数を扱える形を決めた。SimCity・Cities: Skylines・Victoria・Crusader Kings・Dwarf Fortress の人の数の持ち方を比べ、Victoria の Pop と Dwarf Fortress の名のある人物の組み合わせを選んだ
-- 着手: 未定（[ロードマップ](../roadmap.md)の実装の順番で、信仰の段より前に決め直す）
+- 着手: [ロードマップ](../roadmap.md)の実装の順番の段 3（気候の後、信仰の前。2026-10-15 に決定）
 - 関連: [人の欲求と健康](agent-needs.md)・[信仰としてのドグマ](dogma-belief.md)・[宗教](religion.md)・[住人の職業](resident-roles.md)・[文化の種類](culture-kinds.md)・[住人による森と水の利用](resource-use.md)・[食料の生産](food-production.md)・[疫病](plague.md)・[地域の環境](regional-environment.md)・[発明の木](invention-tree.md)・[群衆](crowd.md)・[星の年表](history.md)・[ロードマップ](../roadmap.md)の構想「階級と貴族」
 
 ## 目的
@@ -99,7 +99,7 @@ status: draft   # draft | approved | as-is
 - 今の住人の上限・移り住み・子の仕組み（[人の欲求と健康](agent-needs.md)）を、どこまでまとまりの側に移すか。
 - 今の家（住人の住居）を、まとまりの住まいとどう分けるか。
 - 群衆（10000 の点）を、人口に合わせて増減させる形に変えるか（今は決まった数）。
-- 実装の順番のどの段で入れるか（信仰の段より前。段 1 の星の格子で、地域に人口を持たせるか）。
+- 2026-10-15 に、実装の順番の段 3（気候の後、信仰の前）で入れ、段 1 の星の格子には入れないと決めた（[ロードマップ](../roadmap.md)）。
 
 ### 画面・保存・通信
 - 集落の絵の段階（村・町・都市・大都市）の閾値と、絵の規格。[国と集落](polity.md)の集落の 4 段階（野営地・村・都市・大都市）と合わせる。
