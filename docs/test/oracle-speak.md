@@ -9,7 +9,9 @@
 
 | ID | 受け入れ条件 | 観点 | 前提 | 操作 | 期待結果 | 種別 | 実装場所 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
- | AC-oracle-pair-026 | 行き先だけの神託で、教えは生まれず予言者が行き先に向かう | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleSpeakTests.cs` |
+| TS-oracle-speak-001 | AC-oracle-pair-024 | 語りかけて教えが生まれ、神威・手札・捨札・記録が受け入れ条件のとおりになる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleSpeakTests.cs` |
+| TS-oracle-speak-002 | AC-oracle-pair-025 | ずれ表に当たると聞き違えた教えが生まれ、方言帳に残る | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleSpeakTests.cs` |
+| TS-oracle-speak-003 | AC-oracle-pair-026 | 行き先だけの神託で、教えは生まれず予言者が行き先に向かう | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleSpeakTests.cs` |
 | TS-oracle-speak-004 | AC-oracle-pair-027 | 神威が足りない・崩壊しているとき語りかけられない（理由と順番の番号） | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleSpeakTests.cs` |
 | TS-oracle-speak-005 | AC-oracle-pair-028 | 聞こえた文と語りを、同じ年・同じ神の文の記録に添える | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleSpeakTests.cs` |
 | TS-oracle-speak-006 | AC-oracle-pair-029 | 方言の状態がセーブで戻る | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleSpeakTests.cs` |
