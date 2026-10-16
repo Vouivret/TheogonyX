@@ -145,13 +145,9 @@ public partial class WorldCore : Node2D
         _dreams = new DreamView(this, prophet, commands, timeControl);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;
         _screen.WorldReset += _dreams.OnWorldReset;
-        _dreams.OraclePronounced += _screen.Refresh;
-        // 夢の欄が新しい夢を見た後に保存するよう、DreamView の後につなぐ
-        _dreams.OraclePronounced += Save;
         // 予言者の誤解と歴史の神話化で、ローカルの LLM への通信を 1 つ共有する
         _ollama = new OllamaClient(oracleAiRules);
         _oracle = new OracleView(this, timeControl, _dreams, oracleAiRules, _ollama, prophet, commands);
-        _oracle.OracleAttached += Save;
         _oracle.Spoken += Save;
         _oracle.StateChanged += _screen.Refresh;
         _myth = new MythView(timeControl, oracleAiRules, _ollama);

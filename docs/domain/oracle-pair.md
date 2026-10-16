@@ -6,7 +6,7 @@ status: draft   # draft | approved | as-is
 
 - テスト仕様書: [docs/test/oracle-pair.md](../test/oracle-pair.md)
 - 関連ADR: なし
-- 通信: [messages.md](../protocol/messages.md) の `ORACLE_STATE`・`PRONOUNCE`（version 2。`DREAM_STATE`・`TAMPER` は廃止）
+- 通信: [messages.md](../protocol/messages.md) の `ORACLE_STATE`（version 2）・`SPEAK`・`PRONOUNCE`（version 3）。`DREAM_STATE`・`TAMPER` と、手札の 2 枚の `PRONOUNCE`（version 2）は廃止
 - 画面デザイン: なし
 - 出典: 2026-10-14 のチャットでの決定（人間が「夢のコマが不要では」と指摘し、案 B「ルーンの組」を選んだ）。**値のうち指示書に無いものは AI が仮に置いたもの（`TODO(AI_UNSURE)`）で、人間が決め直す。**
 - 関連: [神託のデッキ](oracle-deck.md)・[神託の伝達メディア](oracle-delivery.md)・[多人数プレイ](multiplayer.md)・[予言者の依頼](prophet-request.md)

@@ -15,15 +15,30 @@
         <p id="request-bubble" class="request-bubble" hidden></p>
         <p id="status" class="status" role="status"></p>
       </section>
-      <section class="cards" aria-labelledby="cards-title">
-        <h2 id="cards-title" class="cards-title" data-i18n="CARDS_TITLE"></h2>
+      <section class="oracle" aria-labelledby="oracle-title">
+        <h2 id="oracle-title" class="oracle-title" data-i18n="ORACLE_TITLE"></h2>
         <p id="dream-guide" class="dream-guide"></p>
-        <div class="dream-row">
-          <button id="oracle-button" class="oracle-button" type="button" data-i18n="BUTTON_ORACLE"></button>
+        <div id="voice-row" class="dream-row">
+          <input id="god-text" class="god-text" type="text" maxlength="80" autocomplete="off" data-i18n-placeholder="SPEAK_PLACEHOLDER">
+          <button id="speak-button" class="oracle-button" type="button" data-i18n="BUTTON_SPEAK"></button>
         </div>
-        <div class="dream-row">
-          <div id="card-buttons" class="dream-buttons"></div>
+        <div id="words-row" class="dream-row" hidden>
+          <select id="noun-select" class="word-select"></select>
+          <select id="verb-select" class="word-select"></select>
+          <select id="destination-select" class="word-select"></select>
+          <button id="choose-button" class="oracle-button" type="button" data-i18n="BUTTON_SPEAK"></button>
         </div>
+        <div id="told" class="told" hidden>
+          <p id="told-line" class="told-line"></p>
+          <p id="told-heard" class="told-text"></p>
+          <p id="told-narration" class="told-text"></p>
+          <p id="told-destination" class="told-text"></p>
+          <p id="told-mystery" class="told-text"></p>
+        </div>
+        <details id="book" class="book">
+          <summary data-i18n="BOOK_TITLE"></summary>
+          <ul id="book-list" class="book-list"></ul>
+        </details>
       </section>
     </main>
   </body>

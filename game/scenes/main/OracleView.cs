@@ -13,7 +13,6 @@ namespace TheogonyX.Scenes.Main;
 /// 神の言葉を受け取ったら、自動進行を止めて予言者に「耳を澄ませている」と言わせ、ローカルの LLM（Ollama）で文を語の ID に聞き取り、
 /// コアが方言で聞き違えて神託を下す。下したら、掟の 1 行と聞こえた言葉を吹き出しに出し、続けて LLM が作る聞こえた文と語りに差し替える。
 /// LLM が使えない・答えが壊れているときは、言葉を選ぶ形に替える。
-/// 旧い形の神託（スマホの手札の 2 枚）でドグマが生まれたときは、これまでどおり LLM に誤解の文を頼む。
 /// 文は表現だけで、ゲームの計算には関わらない。
 /// </summary>
 public sealed class OracleView
@@ -26,9 +25,6 @@ public sealed class OracleView
     private readonly OracleCommandQueue _commands;
     private readonly PanelContainer _bubble;
     private readonly Label _label;
-    private readonly Queue<(HistoryEntry? Entry, Dogma Dogma, Request Request)> _queue = new();
-    private bool _busy;
-    private Request? _latest;
     private double _hideInSeconds;
     private bool _listening;
     private OracleRecord? _latestSpeech;
@@ -48,16 +44,12 @@ public sealed class OracleView
         _bubble = new PanelContainer { Name = "OracleBubble", Visible = false, Position = new Vector2(60, 64), MouseFilter = Control.MouseFilterEnum.Ignore };
         _bubble.AddChild(_label);
         owner.GetNode<Node>("Hud").AddChild(_bubble);
-        dreams.OraclePronounced += OnOraclePronounced;
         dreams.SpeakRequested += OnSpeakRequested;
         dreams.WordsChosen += OnWordsChosen;
         dreams.Prayed += OnPrayed;
         // LLM を使わない設定なら、最初から言葉を選ぶ形にする
         dreams.ChoiceMode = !rules.Enabled;
     }
-
-    /// <summary>神託の文を年表に添えた（セーブし直すのに使う）。</summary>
-    public event Action? OracleAttached;
 
     /// <summary>自由文の神託を下した、または聞こえた文と語りを添えた（セーブし直すのに使う）。</summary>
     public event Action? Spoken;
@@ -77,91 +69,6 @@ public sealed class OracleView
         {
             _bubble.Visible = false;
         }
-    }
-
-    // 神託を下した直後に呼ばれる。ドグマが生まれていれば、そのドグマの年表の行（最後の行）と一緒に頼みを積む
-    private void OnOraclePronounced()
-    {
-        var dogmas = _timeControl.Dogmas;
-        var entries = _timeControl.History?.Entries;
-        if (dogmas.Count == 0 || entries is null || entries.Count == 0 || entries[^1].Type != HistoryEventType.DogmaFormed)
-        {
-            return;
-        }
-        var dogma = dogmas[^1];
-        var entry = entries[^1];
-        var request = new Request(dogma, _timeControl.World.Year, _dreams.LastPairing);
-        _latest = request;
-        if (!_rules.Enabled)
-        {
-            ShowFallback(dogma);
-            return;
-        }
-        ShowText(Tr("ORACLE_THINKING"), keepUntilReplaced: true);
-        _queue.Enqueue((entry, dogma, request));
-        if (!_busy)
-        {
-            _ = DrainAsync();
-        }
-    }
-
-    // 積んだ頼みを 1 つずつ送る。結果は、いちばん新しい神託のものだけを吹き出しに出し、どれも年表に添える
-    private async Task DrainAsync()
-    {
-        _busy = true;
-        try
-        {
-            while (_queue.Count > 0)
-            {
-                var (entry, dogma, request) = _queue.Dequeue();
-                var (text, reason, durationMs) = await GenerateAsync(dogma, request.Pairing);
-                if (text is not null)
-                {
-                    GD.Print(FormattableString.Invariant(
-                        $"event=oracle_generated year={request.Year} symbolId={dogma.TargetSymbolId} dogmaType={dogma.Type} durationMs={durationMs}"));
-                    if (entry is not null && _timeControl.History?.AttachOracle(entry, text) == true)
-                    {
-                        OracleAttached?.Invoke();
-                    }
-                }
-                else
-                {
-                    GD.PushWarning(FormattableString.Invariant(
-                        $"event=oracle_ai_failed year={request.Year} symbolId={dogma.TargetSymbolId} reason={reason} durationMs={durationMs}"));
-                }
-                if (ReferenceEquals(request, _latest))
-                {
-                    if (text is null)
-                    {
-                        ShowFallback(dogma);
-                    }
-                    else
-                    {
-                        ShowText(string.Join('\n', string.Format(CultureInfo.CurrentCulture, Tr("ORACLE_HEADING"), text.Heading), text.Intent, text.Doctrine));
-                    }
-                }
-            }
-        }
-        finally
-        {
-            _busy = false;
-        }
-    }
-
-    // LLM に頼む。失敗の理由は、つながらない・時間切れ・HTTP のエラー・形の崩れ
-    private async Task<(OracleText? Text, string Reason, long DurationMs)> GenerateAsync(Dogma dogma, OraclePairing? pairing)
-    {
-        var body = OracleProphecy.BuildRequest(
-            _rules, dogma, Tr($"SYMBOL_{dogma.TargetSymbolId}"), Tr($"DOGMA_TYPE_{dogma.Type.ToString().ToUpperInvariant()}"),
-            _timeControl.World, TranslationServer.GetLocale(),
-            pairing is not null ? Tr($"SYMBOL_{pairing.SecondSymbolId}") : null, pairing?.Relation);
-        var (reply, failure, durationMs) = await _client.PostAsync(body);
-        if (reply is null)
-        {
-            return (null, failure, durationMs);
-        }
-        var text = OracleProphecy.ParseResponse(reply);
-        return (text, text is null ? "invalid_response" : string.Empty, durationMs);
     }
 
     // 予言者が祈った。まず定型の祈り（困りごとのひな形に知っている名詞を入れた文）を出し、LLM が使えれば、できた文に差し替える
@@ -413,6 +320,7 @@ public sealed class OracleView
             {
                 ShowText(SpeechText(record, hearing, narration));
             }
+            _dreams.Refresh();
             Spoken?.Invoke();
         }
     }
@@ -454,10 +362,6 @@ public sealed class OracleView
         return string.Join('\n', lines);
     }
 
-    private void ShowFallback(Dogma dogma) =>
-        ShowText(string.Format(
-            CultureInfo.CurrentCulture, Tr($"ORACLE_FALLBACK_{dogma.Type.ToString().ToUpperInvariant()}"), Tr($"SYMBOL_{dogma.TargetSymbolId}")));
-
     private void ShowText(string text, bool keepUntilReplaced = false)
     {
         _label.Text = text;
@@ -466,7 +370,4 @@ public sealed class OracleView
     }
 
     private static string Tr(string key) => TranslationServer.Translate(key).ToString();
-
-    // 頼みの印（いちばん新しい神託か見分けるのに参照を使う）
-    private sealed record Request(Dogma Dogma, int Year, OraclePairing? Pairing);
 }

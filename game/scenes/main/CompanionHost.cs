@@ -267,8 +267,11 @@ public sealed class CompanionHost : IDisposable
             case PairingOutcome.Ignored:
                 WarnMessageRejected(client, "already_paired");
                 break;
+            case PairingOutcome.Accepted when message.Type is CompanionMessageType.Speak:
+                RejectDreamOperation(client, _dreams.TrySpeak(message.Text));
+                break;
             case PairingOutcome.Accepted when message.Type is CompanionMessageType.Pronounce:
-                RejectDreamOperation(client, _dreams.TryPronouncePair(message.First, message.Second));
+                RejectDreamOperation(client, _dreams.TryChoose(message.NounId, message.VerbId, message.Destination));
                 break;
             case PairingOutcome.Accepted:
                 HandleStreamMessage(client, message.Type);

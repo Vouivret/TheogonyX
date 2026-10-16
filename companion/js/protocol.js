@@ -14,16 +14,44 @@ export const MESSAGE_TYPE = Object.freeze({
   START_STREAM: "START_STREAM",
   STOP_STREAM: "STOP_STREAM",
   ORACLE_STATE: "ORACLE_STATE",
+  SPEAK: "SPEAK",
   PRONOUNCE: "PRONOUNCE",
 });
 
-/** PRONOUNCE のバージョン。TAMPER を廃止し、手札の番号 2 つを持たせた（version 2） */
-export const PRONOUNCE_VERSION = 2;
+/** ORACLE_STATE のバージョン。手札と pairs をやめ、語りかけ方・告げた神託・方言帳を持たせた（version 2） */
+export const ORACLE_STATE_VERSION = 2;
+
+/** PRONOUNCE のバージョン。手札の番号をやめ、名詞・動詞・行き先を持たせた（version 3） */
+export const PRONOUNCE_VERSION = 3;
+
+/** 神の言葉の最大の長さ（文字数）。SPEAK の text。ホストも同じ上限で確かめる。 */
+export const MAX_GOD_TEXT_LENGTH = 80;
 
 export const ERROR_REASON = Object.freeze({
   MAX_CONNECTIONS_REACHED: "MAX_CONNECTIONS_REACHED",
   PAIRING_FAILED: "PAIRING_FAILED",
   SESSION_REPLACED: "SESSION_REPLACED",
+});
+
+/** ORACLE_STATE の mode: 文で語りかける（VOICE）か、言葉を選んで語りかける（WORDS） */
+export const ORACLE_MODE = Object.freeze({
+  VOICE: "VOICE",
+  WORDS: "WORDS",
+});
+
+/** PRONOUNCE の destination、ORACLE_STATE の told.destination */
+export const DESTINATION = Object.freeze({
+  NONE: "NONE",
+  EAST: "EAST",
+  WEST: "WEST",
+});
+
+/** 方言帳の行の reason */
+export const BOOK_REASON = Object.freeze({
+  DIALECT: "DIALECT",
+  UNKNOWN: "UNKNOWN",
+  KNOWN: "KNOWN",
+  MYSTERY: "MYSTERY",
 });
 
 /** バイナリフレームの種別（1バイト目）とバージョン（2バイト目）。docs/adr/0003-binary-frame-header.md */
@@ -34,11 +62,15 @@ export const FRAME_HEADER_LENGTH = 2;
 /**
  * @typedef {{ type: "PAIRED", version: 1, sessionToken: string }} PairedMessage
  * @typedef {{ type: "ERROR", version: 1, reason: string }} ErrorMessage
- * @typedef {{ requestType: string, symbolId: string }} ProphetRequest
+ * @typedef {{ requestType: string, symbolId: string, prayer: string | null }} ProphetRequest
  * @typedef {{ value: number, max: number, cost: number }} Faith
- * @typedef {{ type: "ORACLE_STATE", version: 1, hand: string[], faith: Faith,
- *   canPronounce: boolean, isDestroyed: boolean, request: ProphetRequest | null,
- *   pairs?: { first: number, second: number, relation: string, dogmaType: string }[] }} OracleStateMessage
+ * @typedef {{ symbolId: string, dogmaType: string }} Teaching
+ * @typedef {{ year: number, teaching: Teaching | null, heardNounId: string | null, heardVerbId: string | null,
+ *   destination: string, mysteryWords: string[], heardText: string | null, narration: string | null }} Told
+ * @typedef {{ godWord: string, heardWordId: string | null, reason: string }} BookEntry
+ * @typedef {{ type: "ORACLE_STATE", version: 2, faith: Faith, canSpeak: boolean, isDestroyed: boolean,
+ *   mode: string, listening: boolean, request: ProphetRequest | null, nouns: string[], verbs: string[],
+ *   told: Told | null, book: BookEntry[] }} OracleStateMessage
  * @typedef {PairedMessage | ErrorMessage | OracleStateMessage} HostMessage
  */
 
@@ -53,31 +85,55 @@ export const startStream = () => JSON.stringify({ type: MESSAGE_TYPE.START_STREA
 
 export const stopStream = () => JSON.stringify({ type: MESSAGE_TYPE.STOP_STREAM, version: MESSAGE_VERSION });
 
+/** @param {string} godText 神の言葉（1〜MAX_GOD_TEXT_LENGTH 字。改行・制御文字を含まない） */
+export const speak = (godText) =>
+  JSON.stringify({ type: MESSAGE_TYPE.SPEAK, version: MESSAGE_VERSION, text: godText });
+
 /**
- * @param {number} first 1 枚目（ドグマの対象）の手札の番号（0 から）
- * @param {number} second 2 枚目の手札の番号（1 枚目と違う番号）
+ * @param {string | null} noun 名詞の ID
+ * @param {string | null} verb 動詞の ID
+ * @param {string} destination DESTINATION のどれか
  */
-export const pronounce = (first, second) =>
-  JSON.stringify({ type: MESSAGE_TYPE.PRONOUNCE, version: PRONOUNCE_VERSION, first, second });
+export const pronounce = (noun, verb, destination) =>
+  JSON.stringify({ type: MESSAGE_TYPE.PRONOUNCE, version: PRONOUNCE_VERSION, noun, verb, destination });
 
 /** @param {unknown} value */
 const isText = (value) => typeof value === "string" && value !== "";
 
+/** @param {unknown} value */
+const isTextOrNull = (value) => value === null || typeof value === "string";
+
 /** @param {any} value */
-const isPair = (value) => value !== null && typeof value === "object"
-  && Number.isInteger(value.first) && Number.isInteger(value.second) && isText(value.relation) && isText(value.dogmaType);
+const isObject = (value) => value !== null && typeof value === "object";
+
+/** @param {any} value */
+const isTeaching = (value) => value === null || (isObject(value) && isText(value.symbolId) && isText(value.dogmaType));
+
+/** @param {any} value */
+const isTold = (value) => value === null || (isObject(value)
+  && Number.isInteger(value.year) && isTeaching(value.teaching)
+  && isTextOrNull(value.heardNounId) && isTextOrNull(value.heardVerbId) && isText(value.destination)
+  && Array.isArray(value.mysteryWords) && value.mysteryWords.every(isText)
+  && isTextOrNull(value.heardText) && isTextOrNull(value.narration));
+
+/** @param {any} value */
+const isBookEntry = (value) => isObject(value) && isText(value.godWord) && isTextOrNull(value.heardWordId) && isText(value.reason);
 
 /** @param {any} message */
 function isOracleState(message) {
-  return Array.isArray(message.hand)
-    && message.hand.every(isText)
-    && message.faith !== null && typeof message.faith === "object"
+  return isObject(message.faith)
     && Number.isFinite(message.faith.value) && Number.isFinite(message.faith.max) && Number.isFinite(message.faith.cost)
-    && typeof message.canPronounce === "boolean"
+    && typeof message.canSpeak === "boolean"
     && typeof message.isDestroyed === "boolean"
-    && (message.pairs === undefined || (Array.isArray(message.pairs) && message.pairs.every(isPair)))
+    && (message.mode === ORACLE_MODE.VOICE || message.mode === ORACLE_MODE.WORDS)
+    && typeof message.listening === "boolean"
+    && Array.isArray(message.nouns) && message.nouns.every(isText)
+    && Array.isArray(message.verbs) && message.verbs.every(isText)
+    && isTold(message.told)
+    && Array.isArray(message.book) && message.book.every(isBookEntry)
     && (message.request === null
-      || (typeof message.request === "object" && isText(message.request.requestType) && isText(message.request.symbolId)));
+      || (isObject(message.request) && isText(message.request.requestType) && isText(message.request.symbolId)
+        && isTextOrNull(message.request.prayer)));
 }
 
 /**
@@ -92,16 +148,19 @@ export function parseHostMessage(text) {
   } catch {
     return null;
   }
-  if (message === null || typeof message !== "object" || message.version !== MESSAGE_VERSION) {
+  if (!isObject(message)) {
+    return null;
+  }
+  if (message.type === MESSAGE_TYPE.ORACLE_STATE) {
+    return message.version === ORACLE_STATE_VERSION && isOracleState(message) ? message : null;
+  }
+  if (message.version !== MESSAGE_VERSION) {
     return null;
   }
   if (message.type === MESSAGE_TYPE.PAIRED && typeof message.sessionToken === "string" && message.sessionToken !== "") {
     return message;
   }
   if (message.type === MESSAGE_TYPE.ERROR && typeof message.reason === "string") {
-    return message;
-  }
-  if (message.type === MESSAGE_TYPE.ORACLE_STATE && isOracleState(message)) {
     return message;
   }
   return null;

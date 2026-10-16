@@ -13,7 +13,7 @@ namespace TheogonyX.Scenes.Main;
 /// 地表の下の帯の 1 段目に今の状態の案内と神威、2 段目に「語りかける」ボタンと、神の言葉を書く入力欄を出す。
 /// 手札（予言者の語彙）は見せない。LLM が使えないときは、入力欄の代わりに、予言者の知っている名詞と動詞と行き先を選ぶ欄を出す。
 /// 語りかける操作は <see cref="SpeakRequested"/>・<see cref="WordsChosen"/> で知らせ、聞き取りと実行は <see cref="OracleView"/> が受け持つ。
-/// スマホ（<see cref="CompanionHost"/>）からの旧い形の神託（手札の 2 枚）は、小段 6 でスマホを替えるまで、ここを通す。
+/// スマホ（<see cref="CompanionHost"/>）からの語りかけも、<see cref="TrySpeak"/>・<see cref="TryChoose"/> でここを通す。
 /// </summary>
 public sealed class DreamView
 {
@@ -79,12 +79,6 @@ public sealed class DreamView
         Redraw();
     }
 
-    /// <summary>旧い形の神託（スマホの手札の 2 枚）を下したとき。HUD のドグマの一覧と、時間のボタンを描き直すのに使う。</summary>
-    public event Action? OraclePronounced;
-
-    /// <summary>直近に下した旧い形の神託の、2 枚目の記号と五行の関係（予言者の語りに使う。保存しない）。</summary>
-    public OraclePairing? LastPairing { get; private set; }
-
     /// <summary>予言者が祈った（新しい依頼の祈りか、日々の祈り）。祈りの文を作って <see cref="PrayerText"/> や吹き出しに出すのに使う。</summary>
     public event Action<Prayer>? Prayed;
 
@@ -129,8 +123,9 @@ public sealed class DreamView
         set => _input.Text = value;
     }
 
-    /// <summary>スマホに送る、今の手札・神威・依頼（<c>ORACLE_STATE</c>）。</summary>
-    public string StateMessage() => HostMessageWriter.OracleState(_prophet, _timeControl.World.IsDestroyed);
+    /// <summary>スマホに送る、今の神託の状態（<c>ORACLE_STATE</c>）。</summary>
+    public string StateMessage() =>
+        HostMessageWriter.OracleState(_prophet, _timeControl.World.IsDestroyed, _listening, _choiceMode, PrayerText);
 
     /// <summary>100 年跳躍の後と、自動進行の 1 年ごとに呼ぶ。</summary>
     public void OnTimeAdvanced()
@@ -168,45 +163,42 @@ public sealed class DreamView
         Redraw();
     }
 
-    /// <summary>手札の <paramref name="first"/> 番・<paramref name="second"/> 番のルーンで神託を下す。スマホ（旧い形）から呼ぶ。</summary>
-    /// <returns>下せなかったときの理由（ログの <c>reason</c>）。下せたら null。</returns>
-    public string? TryPronouncePair(int first, int second)
+    /// <summary>スマホから文で語りかける（<c>SPEAK</c>）。今は語りかけられないなら、理由を返す。</summary>
+    /// <returns>語りかけられなかったときの理由（ログの <c>reason</c>）。受け付けたら null。</returns>
+    public string? TrySpeak(string text)
     {
-        var year = _timeControl.World.Year;
-        var outcome = _commands.SubmitPronouncePair(first, second);
-        if (outcome.Result is not { } result)
+        var rejected = RemoteRejection(wantChoiceMode: false);
+        if (rejected is null && !OracleListening.IsValidGodText(text))
         {
-            return outcome.RejectedReason ?? "cannot_pronounce";
+            rejected = "invalid_text";
         }
-
-        if (result.Dogma is { } dogma)
+        if (rejected is null)
         {
-            GD.Print(FormattableString.Invariant(
-                $"event=dogma_formed year={year} symbolId={dogma.TargetSymbolId} dogmaType={dogma.Type} intensity={dogma.Intensity}"));
+            SpeakRequested?.Invoke(text.Trim());
         }
-        if (result.AnsweredRequest is { } request)
-        {
-            GD.Print(FormattableString.Invariant($"event=prayer_answered year={year} requestType={request.Id}"));
-        }
-        if (result.CorruptedCount > 0)
-        {
-            GD.Print(FormattableString.Invariant(
-                $"event=oracle_corrupted year={year} count={result.CorruptedCount} chaosLevel={_timeControl.World.ChaosLevel}"));
-        }
-        if (result.OverloadCount > 0)
-        {
-            GD.Print(FormattableString.Invariant(
-                $"event=oracle_overload year={year} count={result.OverloadCount} chaosLevel={_timeControl.World.ChaosLevel}"));
-        }
-        if (result.ResumedAutoPlay)
-        {
-            GD.Print(FormattableString.Invariant($"event=auto_play_resumed year={year} reason=oracle_pronounced"));
-        }
-        LastPairing = result.Pairing;
-        Redraw();
-        OraclePronounced?.Invoke();
-        return null;
+        return rejected;
     }
+
+    /// <summary>スマホから言葉を選んで語りかける（<c>PRONOUNCE</c>）。今は語りかけられないなら、理由を返す。</summary>
+    /// <returns>語りかけられなかったときの理由。受け付けたら null。</returns>
+    public string? TryChoose(string? nounId, string? verbId, HeardDestination destination)
+    {
+        var rejected = RemoteRejection(wantChoiceMode: true);
+        if (rejected is null)
+        {
+            WordsChosen?.Invoke(nounId, verbId, destination, ChoiceSentence(nounId, verbId, destination));
+        }
+        return rejected;
+    }
+
+    // スマホの操作を受け付けられない理由。PC と同時に操作できるので、先に届いた操作が勝つ
+    private string? RemoteRejection(bool wantChoiceMode) =>
+        _timeControl.World.IsDestroyed ? "star_destroyed"
+        : _prophet.Dialect is null ? "no_dialect"
+        : _listening ? "listening"
+        : !_prophet.Faith.CanAfford ? "not_enough_faith"
+        : _choiceMode != wantChoiceMode ? (wantChoiceMode ? "voice_mode" : "words_mode")
+        : null;
 
     /// <summary>語りかけを終えた後（成功しても失敗しても）に、欄を描き直す。</summary>
     public void Refresh() => Redraw();
