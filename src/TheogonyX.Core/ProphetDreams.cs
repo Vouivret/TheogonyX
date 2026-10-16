@@ -210,6 +210,9 @@ public sealed class ProphetDreams
         return new OracleResult(dogma, answered, resumed, overload, corruptedCount, pairing);
     }
 
+    /// <summary>手札のカードが指す記号。</summary>
+    public string SymbolOf(string cardId) => _oracleRules.SymbolOf(cardId);
+
     /// <summary>方言の状態。自由文の神託を使わないなら null。</summary>
     public DialectState? Dialect { get; private set; }
 

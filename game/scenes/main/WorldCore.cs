@@ -24,6 +24,7 @@ public partial class WorldCore : Node2D
     private StrataView? _strata;
     private ResidentView? _residents;
     private HistoryView? _history;
+    private DialectBookView? _dialectBook;
     private CrowdView? _crowd;
     private DreamView? _dreams;
     private OracleView? _oracle;
@@ -75,11 +76,20 @@ public partial class WorldCore : Node2D
         var beliefRules = GameDataLoader.ParseBelief(rulesJson);
         var journeyRules = GameDataLoader.ParseJourney(rulesJson);
         var oracleAiRules = GameDataLoader.ParseOracleAi(rulesJson);
+        var (dialectRules, dialectVessel) = GameDataLoader.ParseDialect(rulesJson);
 
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
         _saveStore = new SaveStore("user://save", TimeProvider.System);
         var oracleRules = GameDataLoader.ParseOracleRules(rulesJson, dreamRules);
-        var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, needsRules, oracleRules, out var loadFailed);
+        var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, needsRules, oracleRules, out var loadFailed, out var outdated);
+        // 方言の状態が定義に合わないセーブは、何も当てはめる前に壊れたセーブとして扱う
+        if (saved?.Dialect is { } savedDialect && !FitsDialect(dialectRules, dialectVessel, savedDialect))
+        {
+            GD.PushWarning("event=save_load_failed reason=invalid_dialect");
+            loadFailed = true;
+            _saveStore.KeepBroken();
+            saved = null;
+        }
 
         // シードはセーブのもの、無ければ起動時の時刻から作り、記録する（同じシードで同じデッキの並びを再現できる）
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
@@ -94,6 +104,7 @@ public partial class WorldCore : Node2D
         });
         var deck = new OracleDeck(seed, GameDataLoader.ParseDeck(rulesJson, dreamRules));
         var prophet = new ProphetDreams(timeControl, prophetDreamRules, deck, oracleRules);
+        prophet.AttachDialect(new DialectState(dialectRules, dialectVessel, seed));
         if (saved is not null)
         {
             SaveGame.Apply(saved, timeControl, prophet, clock);
@@ -115,6 +126,7 @@ public partial class WorldCore : Node2D
         _residents = new ResidentView(this, timeControl, civilizationRules, needsRules, _ambience, seed, cameraSettings.ResidentIcons);
         _screen.TerrainDrawn += _residents.Refresh;
         _history = new HistoryView(this, timeControl);
+        _dialectBook = new DialectBookView(this, prophet);
         _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
         _screen.TimeAdvanced += () => LogForgottenDogmas(timeControl);
         _screen.TimeAdvanced += () => LogProphetMoves(timeControl);
@@ -129,24 +141,26 @@ public partial class WorldCore : Node2D
         _camera.DetailBlendChanged += blend;
         blend(_camera.DetailBlend);
         _screen.WorldReset += _crowd.OnWorldReset;
-        _dreams = new DreamView(this, prophet, new OracleCommandQueue(prophet, timeControl), timeControl);
+        var commands = new OracleCommandQueue(prophet, timeControl);
+        _dreams = new DreamView(this, prophet, commands, timeControl);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;
         _screen.WorldReset += _dreams.OnWorldReset;
         _dreams.OraclePronounced += _screen.Refresh;
         // 夢の欄が新しい夢を見た後に保存するよう、DreamView の後につなぐ
         _dreams.OraclePronounced += Save;
-        _dreams.DeckPruned += Save;
         // 予言者の誤解と歴史の神話化で、ローカルの LLM への通信を 1 つ共有する
         _ollama = new OllamaClient(oracleAiRules);
-        _oracle = new OracleView(this, timeControl, _dreams, oracleAiRules, _ollama);
+        _oracle = new OracleView(this, timeControl, _dreams, oracleAiRules, _ollama, prophet, commands);
         _oracle.OracleAttached += Save;
+        _oracle.Spoken += Save;
+        _oracle.StateChanged += _screen.Refresh;
         _myth = new MythView(timeControl, oracleAiRules, _ollama);
         _myth.MythAttached += Save;
         _screen.Jumped += Save;
         _screen.WorldReset += Save;
-        if (loadFailed)
+        if (loadFailed || outdated)
         {
-            ShowSaveNotice();
+            ShowSaveNotice(outdated ? "SAVE_OUTDATED" : "SAVE_LOAD_FAILED");
         }
 
         var companionSettings = GameDataLoader.ParseCompanion(ReadText("res://data/companion.json"));
@@ -167,6 +181,7 @@ public partial class WorldCore : Node2D
         _camera?.Process(delta);
         _residents?.Process(delta);
         _history?.Process();
+        _dialectBook?.Process();
         _oracle?.Process(delta);
         _myth?.Process(delta);
         _crowd?.Process(delta);
@@ -198,9 +213,10 @@ public partial class WorldCore : Node2D
     /// <returns>読めたセーブ。無いか、読めなかったら null。</returns>
     private static SaveData? LoadSave(
         SaveStore store, DreamRules dreamRules, ProphetDreamRules rules, CivilizationRules civilizationRules, NeedsRules needsRules,
-        OracleRules oracleRules, out bool broken)
+        OracleRules oracleRules, out bool broken, out bool outdated)
     {
         broken = false;
+        outdated = false;
         var text = store.Load();
         if (text is null)
         {
@@ -212,9 +228,30 @@ public partial class WorldCore : Node2D
         }
 
         GD.PushWarning($"event=save_load_failed reason={reason}");
+        if (reason == "unsupported_save_version")
+        {
+            // 前の版のセーブは読めないが、消さずに別の名前で残し、新しい星で始める（1 度だけ知らせる）
+            outdated = true;
+            store.KeepOutdated();
+            return null;
+        }
         broken = true;
         store.KeepBroken();
         return null;
+    }
+
+    // 保存した方言の状態が、今の定義に合うか（合わなければ読み込まない）
+    private static bool FitsDialect(DialectRules rules, string vesselId, DialectSave save)
+    {
+        try
+        {
+            new DialectState(rules, vesselId, 0).Restore(save);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 
     // 死と精神崩壊はゲーム上の主要な出来事なので Info、移り住むのは毎年あるので開発時だけ出す
@@ -279,10 +316,10 @@ public partial class WorldCore : Node2D
         }
     }
 
-    private void ShowSaveNotice()
+    private void ShowSaveNotice(string key)
     {
         var notice = GetNode<Label>("%SaveNotice");
-        notice.Text = TranslationServer.Translate("SAVE_LOAD_FAILED").ToString();
+        notice.Text = TranslationServer.Translate(key).ToString();
         notice.Visible = true;
         GetTree().CreateTimer(SaveNoticeSeconds).Timeout += () => notice.Visible = false;
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using Godot;
 using TheogonyX.Core;
@@ -8,9 +9,12 @@ using TheogonyX.Core;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// 予言者の誤解（docs/domain/ai-presentation.md）。神託でドグマが生まれたら、ローカルの LLM（Ollama）に神託の文を頼み、
-/// できたら予言者の吹き出しに出して、年表のドグマの行に添える。LLM が使えない・応答が壊れているときは、種別ごとの定型文を出す。
-/// 文は表現だけで、ゲームの計算には関わらない。頼むのは一度に 1 つで、ゲームの進行は止めない。
+/// 自由文の神託の流れと、予言者の吹き出し（docs/domain/oracle-pair.md の「自由文の神託」、ai-presentation.md）。
+/// 神の言葉を受け取ったら、自動進行を止めて予言者に「耳を澄ませている」と言わせ、ローカルの LLM（Ollama）で文を語の ID に聞き取り、
+/// コアが方言で聞き違えて神託を下す。下したら、掟の 1 行と聞こえた言葉を吹き出しに出し、続けて LLM が作る聞こえた文と語りに差し替える。
+/// LLM が使えない・答えが壊れているときは、言葉を選ぶ形に替える。
+/// 旧い形の神託（スマホの手札の 2 枚）でドグマが生まれたときは、これまでどおり LLM に誤解の文を頼む。
+/// 文は表現だけで、ゲームの計算には関わらない。
 /// </summary>
 public sealed class OracleView
 {
@@ -18,30 +22,47 @@ public sealed class OracleView
     private readonly DreamView _dreams;
     private readonly OracleAiRules _rules;
     private readonly OllamaClient _client;
+    private readonly ProphetDreams _prophet;
+    private readonly OracleCommandQueue _commands;
     private readonly PanelContainer _bubble;
     private readonly Label _label;
     private readonly Queue<(HistoryEntry? Entry, Dogma Dogma, Request Request)> _queue = new();
     private bool _busy;
     private Request? _latest;
     private double _hideInSeconds;
+    private bool _listening;
+    private OracleRecord? _latestSpeech;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public OracleView(Node owner, TimeControl timeControl, DreamView dreams, OracleAiRules rules, OllamaClient client)
+    public OracleView(
+        Node owner, TimeControl timeControl, DreamView dreams, OracleAiRules rules, OllamaClient client, ProphetDreams prophet, OracleCommandQueue commands)
     {
         _timeControl = timeControl;
         _dreams = dreams;
         _rules = rules;
         _client = client;
+        _prophet = prophet;
+        _commands = commands;
         _label = new Label { Name = "OracleText", AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(200, 0) };
         // 地表の上の真ん中寄りに重ねて出す（依頼の吹き出し・年表の欄より手前）
         _bubble = new PanelContainer { Name = "OracleBubble", Visible = false, Position = new Vector2(60, 64), MouseFilter = Control.MouseFilterEnum.Ignore };
         _bubble.AddChild(_label);
         owner.GetNode<Node>("Hud").AddChild(_bubble);
         dreams.OraclePronounced += OnOraclePronounced;
+        dreams.SpeakRequested += OnSpeakRequested;
+        dreams.WordsChosen += OnWordsChosen;
+        // LLM を使わない設定なら、最初から言葉を選ぶ形にする
+        dreams.ChoiceMode = !rules.Enabled;
     }
 
     /// <summary>神託の文を年表に添えた（セーブし直すのに使う）。</summary>
     public event Action? OracleAttached;
+
+    /// <summary>自由文の神託を下した、または聞こえた文と語りを添えた（セーブし直すのに使う）。</summary>
+    public event Action? Spoken;
+
+    /// <summary>聞いている間に自動進行を止めた・再開した、または聞き取りが終わった（時間のボタンを描き直すのに使う）。</summary>
+    public event Action? StateChanged;
 
     /// <summary>毎フレーム呼ぶ。吹き出しを出しておく時間を数える。</summary>
     public void Process(double delta)
@@ -140,6 +161,238 @@ public sealed class OracleView
         }
         var text = OracleProphecy.ParseResponse(reply);
         return (text, text is null ? "invalid_response" : string.Empty, durationMs);
+    }
+
+    // 神の言葉を受け取った（LLM が使えるとき）
+    private void OnSpeakRequested(string text)
+    {
+        if (_listening || _prophet.Dialect is null)
+        {
+            return;
+        }
+        var year = _timeControl.World.Year;
+        var rejected = !OracleListening.IsValidGodText(text) ? "invalid_text" : _prophet.SpeakRejection();
+        if (rejected is not null)
+        {
+            GD.PushWarning(FormattableString.Invariant($"event=oracle_speak_rejected year={year} reason={rejected} textLength={text.Length}"));
+            return;
+        }
+        _ = ListenAsync(text);
+    }
+
+    private async Task ListenAsync(string text)
+    {
+        var year = _timeControl.World.Year;
+        GD.Print(FormattableString.Invariant($"event=oracle_speak_received year={year} textLength={text.Length}"));
+        _listening = true;
+        // 聞いている間は自動進行を止める（祈りで止めるのと同じ）。語りかけで止めたときだけ、終わったら再開する
+        var pausedHere = _timeControl.CanDo(TimeControlAction.Pause);
+        if (pausedHere)
+        {
+            _timeControl.Pause();
+        }
+        _dreams.Listening = true;
+        ShowText(Tr("ORACLE_GUIDE_LISTENING"), keepUntilReplaced: true);
+        StateChanged?.Invoke();
+
+        var (hearing, reason, durationMs) = await HearAsync(text);
+        _listening = false;
+        _dreams.Listening = false;
+        if (hearing is null)
+        {
+            GD.PushWarning(FormattableString.Invariant($"event=oracle_hear_failed year={year} reason={reason} durationMs={durationMs}"));
+            // 書いた文は残したまま、言葉を選ぶ形に替えて選ばせる
+            _dreams.ChoiceMode = true;
+            ShowText(Tr("ORACLE_HEAR_FAILED"));
+            ResumeIfPausedHere(pausedHere);
+            StateChanged?.Invoke();
+            return;
+        }
+
+        var announced = Announce(hearing, text);
+        ResumeIfPausedHere(pausedHere);
+        if (announced is not null)
+        {
+            _dreams.InputText = string.Empty;
+        }
+        _dreams.Refresh();
+        StateChanged?.Invoke();
+        if (announced is not null)
+        {
+            Spoken?.Invoke();
+            await NarrateAsync(announced, hearing, text);
+        }
+    }
+
+    // 自動進行を語りかけで止めていて、まだ止まったままなら再開する（神託を下して、依頼の分とあわせて再開済みなら何もしない）
+    private void ResumeIfPausedHere(bool pausedHere)
+    {
+        if (pausedHere && _timeControl.CanDo(TimeControlAction.StartAutoPlay))
+        {
+            _timeControl.StartAutoPlay();
+            GD.Print(FormattableString.Invariant($"event=auto_play_resumed year={_timeControl.World.Year} reason=oracle_heard"));
+        }
+    }
+
+    // LLM に聞き取りを頼み、コアで方言に聞き違える。失敗の理由は、つながらない・時間切れ・HTTP のエラー・形の崩れ・答えが一覧に合わない
+    private async Task<(Hearing? Hearing, string Reason, long DurationMs)> HearAsync(string text)
+    {
+        var dialect = _prophet.Dialect!;
+        var known = _prophet.Hand.Select(card => _prophet.SymbolOf(card)).ToHashSet();
+        static ListeningWord Word(string id) => new(id, Tr($"WORD_{id}"));
+        var body = OracleListening.BuildRequest(
+            _rules, text, [.. dialect.Rules.Nouns.Select(noun => Word(noun.Id))], [.. dialect.Rules.Verbs.Select(verb => Word(verb.Id))],
+            [.. dialect.Rules.Nouns.Where(noun => known.Contains(noun.SymbolId)).Select(noun => Word(noun.Id))], TranslationServer.GetLocale());
+        var (reply, failure, durationMs) = await _client.PostAsync(body);
+        if (reply is null)
+        {
+            return (null, failure, durationMs);
+        }
+        var answer = OracleListening.ParseResponse(reply);
+        if (answer is null)
+        {
+            return (null, "invalid_response", durationMs);
+        }
+        var outcome = _prophet.Hear(answer);
+        return (outcome.Hearing, outcome.RejectedReason ?? string.Empty, durationMs);
+    }
+
+    // 言葉を選んで語りかけた（LLM が使えないとき・失敗したとき）
+    private void OnWordsChosen(string? nounId, string? verbId, HeardDestination destination, string sentence)
+    {
+        if (_listening || _prophet.Dialect is null)
+        {
+            return;
+        }
+        var year = _timeControl.World.Year;
+        if (_prophet.SpeakRejection() is { } rejected)
+        {
+            GD.PushWarning(FormattableString.Invariant($"event=oracle_speak_rejected year={year} reason={rejected} textLength={sentence.Length}"));
+            return;
+        }
+        var outcome = _prophet.Hear(new HeardAnswer(nounId, verbId, destination, null, []));
+        if (outcome.Hearing is not { } hearing)
+        {
+            GD.PushWarning(FormattableString.Invariant($"event=oracle_speak_rejected year={year} reason={outcome.RejectedReason} textLength={sentence.Length}"));
+            return;
+        }
+        var announced = Announce(hearing, sentence);
+        // 失敗の後に選ばせたときは、次の語りかけから LLM に戻す
+        _dreams.ChoiceMode = !_rules.Enabled;
+        _dreams.Refresh();
+        StateChanged?.Invoke();
+        if (announced is not null)
+        {
+            Spoken?.Invoke();
+            _ = NarrateAsync(announced, hearing, sentence);
+        }
+    }
+
+    // コアで神託を下し、掟の 1 行と聞こえた言葉を吹き出しに出す。下せなければ null
+    private OracleRecord? Announce(Hearing hearing, string godText)
+    {
+        var year = _timeControl.World.Year;
+        var spoken = _commands.SubmitSpeak(hearing, godText);
+        if (spoken.Result is not { } result)
+        {
+            GD.PushWarning(FormattableString.Invariant($"event=oracle_speak_rejected year={year} reason={spoken.RejectedReason} textLength={godText.Length}"));
+            return null;
+        }
+        if (result.Dogma is { } dogma)
+        {
+            GD.Print(FormattableString.Invariant(
+                $"event=dogma_formed year={year} symbolId={dogma.TargetSymbolId} dogmaType={dogma.Type} intensity={dogma.Intensity}"));
+        }
+        if (result.AnsweredRequest is { } request)
+        {
+            GD.Print(FormattableString.Invariant($"event=prayer_answered year={year} requestType={request.Id}"));
+        }
+        if (result.CorruptedCount > 0)
+        {
+            GD.Print(FormattableString.Invariant($"event=oracle_corrupted year={year} count={result.CorruptedCount} chaosLevel={_timeControl.World.ChaosLevel}"));
+        }
+        if (result.OverloadCount > 0)
+        {
+            GD.Print(FormattableString.Invariant($"event=oracle_overload year={year} count={result.OverloadCount} chaosLevel={_timeControl.World.ChaosLevel}"));
+        }
+        if (result.ResumedAutoPlay)
+        {
+            GD.Print(FormattableString.Invariant($"event=auto_play_resumed year={year} reason=oracle_pronounced"));
+        }
+        _latestSpeech = result.Record;
+        ShowText(SpeechText(result.Record, hearing, narration: null));
+        return result.Record;
+    }
+
+    // LLM に聞こえた文と語りを頼む。できたら記録に添え、いちばん新しい神託なら吹き出しを差し替える。失敗したら規則の文のまま
+    private async Task NarrateAsync(OracleRecord record, Hearing hearing, string godText)
+    {
+        if (!_rules.Enabled || (hearing.HeardNounId is null && hearing.HeardVerbId is null))
+        {
+            return;
+        }
+        static string? Word(string? id) => id is null ? null : Tr($"WORD_{id}");
+        var required = new[] { Word(hearing.HeardNounId), Word(hearing.HeardVerbId) }.OfType<string>().ToList();
+        var shifts = hearing.BookEntries
+            .Where(entry => entry.Reason != DialectReason.Mystery && entry.HeardWordId is not null)
+            .Select(entry => (Word(entry.GodWord)!, Word(entry.HeardWordId)!))
+            .ToList();
+        var body = OracleNarrationWriter.BuildRequest(
+            _rules, godText, Word(hearing.HeardNounId), Word(hearing.HeardVerbId), shifts, _timeControl.World, TranslationServer.GetLocale());
+        var (reply, failure, durationMs) = await _client.PostAsync(body);
+        var narration = reply is null ? null : OracleNarrationWriter.ParseResponse(reply, required);
+        if (narration is null)
+        {
+            GD.PushWarning(FormattableString.Invariant(
+                $"event=oracle_ai_failed year={record.Year} reason={(reply is null ? failure : "invalid_response")} durationMs={durationMs}"));
+            return;
+        }
+        GD.Print(FormattableString.Invariant($"event=oracle_generated year={record.Year} durationMs={durationMs}"));
+        if (_prophet.Dialect!.AttachNarration(record.Year, record.GodText, narration.Heard, narration.Narration))
+        {
+            if (ReferenceEquals(_latestSpeech, record))
+            {
+                ShowText(SpeechText(record, hearing, narration));
+            }
+            Spoken?.Invoke();
+        }
+    }
+
+    // 吹き出しの文: 掟の 1 行、聞こえた言葉（LLM の聞こえた文があればその文と語り）、行き先、謎の言葉
+    private static string SpeechText(OracleRecord record, Hearing hearing, NarrationText? narration)
+    {
+        var culture = CultureInfo.CurrentCulture;
+        var lines = new List<string>();
+        if (record.Teaching is { } teaching)
+        {
+            lines.Add(string.Format(
+                culture, Tr($"ORACLE_LINE_{teaching.Type.ToString().ToUpperInvariant()}"), Tr($"SYMBOL_{teaching.TargetSymbolId}")));
+        }
+        if (narration is not null)
+        {
+            lines.Add(narration.Heard);
+            lines.Add(narration.Narration);
+        }
+        else if (hearing.HeardNounId is not null || hearing.HeardVerbId is not null)
+        {
+            lines.Add(string.Format(
+                culture, Tr("ORACLE_HEARD_RULE"),
+                hearing.HeardNounId is null ? "-" : Tr($"WORD_{hearing.HeardNounId}"),
+                hearing.HeardVerbId is null ? "-" : Tr($"WORD_{hearing.HeardVerbId}")));
+        }
+        if (hearing.Destination != TravelDirection.None)
+        {
+            lines.Add(Tr(hearing.Destination == TravelDirection.East ? "ORACLE_DESTINATION_EAST" : "ORACLE_DESTINATION_WEST"));
+        }
+        else if (hearing.DestinationMisheard)
+        {
+            lines.Add(Tr("ORACLE_DESTINATION_LOST"));
+        }
+        if (hearing.MysteryWords.Count > 0)
+        {
+            lines.Add(string.Format(culture, Tr("ORACLE_MYSTERY"), string.Join("、", hearing.MysteryWords)));
+        }
+        return string.Join('\n', lines);
     }
 
     private void ShowFallback(Dogma dogma) =>

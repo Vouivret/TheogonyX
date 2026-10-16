@@ -228,6 +228,33 @@ public static class GameDataLoader
         return belief;
     }
 
+    /// <returns>方言の聞き違えの定義と、予言者の器の段（定義の中のもの）。</returns>
+    public static (DialectRules Rules, string VesselId) ParseDialect(string rulesJson)
+    {
+        var file = Parse<DialectSection>(rulesJson, "rules.json");
+        var section = file.Dialect ?? throw new InvalidDataException("方言の定義が無い: file=rules.json key=dialect");
+        DialectRules dialect;
+        try
+        {
+            dialect = section.Deserialize<DialectRules>(StrictOptions)
+                ?? throw new InvalidDataException("方言の定義が空: file=rules.json key=dialect");
+            dialect.Validate();
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("方言の定義を読めない: file=rules.json key=dialect", ex);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("方言の定義の値が範囲外: file=rules.json key=dialect", ex);
+        }
+        if (file.DialectVessel is not { } vessel || dialect.Vessels.All(candidate => candidate.Id != vessel))
+        {
+            throw new InvalidDataException($"定義に無い予言者の器の段: file=rules.json key=dialectVessel value={file.DialectVessel}");
+        }
+        return (dialect, vessel);
+    }
+
     public static JourneyRules ParseJourney(string rulesJson)
     {
         var section = Parse<JourneySection>(rulesJson, "rules.json").Journey
@@ -422,6 +449,8 @@ public static class GameDataLoader
     private sealed record BeliefSection(JsonElement? Belief);
 
     private sealed record JourneySection(JsonElement? Journey);
+
+    private sealed record DialectSection(JsonElement? Dialect, string? DialectVessel);
 
     private sealed record HistorySection(JsonElement? History);
 

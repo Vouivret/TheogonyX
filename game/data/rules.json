@@ -122,6 +122,63 @@
     "dampen": 0.8,
     "inheritDampen": 0.8
   },
+  "dialectVessel": "VESSEL_PRIEST",
+  "dialect": {
+    "nouns": [
+      { "id": "NOUN_TREE", "symbolId": "SYM_TREE" },
+      { "id": "NOUN_FOREST", "symbolId": "SYM_TREE" },
+      { "id": "NOUN_SAPLING", "symbolId": "SYM_TREE" },
+      { "id": "NOUN_FIREWOOD", "symbolId": "SYM_TREE" },
+      { "id": "NOUN_WATER", "symbolId": "SYM_WATER" },
+      { "id": "NOUN_RIVER", "symbolId": "SYM_WATER" },
+      { "id": "NOUN_RAIN", "symbolId": "SYM_WATER" },
+      { "id": "NOUN_WELL", "symbolId": "SYM_WATER" },
+      { "id": "NOUN_BLOOD", "symbolId": "SYM_BLOOD" },
+      { "id": "NOUN_FILTH", "symbolId": "SYM_BLOOD" },
+      { "id": "NOUN_WOUND", "symbolId": "SYM_BLOOD" },
+      { "id": "NOUN_STRIFE", "symbolId": "SYM_BLOOD" },
+      { "id": "NOUN_FIRE", "symbolId": "SYM_FIRE" },
+      { "id": "NOUN_FLAME", "symbolId": "SYM_FIRE" },
+      { "id": "NOUN_LAMP", "symbolId": "SYM_FIRE" },
+      { "id": "NOUN_HEARTH", "symbolId": "SYM_FIRE" },
+      { "id": "NOUN_EARTH", "symbolId": "SYM_EARTH" },
+      { "id": "NOUN_LAND", "symbolId": "SYM_EARTH" },
+      { "id": "NOUN_FIELD", "symbolId": "SYM_EARTH" },
+      { "id": "NOUN_MOUNTAIN", "symbolId": "SYM_EARTH" },
+      { "id": "NOUN_METAL", "symbolId": "SYM_METAL" },
+      { "id": "NOUN_IRON", "symbolId": "SYM_METAL" },
+      { "id": "NOUN_BLADE", "symbolId": "SYM_METAL" },
+      { "id": "NOUN_ORE", "symbolId": "SYM_METAL" }
+    ],
+    "verbs": [
+      { "id": "VERB_PROTECT", "type": "Worship", "intensity": 0.7 },
+      { "id": "VERB_REVERE", "type": "Worship", "intensity": 0.7 },
+      { "id": "VERB_NURTURE", "type": "Worship", "intensity": 0.7 },
+      { "id": "VERB_AVOID", "type": "Taboo", "intensity": 0.7 },
+      { "id": "VERB_REFRAIN", "type": "Taboo", "intensity": 0.7 },
+      { "id": "VERB_FORBID", "type": "Taboo", "intensity": 0.7 },
+      { "id": "VERB_CUT", "type": "Destruction", "intensity": 0.7 },
+      { "id": "VERB_BURN", "type": "Destruction", "intensity": 0.7 },
+      { "id": "VERB_BREAK", "type": "Destruction", "intensity": 0.7 }
+    ],
+    "links": [
+      { "a": "SYM_TREE", "b": "SYM_FIRE" },
+      { "a": "SYM_TREE", "b": "SYM_WATER" },
+      { "a": "SYM_TREE", "b": "SYM_EARTH" },
+      { "a": "SYM_FIRE", "b": "SYM_METAL" },
+      { "a": "SYM_EARTH", "b": "SYM_WATER" },
+      { "a": "SYM_EARTH", "b": "SYM_METAL" },
+      { "a": "SYM_METAL", "b": "SYM_BLOOD" }
+    ],
+    "vessels": [
+      { "id": "VESSEL_MEDIUM", "misheardRatio": 0.3 },
+      { "id": "VESSEL_PRIEST", "misheardRatio": 0.2 },
+      { "id": "VESSEL_PROPHET", "misheardRatio": 0.1 }
+    ],
+    "reversalProbability": 0.2,
+    "defaultType": "Worship",
+    "defaultIntensity": 0.7
+  },
   "journey": {
     "wanderProbability": 0.1
   },

@@ -61,6 +61,21 @@ public sealed class SaveStore
         }
     }
 
+    /// <summary>前の版のセーブを <c>world.old-&lt;日時&gt;.json</c> に名前を変えて残す。できなければ、この起動では保存しない。</summary>
+    public void KeepOutdated()
+    {
+        var stamp = _timeProvider.GetUtcNow().ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        try
+        {
+            File.Move(FilePath, Path.Combine(_directory, $"world.old-{stamp}.json"));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            GD.PushError($"event=save_load_failed reason=keep_outdated_failed error={ex.GetType().Name}");
+            IsEnabled = false;
+        }
+    }
+
     public void Save(string json)
     {
         if (!IsEnabled)

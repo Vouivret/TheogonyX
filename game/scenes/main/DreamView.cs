@@ -9,11 +9,11 @@ using TheogonyX.Core.Protocol;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// 神託の欄と依頼の吹き出しを描き、神託を下す操作をコアの <see cref="ProphetDreams"/> につなぐ
-/// （docs/domain/oracle-pair.md、prophet-request.md）。
-/// 地表の下の帯の 1 段目に今の状態の案内と神威、2 段目に「神託を下す」、3 段目に手札を出す。
-/// 手札のカードを 1 枚目・2 枚目の順に押して 2 枚を選び、「神託を下す」で神託にする。
-/// スマホ（<see cref="CompanionHost"/>）からの神託も、ここを通す。
+/// 神託の欄と依頼の吹き出しを描く（docs/domain/oracle-pair.md の「画面と通信」、prophet-request.md）。
+/// 地表の下の帯の 1 段目に今の状態の案内と神威、2 段目に「語りかける」ボタンと、神の言葉を書く入力欄を出す。
+/// 手札（予言者の語彙）は見せない。LLM が使えないときは、入力欄の代わりに、予言者の知っている名詞と動詞と行き先を選ぶ欄を出す。
+/// 語りかける操作は <see cref="SpeakRequested"/>・<see cref="WordsChosen"/> で知らせ、聞き取りと実行は <see cref="OracleView"/> が受け持つ。
+/// スマホ（<see cref="CompanionHost"/>）からの旧い形の神託（手札の 2 枚）は、小段 6 でスマホを替えるまで、ここを通す。
 /// </summary>
 public sealed class DreamView
 {
@@ -21,18 +21,17 @@ public sealed class DreamView
     private readonly OracleCommandQueue _commands;
     private readonly TimeControl _timeControl;
     private readonly Label _dreamGuide;
-    private readonly HBoxContainer _dreamRow;
     private readonly Button _oracleButton;
     private readonly HBoxContainer _dreamCards;
     private readonly Label _requestBubble;
-    private readonly HFlowContainer _pruneRow;
-    private readonly PanelContainer _prunePanel;
-    private readonly Button _pruneToggle;
-    private readonly List<Button> _cardButtons = [];
-
-    // 選んだ手札の番号（1 枚目・2 枚目の順）。
-    private readonly List<int> _selected = [];
-    private string[] _handShown = [];
+    private readonly LineEdit _input;
+    private readonly OptionButton _nounChoice;
+    private readonly OptionButton _verbChoice;
+    private readonly OptionButton _directionChoice;
+    private readonly List<string?> _nounIds = [];
+    private string _handShown = string.Empty;
+    private bool _listening;
+    private bool _choiceMode;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
     public DreamView(Node owner, ProphetDreams prophet, OracleCommandQueue commands, TimeControl timeControl)
@@ -41,51 +40,88 @@ public sealed class DreamView
         _commands = commands;
         _timeControl = timeControl;
         _dreamGuide = owner.GetNode<Label>("%DreamGuide");
-        _dreamRow = owner.GetNode<HBoxContainer>("%DreamRow");
         _oracleButton = owner.GetNode<Button>("%OracleButton");
         _dreamCards = owner.GetNode<HBoxContainer>("%DreamCards");
         _requestBubble = owner.GetNode<Label>("%RequestBubble");
 
-        // 夢のコマは無い（神託は手札のルーンの組で作る）。コマの段には「神託を下す」だけを残す。
+        // 夢のコマは無い。コマの段は使わず、下の帯の 1 行（入力欄・語りかける）に収める
         owner.GetNode<HBoxContainer>("%DreamNodes").Visible = false;
-        _dreamRow.Visible = false;
+        owner.GetNode<HBoxContainer>("%DreamRow").Visible = false;
         _dreamCards.Visible = true;
         _dreamGuide.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _dreamGuide.CustomMinimumSize = new Vector2(440, 0);
 
-        // 下の帯は 1 行（手札・神託を下す・精査）に収める。精査のルーンの一覧は、世界の絵の上に重ねる別の枠に出す
-        _oracleButton.Reparent(_dreamCards);
-        _oracleButton.Pressed += OnOracleButtonPressed;
-
-        // 精査（世界再創生の後に、ルーンを削除する）の欄。持ち分があるときだけ出す。シーンは変えず、手札の下に足す
-        _pruneToggle = new Button { Visible = false };
-        _dreamCards.AddChild(_pruneToggle);
-        _pruneRow = new HFlowContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        var scroll = new ScrollContainer
+        _input = new LineEdit
         {
-            CustomMinimumSize = new Vector2(440, 150),
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            Name = "OracleInput",
+            MaxLength = OracleListening.MaxGodTextLength,
+            PlaceholderText = Tr("SPEAK_PLACEHOLDER"),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
         };
-        scroll.AddChild(_pruneRow);
-        _prunePanel = new PanelContainer { Visible = false, Position = new Vector2(16, 40) };
-        _prunePanel.AddChild(scroll);
-        owner.GetNode<Node>("Hud").AddChild(_prunePanel);
-        _pruneToggle.Pressed += () => _prunePanel.Visible = !_prunePanel.Visible;
+        _nounChoice = new OptionButton { Name = "NounChoice", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = false };
+        _verbChoice = new OptionButton { Name = "VerbChoice", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = false };
+        _directionChoice = new OptionButton { Name = "DirectionChoice", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = false };
+        foreach (var control in new Control[] { _input, _nounChoice, _verbChoice, _directionChoice })
+        {
+            _dreamCards.AddChild(control);
+        }
+        _oracleButton.Reparent(_dreamCards);
+        _oracleButton.Text = "BUTTON_SPEAK";
+        _oracleButton.Pressed += OnOracleButtonPressed;
+        _input.TextChanged += _ => UpdateControls();
+        _input.TextSubmitted += _ => OnOracleButtonPressed();
+        foreach (var choice in new[] { _nounChoice, _verbChoice, _directionChoice })
+        {
+            choice.ItemSelected += _ => UpdateControls();
+        }
+        BuildVerbAndDirectionChoices();
 
         Redraw();
     }
 
-    /// <summary>神託を下したとき。HUD のドグマの一覧と、時間のボタンを描き直すのに使う。</summary>
+    /// <summary>旧い形の神託（スマホの手札の 2 枚）を下したとき。HUD のドグマの一覧と、時間のボタンを描き直すのに使う。</summary>
     public event Action? OraclePronounced;
 
-    /// <summary>直近に下した神託の、2 枚目の記号と五行の関係（予言者の語りに使う。保存しない）。</summary>
+    /// <summary>直近に下した旧い形の神託の、2 枚目の記号と五行の関係（予言者の語りに使う。保存しない）。</summary>
     public OraclePairing? LastPairing { get; private set; }
 
-    /// <summary>精査でルーンを削除・融合したとき。保存に使う。</summary>
-    public event Action? DeckPruned;
+    /// <summary>神の言葉を書いて「語りかける」を押した（LLM が使えるとき）。</summary>
+    public event Action<string>? SpeakRequested;
+
+    /// <summary>名詞・動詞・行き先を選んで「語りかける」を押した（LLM が使えないとき）。選んだ神の言葉の代わりの文も渡す。</summary>
+    public event Action<string?, string?, HeardDestination, string>? WordsChosen;
 
     /// <summary>描き直したとき。手札・神威・依頼・できる操作が変わったかもしれない。</summary>
     public event Action? Changed;
+
+    /// <summary>予言者が聞いている途中か。入力欄とボタンを使えなくする。</summary>
+    public bool Listening
+    {
+        get => _listening;
+        set
+        {
+            _listening = value;
+            Redraw();
+        }
+    }
+
+    /// <summary>入力欄の代わりに、言葉を選ぶ欄を出すか（LLM が使えないとき）。</summary>
+    public bool ChoiceMode
+    {
+        get => _choiceMode;
+        set
+        {
+            _choiceMode = value;
+            Redraw();
+        }
+    }
+
+    /// <summary>入力欄の文。聞き取りに失敗したときも、書いた文を残す。</summary>
+    public string InputText
+    {
+        get => _input.Text;
+        set => _input.Text = value;
+    }
 
     /// <summary>スマホに送る、今の手札・神威・依頼（<c>ORACLE_STATE</c>）。</summary>
     public string StateMessage() => HostMessageWriter.OracleState(_prophet, _timeControl.World.IsDestroyed);
@@ -118,11 +154,10 @@ public sealed class DreamView
     public void OnWorldReset()
     {
         _prophet.Reset();
-        _selected.Clear();
         Redraw();
     }
 
-    /// <summary>手札の <paramref name="first"/> 番・<paramref name="second"/> 番のルーンで神託を下す。スマホからも呼ぶ。</summary>
+    /// <summary>手札の <paramref name="first"/> 番・<paramref name="second"/> 番のルーンで神託を下す。スマホ（旧い形）から呼ぶ。</summary>
     /// <returns>下せなかったときの理由（ログの <c>reason</c>）。下せたら null。</returns>
     public string? TryPronouncePair(int first, int second)
     {
@@ -157,161 +192,99 @@ public sealed class DreamView
             GD.Print(FormattableString.Invariant($"event=auto_play_resumed year={year} reason=oracle_pronounced"));
         }
         LastPairing = result.Pairing;
-        _selected.Clear();
         Redraw();
         OraclePronounced?.Invoke();
         return null;
     }
 
-    /// <summary>デッキのルーンを 1 枚削除する（精査）。</summary>
-    private void TryPrune(string cardId)
-    {
-        if (_prophet.PruneRejection(cardId) is { } reason)
-        {
-            GD.Print(FormattableString.Invariant(
-                $"event=deck_prune_rejected year={_timeControl.World.Year} runeId={cardId} reason={reason}"));
-            return;
-        }
-
-        _prophet.Prune(cardId);
-        GD.Print(FormattableString.Invariant(
-            $"event=deck_pruned year={_timeControl.World.Year} runeId={cardId}"));
-        Redraw();
-        DeckPruned?.Invoke();
-    }
-
-    /// <summary>基本ルーンを 2 枚融合して、上位のルーンにする（精査）。</summary>
-    private void TryFuse(string cardId)
-    {
-        if (_prophet.FuseRejection(cardId) is { } reason)
-        {
-            GD.Print(FormattableString.Invariant(
-                $"event=deck_fuse_rejected year={_timeControl.World.Year} runeId={cardId} reason={reason}"));
-            return;
-        }
-
-        var greater = _prophet.Fuse(cardId);
-        GD.Print(FormattableString.Invariant(
-            $"event=deck_fused year={_timeControl.World.Year} runeId={greater.Id}"));
-        Redraw();
-        DeckPruned?.Invoke();
-    }
-
-    // 精査の欄を作り直す。デッキのルーンを種類ごとにまとめて、削除のボタンにする。融合できるルーンには、融合のボタンも足す
-    private void RedrawPrune()
-    {
-        foreach (var child in _pruneRow.GetChildren())
-        {
-            _pruneRow.RemoveChild(child);
-            child.QueueFree();
-        }
-
-        var hasCharges = _prophet.PruneCharges > 0;
-        _pruneToggle.Visible = hasCharges;
-        if (!hasCharges)
-        {
-            _prunePanel.Visible = false;
-            return;
-        }
-
-        _pruneToggle.Text = string.Format(CultureInfo.CurrentCulture, Tr("PRUNE_OPEN"), _prophet.PruneCharges);
-
-        _pruneRow.AddChild(new Label
-        {
-            Text = string.Format(CultureInfo.CurrentCulture, Tr("PRUNE_LABEL"), _prophet.PruneCharges),
-        });
-        var cards = _prophet.Deck.DrawPile.Concat(_prophet.Hand).Concat(_prophet.Deck.DiscardPile);
-        foreach (var group in cards.GroupBy(id => id))
-        {
-            var cardId = group.Key;
-            var button = new Button
-            {
-                Text = string.Format(CultureInfo.CurrentCulture, Tr("PRUNE_CARD"), Tr($"SYMBOL_{cardId}"), group.Count()),
-            };
-            button.Pressed += () => TryPrune(cardId);
-            _pruneRow.AddChild(button);
-        }
-        foreach (var group in cards.GroupBy(id => id))
-        {
-            var cardId = group.Key;
-            if (_prophet.FusionOf(cardId) is not { } greater || _prophet.FuseRejection(cardId) is not null)
-            {
-                continue;
-            }
-            var button = new Button
-            {
-                Text = string.Format(CultureInfo.CurrentCulture, Tr("PRUNE_FUSE"), Tr($"SYMBOL_{cardId}"), Tr($"SYMBOL_{greater.Id}")),
-            };
-            button.Pressed += () => TryFuse(cardId);
-            _pruneRow.AddChild(button);
-        }
-    }
+    /// <summary>語りかけを終えた後（成功しても失敗しても）に、欄を描き直す。</summary>
+    public void Refresh() => Redraw();
 
     private void OnOracleButtonPressed()
     {
-        if (_selected.Count == 2)
+        if (_oracleButton.Disabled)
         {
-            TryPronouncePair(_selected[0], _selected[1]);
+            return;
         }
-    }
-
-    // 同じカードをもう一度押すと選びを外す。3 枚目を押したら、1 枚目を外して 2 枚目と 3 枚目にする
-    private void OnCardPressed(int index)
-    {
-        if (!_selected.Remove(index))
+        if (_choiceMode)
         {
-            if (_selected.Count == 2)
+            var noun = _nounChoice.Selected >= 0 && _nounChoice.Selected < _nounIds.Count ? _nounIds[_nounChoice.Selected] : null;
+            var verb = _verbChoice.Selected > 0 ? _prophet.Dialect!.Rules.Verbs[_verbChoice.Selected - 1].Id : null;
+            var destination = _directionChoice.Selected switch
             {
-                _selected.RemoveAt(0);
-            }
-            _selected.Add(index);
+                1 => HeardDestination.East,
+                2 => HeardDestination.West,
+                _ => HeardDestination.None,
+            };
+            WordsChosen?.Invoke(noun, verb, destination, ChoiceSentence(noun, verb, destination));
         }
-        Redraw();
+        else
+        {
+            SpeakRequested?.Invoke(_input.Text.Trim());
+        }
     }
 
-    // 手札のカードのボタンを作り直す。手札は神託を下すたびに変わる
-    private void RebuildCards()
+    // 選んだ言葉を並べた、神の文の代わりの文（記録に残す）
+    private static string ChoiceSentence(string? noun, string? verb, HeardDestination destination)
     {
-        foreach (var child in _cardButtons)
+        var parts = new List<string>();
+        if (noun is not null)
         {
-            _dreamCards.RemoveChild(child);
-            child.QueueFree();
+            parts.Add(Tr($"WORD_{noun}"));
         }
-        _cardButtons.Clear();
-        for (var i = 0; i < _prophet.Hand.Count; i++)
+        if (verb is not null)
         {
-            var card = new Button { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, ClipText = true };
-            var index = i;
-            card.Pressed += () => OnCardPressed(index);
-            _dreamCards.AddChild(card);
-            _dreamCards.MoveChild(card, _cardButtons.Count);
-            _cardButtons.Add(card);
+            parts.Add(Tr($"WORD_{verb}"));
         }
-        _handShown = [.. _prophet.Hand];
+        if (destination != HeardDestination.None)
+        {
+            parts.Add(Tr(destination == HeardDestination.East ? "DIRECTION_EAST" : "DIRECTION_WEST"));
+        }
+        return string.Join(' ', parts);
+    }
+
+    // 動詞は全部知っている。行き先は東・西・なし。名詞は手札の記号のものだけなので、手札が変わるたびに作り直す
+    private void BuildVerbAndDirectionChoices()
+    {
+        _verbChoice.Clear();
+        _verbChoice.AddItem(Tr("CHOICE_NONE"));
+        foreach (var verb in _prophet.Dialect?.Rules.Verbs ?? [])
+        {
+            _verbChoice.AddItem(Tr($"WORD_{verb.Id}"));
+        }
+        _directionChoice.Clear();
+        _directionChoice.AddItem(Tr("DIRECTION_NONE"));
+        _directionChoice.AddItem(Tr("DIRECTION_EAST"));
+        _directionChoice.AddItem(Tr("DIRECTION_WEST"));
+    }
+
+    private void RebuildNounChoice()
+    {
+        var symbols = _prophet.Hand.Select(card => _prophet.SymbolOf(card)).ToHashSet();
+        var signature = string.Join(',', symbols.Order());
+        if (signature == _handShown)
+        {
+            return;
+        }
+        _handShown = signature;
+        _nounChoice.Clear();
+        _nounIds.Clear();
+        _nounChoice.AddItem(Tr("CHOICE_NONE"));
+        _nounIds.Add(null);
+        foreach (var noun in (_prophet.Dialect?.Rules.Nouns ?? []).Where(noun => symbols.Contains(noun.SymbolId)))
+        {
+            _nounChoice.AddItem(Tr($"WORD_{noun.Id}"));
+            _nounIds.Add(noun.Id);
+        }
     }
 
     private void Redraw()
     {
-        if (!_prophet.Hand.SequenceEqual(_handShown))
-        {
-            _selected.Clear();
-            RebuildCards();
-        }
-        _selected.RemoveAll(index => index >= _prophet.Hand.Count);
-
-        var buttons = _cardButtons;
-        for (var i = 0; i < buttons.Count && i < _prophet.Hand.Count; i++)
-        {
-            // 選んだ順に「①」「②」を付ける
-            var order = _selected.IndexOf(i);
-            var mark = order == 0 ? "① " : order == 1 ? "② " : string.Empty;
-            buttons[i].Text = mark + Tr($"SYMBOL_{_prophet.Hand[i]}");
-            buttons[i].Disabled = _timeControl.World.IsDestroyed;
-        }
-
-        _oracleButton.Disabled = !(_selected.Count == 2 && _prophet.CanPronounce);
+        RebuildNounChoice();
+        _input.Visible = !_choiceMode;
+        _nounChoice.Visible = _directionChoice.Visible = _verbChoice.Visible = _choiceMode;
+        UpdateControls();
         _dreamGuide.Text = GuideText();
-        RedrawPrune();
 
         if (_prophet.ActiveRequest is { } request)
         {
@@ -327,6 +300,21 @@ public sealed class DreamView
         Changed?.Invoke();
     }
 
+    // 入力欄・選ぶ欄とボタンの、使えるかどうか
+    private void UpdateControls()
+    {
+        var canSpeak = !_timeControl.World.IsDestroyed && !_listening && _prophet.Faith.CanAfford && _prophet.Dialect is not null;
+        _input.Editable = !_listening;
+        foreach (var choice in new[] { _nounChoice, _verbChoice, _directionChoice })
+        {
+            choice.Disabled = _listening;
+        }
+        var hasContent = _choiceMode
+            ? _nounChoice.Selected > 0 || _verbChoice.Selected > 0 || _directionChoice.Selected > 0
+            : OracleListening.IsValidGodText(_input.Text.Trim());
+        _oracleButton.Disabled = !(canSpeak && hasContent);
+    }
+
     // 今の状態の案内と、神威（今の量 / 上限）
     private string GuideText()
     {
@@ -336,30 +324,11 @@ public sealed class DreamView
         }
 
         var faith = _prophet.Faith;
-        var key = _prophet.Hand.Count < 2 ? "ORACLE_GUIDE_NO_CARDS"
+        var key = _listening ? "ORACLE_GUIDE_LISTENING"
             : !faith.CanAfford ? "ORACLE_GUIDE_NO_FAITH"
-            : _selected.Count == 2 ? "ORACLE_GUIDE_READY"
-            : "ORACLE_GUIDE_CHOOSE";
-        var guide = key == "ORACLE_GUIDE_READY" && PreviewText() is { } preview ? preview : Tr(key);
-        return string.Format(
-            CultureInfo.CurrentCulture, Tr("ORACLE_GUIDE_FAITH"), guide, faith.Value, faith.Max);
-    }
-
-    // 選んだ 2 枚の五行の関係と種別の予告（例: 「聖なる火 ← 木：相生 → 崇拝（陽）」）。予告できなければ null
-    private string? PreviewText()
-    {
-        if (_prophet.PreviewPair(_selected[0], _selected[1]) is not { } judgement)
-        {
-            return null;
-        }
-        var relation = judgement.Relation is { } r ? $"WUXING_{r.ToString().ToUpperInvariant()}" : "WUXING_IMPURE";
-        return string.Format(
-            CultureInfo.CurrentCulture,
-            Tr("ORACLE_PREVIEW"),
-            Tr($"SYMBOL_{_prophet.Hand[_selected[0]]}"),
-            Tr($"SYMBOL_{_prophet.Hand[_selected[1]]}"),
-            Tr(relation),
-            Tr($"DOGMA_TYPE_{judgement.Type.ToString().ToUpperInvariant()}"));
+            : _choiceMode ? "ORACLE_GUIDE_CHOOSE_WORDS"
+            : "ORACLE_GUIDE_SPEAK";
+        return string.Format(CultureInfo.CurrentCulture, Tr("ORACLE_GUIDE_FAITH"), Tr(key), faith.Value, faith.Max);
     }
 
     private static string Tr(string key) => TranslationServer.Translate(key).ToString();

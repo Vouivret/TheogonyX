@@ -126,3 +126,61 @@ RESIDENT_INFO_UPPER_NEEDS,交流 {0:F2}　承認 {1:F2}　自己実現 {2:F2},So
 RESIDENT_INFO_PARTNER,パートナー: {0},Partner: {0}
 RESIDENT_INFO_SINGLE,独り身,Single
 RESIDENT_INFO_BODY,体力 {0:F0}　SAN 値 {1:F0},Health {0:F0}  Sanity {1:F0}
+WORD_NOUN_TREE,木,tree
+WORD_NOUN_FOREST,森,forest
+WORD_NOUN_SAPLING,若木,sapling
+WORD_NOUN_FIREWOOD,薪,firewood
+WORD_NOUN_WATER,水,water
+WORD_NOUN_RIVER,川,river
+WORD_NOUN_RAIN,雨,rain
+WORD_NOUN_WELL,井戸,well
+WORD_NOUN_BLOOD,血,blood
+WORD_NOUN_FILTH,穢れ,filth
+WORD_NOUN_WOUND,傷,wound
+WORD_NOUN_STRIFE,争い,strife
+WORD_NOUN_FIRE,火,fire
+WORD_NOUN_FLAME,炎,flame
+WORD_NOUN_LAMP,灯り,lamp
+WORD_NOUN_HEARTH,炉,hearth
+WORD_NOUN_EARTH,土,earth
+WORD_NOUN_LAND,大地,land
+WORD_NOUN_FIELD,畑,field
+WORD_NOUN_MOUNTAIN,山,mountain
+WORD_NOUN_METAL,金,metal
+WORD_NOUN_IRON,鉄,iron
+WORD_NOUN_BLADE,刃,blade
+WORD_NOUN_ORE,鉱石,ore
+WORD_VERB_PROTECT,守る,protect
+WORD_VERB_REVERE,敬う,revere
+WORD_VERB_NURTURE,育てる,nurture
+WORD_VERB_AVOID,避ける,avoid
+WORD_VERB_REFRAIN,控える,refrain from
+WORD_VERB_FORBID,禁じる,forbid
+WORD_VERB_CUT,切る,cut
+WORD_VERB_BURN,焼く,burn
+WORD_VERB_BREAK,壊す,break
+BUTTON_SPEAK,語りかける,Speak
+SPEAK_PLACEHOLDER,神の言葉を書く,Write the god's words
+ORACLE_GUIDE_SPEAK,予言者に語りかけよ,Speak to the prophet.
+ORACLE_GUIDE_LISTENING,予言者は耳を澄ませている…,The prophet is listening...
+ORACLE_GUIDE_CHOOSE_WORDS,言葉を選べ（名詞・動詞・行き先）,Choose words (noun / verb / destination).
+CHOICE_NONE,（なし）,(none)
+DIRECTION_NONE,行き先なし,No destination
+DIRECTION_EAST,東へ,East
+DIRECTION_WEST,西へ,West
+ORACLE_LINE_WORSHIP,〈{0}〉を崇めよ,Worship 〈{0}〉
+ORACLE_LINE_TABOO,〈{0}〉に触れるな,Touch not 〈{0}〉
+ORACLE_LINE_DESTRUCTION,〈{0}〉を打ち壊せ,Destroy 〈{0}〉
+ORACLE_HEARD_RULE,予言者に聞こえた言葉：〈{0}〉〈{1}〉,The prophet heard: 〈{0}〉 〈{1}〉
+ORACLE_DESTINATION_EAST,予言者は東へ旅立つ,The prophet sets out to the east.
+ORACLE_DESTINATION_WEST,予言者は西へ旅立つ,The prophet sets out to the west.
+ORACLE_DESTINATION_LOST,行き先は聞き取れなかった,The prophet could not make out where to go.
+ORACLE_MYSTERY,謎の言葉：{0},Mysterious words: {0}
+ORACLE_HEAR_FAILED,聞き取れなかった。言葉を選んで語りかけよ,Could not be understood. Choose words to speak.
+BUTTON_DIALECT,方言帳,Dialect Book
+BOOK_TITLE,予言者の方言帳,The Prophet's Dialect Book
+BOOK_EMPTY,（まだ聞き違えは分かっていない）,(No mishearing is known yet)
+BOOK_ROW_DIALECT,{0} → {1}（この予言者の言葉）,{0} → {1} (this prophet's dialect)
+BOOK_ROW_UNKNOWN,{0} → {1}（知らない言葉）,{0} → {1} (unknown word)
+BOOK_ROW_MYSTERY,「{0}」（謎の言葉）,"""{0}"" (mysterious word)"
+SAVE_OUTDATED,前の星は新しい版では読めないので残して、新しい星で始めました,"The previous planet cannot be read by this version, so it was kept aside. Started a new planet."
