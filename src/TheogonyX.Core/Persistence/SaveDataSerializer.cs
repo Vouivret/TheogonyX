@@ -203,6 +203,28 @@ public static class SaveDataSerializer
                 pruneCharges = data.Deck.PruneCharges,
             },
             faith = new { value = data.Faith.Value, recentYears = data.Faith.RecentYears },
+            dialect = data.Dialect is null
+                ? null
+                : new
+                {
+                    vesselId = data.Dialect.VesselId,
+                    shifts = data.Dialect.Shifts.Select(shift => new { fromId = shift.FromId, toId = shift.ToId, kind = shift.Kind.ToString() }),
+                    book = data.Dialect.Book.Select(entry => new { godWord = entry.GodWord, heardWordId = entry.HeardWordId, reason = entry.Reason.ToString() }),
+                    records = data.Dialect.Records.Select(record => new
+                    {
+                        year = record.Year,
+                        godText = record.GodText,
+                        heardNounId = record.HeardNounId,
+                        heardVerbId = record.HeardVerbId,
+                        teaching = record.Teaching is null
+                            ? null
+                            : new { targetSymbolId = record.Teaching.TargetSymbolId, dogmaType = record.Teaching.Type.ToString(), intensity = record.Teaching.Intensity },
+                        destination = record.Destination.ToString(),
+                        mysteryWords = record.MysteryWords,
+                        heardText = record.HeardText,
+                        narration = record.Narration,
+                    }),
+                },
             prophet = data.Prophet is null
                 ? null
                 : new { region = data.Prophet.Region, knownRegions = data.Prophet.KnownRegions, destination = data.Prophet.Destination.ToString() },
@@ -340,9 +362,10 @@ public static class SaveDataSerializer
         var faith = ReadFaith(Property(root, "faith", JsonValueKind.Object), world.Year);
 
         var prophet = ReadProphet(root, civilizationRules.Regions.Count);
+        var dialect = ReadDialect(root, symbolIds, world.Year);
 
         return new SaveData(
-            seed, world, dogmas, requestId, answeredYears, speed.Key, elapsedSeconds, civilization, residents, history, chapter, deck, faith, prophet);
+            seed, world, dogmas, requestId, answeredYears, speed.Key, elapsedSeconds, civilization, residents, history, chapter, deck, faith, prophet, dialect);
     }
 
     // 神託のデッキ。カードは定義にある記号か、汚染ルーン・上位のルーン。シャッフルの回数は 0 以上、混ぜた回数は 0 以上で閾値の数以下
@@ -371,6 +394,57 @@ public static class SaveDataSerializer
     }
 
     // 神威（0 以上）と、直近の神託を下した年（0 以上、今の年以下。古い順）
+    // 版 16 で足した項目。無い（または null）なら、方言の状態は星を作るときのものから始める。
+    // 語の ID が定義に合うかは、読み込んだ後に DialectState.Restore が確かめる（ここでは形だけ）
+    private static DialectSave? ReadDialect(JsonElement root, HashSet<string> symbolIds, int currentYear)
+    {
+        if (!root.TryGetProperty("dialect", out var element) || element.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidSaveDataException("invalid_field");
+        }
+        TEnum ReadEnum<TEnum>(JsonElement parent, string name) where TEnum : struct, Enum
+        {
+            var text = ReadString(parent, name);
+            return Enum.GetNames<TEnum>().Contains(text) ? Enum.Parse<TEnum>(text) : throw new InvalidSaveDataException("invalid_dialect");
+        }
+        string? ReadOptionalString(JsonElement parent, string name)
+        {
+            var value = Property(parent, name, null);
+            return value.ValueKind switch
+            {
+                JsonValueKind.Null => null,
+                JsonValueKind.String => value.GetString(),
+                _ => throw new InvalidSaveDataException("invalid_field"),
+            };
+        }
+        IEnumerable<JsonElement> Items(JsonElement parent, string name) => Property(parent, name, JsonValueKind.Array).EnumerateArray()
+            .Select(item => item.ValueKind == JsonValueKind.Object ? item : throw new InvalidSaveDataException("invalid_field"));
+
+        var shifts = Items(element, "shifts")
+            .Select(item => new DialectShift(ReadString(item, "fromId"), ReadString(item, "toId"), ReadEnum<DialectShiftKind>(item, "kind")))
+            .ToList();
+        var book = Items(element, "book")
+            .Select(item => new DialectEntry(ReadString(item, "godWord"), ReadOptionalString(item, "heardWordId"), ReadEnum<DialectReason>(item, "reason")))
+            .ToList();
+        var records = Items(element, "records").Select(item =>
+        {
+            var teachingElement = Property(item, "teaching", null);
+            var year = ReadYearUpTo(Property(item, "year", JsonValueKind.Number), currentYear);
+            var mysteries = Property(item, "mysteryWords", JsonValueKind.Array).EnumerateArray()
+                .Select(word => word.ValueKind == JsonValueKind.String ? word.GetString()! : throw new InvalidSaveDataException("invalid_field"))
+                .ToList();
+            return new OracleRecord(
+                year, ReadString(item, "godText"), ReadOptionalString(item, "heardNounId"), ReadOptionalString(item, "heardVerbId"),
+                teachingElement.ValueKind == JsonValueKind.Null ? null : ReadDogma(teachingElement, symbolIds),
+                ReadEnum<TravelDirection>(item, "destination"), mysteries, ReadOptionalString(item, "heardText"), ReadOptionalString(item, "narration"));
+        }).ToList();
+        return new DialectSave(ReadString(element, "vesselId"), shifts, book, records);
+    }
+
     // 版 16 で足した項目。無い（または null）なら、予言者は最初の居場所から始める
     private static ProphetState? ReadProphet(JsonElement root, int regionCount)
     {

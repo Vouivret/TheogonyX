@@ -10,5 +10,11 @@ namespace TheogonyX.Core;
 public sealed record OracleResult(
     Dogma? Dogma, ProphetRequestRule? AnsweredRequest, bool ResumedAutoPlay, int OverloadCount = 0, int CorruptedCount = 0, OraclePairing? Pairing = null);
 
+/// <summary><see cref="ProphetDreams.Speak"/> の結果。</summary>
+/// <param name="Dogma">一覧に加えたドグマ。行き先だけの神託では null。</param>
+/// <param name="Record">残した神託の記録。</param>
+public sealed record SpeakResult(
+    Dogma? Dogma, ProphetRequestRule? AnsweredRequest, bool ResumedAutoPlay, int OverloadCount, int CorruptedCount, OracleRecord Record);
+
 /// <summary>神託で重ねた 2 枚目の記号と、2 枚の五行の関係（<c>null</c> は穢れ）。予言者の語りに添えるための見た目の情報で、セーブしない。</summary>
 public sealed record OraclePairing(string SecondSymbolId, WuxingRelation? Relation);

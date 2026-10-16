@@ -206,6 +206,80 @@ public sealed class ProphetDreams
         }
         Deck.SpendPair(first, second);
 
+        var (overload, answered, resumed) = CompletePronouncement(corruptedCount);
+        return new OracleResult(dogma, answered, resumed, overload, corruptedCount, pairing);
+    }
+
+    /// <summary>方言の状態。自由文の神託を使わないなら null。</summary>
+    public DialectState? Dialect { get; private set; }
+
+    /// <summary>自由文の神託（方言の聞き違え）を使えるようにする。</summary>
+    public void AttachDialect(DialectState dialect)
+    {
+        ArgumentNullException.ThrowIfNull(dialect);
+        Dialect = dialect;
+    }
+
+    /// <summary>神の文を語りかけられない理由（<c>star_destroyed</c>・<c>not_enough_faith</c>）。語りかけられるなら null。</summary>
+    public string? SpeakRejection() =>
+        _timeControl.World.IsDestroyed ? "star_destroyed" : Faith.CanAfford ? null : "not_enough_faith";
+
+    /// <summary>聞き取りの答えを、予言者の語彙（手札の記号）と方言で聞き違える。</summary>
+    /// <exception cref="InvalidOperationException">方言の状態を付けていない。</exception>
+    public HearOutcome Hear(HeardAnswer answer)
+    {
+        var dialect = Dialect ?? throw new InvalidOperationException("方言の状態が無い");
+        return OracleHearer.Hear(dialect.Rules, dialect.Table, [.. Deck.Hand.Select(_oracleRules.SymbolOf).Distinct()], answer);
+    }
+
+    /// <summary>
+    /// 聞き違えた結果で神託を下す（docs/domain/oracle-pair.md の「自由文の神託」）。教えを一覧に加え、神威を使い、短い年数に重ねすぎたら
+    /// 歪みを起こし、教えの記号のルーンが手札にあれば 1 枚を捨札へ移して 1 枚を補う。行き先があれば予言者の行き先にし、
+    /// 方言帳と神託の記録に残す。依頼は済み、止めていた自動進行は再開する。
+    /// </summary>
+    /// <exception cref="InvalidOperationException">方言の状態が無い、または語りかけられない（<see cref="SpeakRejection"/> が null でない）。</exception>
+    public SpeakResult Speak(Hearing hearing, string godText)
+    {
+        ArgumentNullException.ThrowIfNull(hearing);
+        ArgumentNullException.ThrowIfNull(godText);
+        var dialect = Dialect ?? throw new InvalidOperationException("方言の状態が無い");
+        if (SpeakRejection() is { } reason)
+        {
+            throw new InvalidOperationException($"神託を下せない: reason={reason}");
+        }
+
+        var year = _timeControl.World.Year;
+        var corruptedCount = 0;
+        if (hearing.Teaching is { } teaching)
+        {
+            _timeControl.AddDogma(teaching);
+            var index = Deck.Hand.ToList().FindIndex(card => _oracleRules.SymbolOf(card) == teaching.TargetSymbolId);
+            if (index >= 0)
+            {
+                corruptedCount = _oracleRules.IsCorrupted(Deck.Hand[index]) ? 1 : 0;
+                Deck.SpendOne(index);
+            }
+        }
+        if (hearing.Destination != TravelDirection.None)
+        {
+            _timeControl.SetDestination(hearing.Destination);
+        }
+        foreach (var entry in hearing.BookEntries)
+        {
+            dialect.Book.Add(entry);
+        }
+        var record = new OracleRecord(
+            year, godText, hearing.HeardNounId, hearing.HeardVerbId, hearing.Teaching, hearing.Destination, hearing.MysteryWords);
+        dialect.AddRecord(record);
+
+        var (overload, answered, resumed) = CompletePronouncement(corruptedCount);
+        return new SpeakResult(hearing.Teaching, answered, resumed, overload, corruptedCount, record);
+    }
+
+    // 神託を下した後の共通の処理: 汚染ルーンのカオス度・神威・歪み・依頼・自動進行の再開
+    private (int Overload, ProphetRequestRule? Answered, bool Resumed) CompletePronouncement(int corruptedCount)
+    {
+        var world = _timeControl.World;
         if (corruptedCount > 0)
         {
             // 汚染ルーンは、使った枚数だけ、その年にカオス度を上げる
@@ -232,13 +306,14 @@ public sealed class ProphetDreams
             resumed = true;
         }
         _pausedForRequest = false;
-        return new OracleResult(dogma, answered, resumed, overload, corruptedCount, pairing);
+        return (overload, answered, resumed);
     }
 
     /// <summary>世界再創生: 依頼・同じ困りごとを待つ年数を消し、神威を最初の量に戻し、精査の持ち分を与える。デッキは保つ。</summary>
     public void Reset()
     {
         Faith.Reset();
+        Dialect?.ClearRecords();
         Deck.ResetCorruption();
         Deck.GrantPruneCharges();
         Deck.ResetBuildingCount();

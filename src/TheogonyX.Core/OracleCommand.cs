@@ -10,6 +10,9 @@ namespace TheogonyX.Core;
 /// <param name="Sequence">順番の番号（積んだ順に 1 から振る通し番号）。</param>
 public sealed record OracleCommand(int First, int Second, int Year, long Sequence);
 
+/// <summary>自由文の神託の命令を実行した結果。<paramref name="RejectedReason"/> が null なら <paramref name="Result"/> がある。</summary>
+public sealed record SpeakOutcome(long Sequence, string? RejectedReason, SpeakResult? Result);
+
 /// <summary>命令を実行した結果。</summary>
 /// <param name="Command">実行した命令。</param>
 /// <param name="RejectedReason">捨てたときの理由（ログの <c>reason</c>）。実行できたら null。</param>

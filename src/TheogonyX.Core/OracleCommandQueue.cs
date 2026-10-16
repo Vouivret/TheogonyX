@@ -57,6 +57,18 @@ public sealed class OracleCommandQueue
         }
     }
 
+    /// <summary>
+    /// 聞き違えた結果（<see cref="ProphetDreams.Hear"/>）で神託を下す。順番の番号を振り、語りかけられるか確かめてから実行する。
+    /// TODO(AI_UNSURE): 多人数では次の年の始めに実行する形にする（[multiplayer.md]）。今はその場で実行する。
+    /// </summary>
+    public SpeakOutcome SubmitSpeak(Hearing hearing, string godText)
+    {
+        var sequence = _nextSequence++;
+        return _prophet.SpeakRejection() is { } reason
+            ? new SpeakOutcome(sequence, reason, null)
+            : new SpeakOutcome(sequence, null, _prophet.Speak(hearing, godText));
+    }
+
     private OracleCommandOutcome Execute(OracleCommand command)
     {
         if (_prophet.PairRejection(command.First, command.Second) is { } reason)

@@ -217,6 +217,19 @@ public sealed class OracleDeck
         Draw(2);
     }
 
+    /// <summary>手札の 1 枚（番号は手札の位置）を捨札へ移し、山札から 1 枚を手札に引く（自由文の神託）。</summary>
+    public void SpendOne(int index)
+    {
+        if (index < 0 || index >= _hand.Count)
+        {
+            throw new ArgumentException($"手札の番号が正しくない: index={index} handCount={_hand.Count}");
+        }
+
+        _discardPile.Add(_hand[index]);
+        _hand.RemoveAt(index);
+        Draw(1);
+    }
+
     public OracleDeckState Capture() => new([.. _drawPile], [.. _hand], [.. _discardPile], ShuffleCount, CorruptionStage, LastBuildingId, PruneCharges);
 
     /// <summary>セーブの状態に戻す。値の検証は読み込む側で済ませておく。</summary>

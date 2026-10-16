@@ -32,7 +32,8 @@ public static class SaveGame
             timeControl.History?.Chapter ?? new ChapterStart(world.Year, world.ChaosLevel),
             prophet.Deck.Capture(),
             prophet.Faith.Capture(),
-            timeControl.Prophet);
+            timeControl.Prophet,
+            prophet.Dialect?.Capture());
     }
 
     /// <summary>
@@ -45,6 +46,11 @@ public static class SaveGame
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(timeControl);
         ArgumentNullException.ThrowIfNull(prophet);
+        // 定義に合わない方言の状態は、何も変える前に ArgumentException で拒む
+        if (data.Dialect is { } dialect && prophet.Dialect is { } state)
+        {
+            state.Restore(dialect);
+        }
         timeControl.Restore(data.World, data.Dogmas, data.Civilization, data.Residents, data.History, data.Chapter, data.Prophet);
         prophet.Restore(data.RequestId, data.AnsweredYears);
         prophet.Deck.Restore(data.Deck);

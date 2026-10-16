@@ -6,11 +6,11 @@ public class OracleDialectTests
 {
     private const int Seed = 42;
     private const float Tolerance = 0.001f;
-    private const string Silent = "VESSEL_SILENT";
-    private const string Garbled = "VESSEL_GARBLED";
+    internal const string Silent = "VESSEL_SILENT";
+    internal const string Garbled = "VESSEL_GARBLED";
 
     // 木と水だけが結びつく。火には隣が無い。器は、ずれない段と、すべての語がずれる段
-    private static readonly DialectRules Rules = new(
+    internal static readonly DialectRules Rules = new(
         [new DialectNoun("NOUN_FOREST", "SYM_TREE"), new DialectNoun("NOUN_RIVER", "SYM_WATER"), new DialectNoun("NOUN_FLAME", "SYM_FIRE")],
         [
             new DialectVerb("VERB_PROTECT", DogmaType.Worship, 0.7f),
