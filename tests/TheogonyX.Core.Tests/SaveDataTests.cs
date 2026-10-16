@@ -71,10 +71,10 @@ public class SaveDataTests
 
     private sealed record Game(TimeControl Time, ProphetDreams Prophet, AutoPlayClock Clock);
 
-    private static Game CreateGame(int jumpYears = TestRules.JumpYears, BeliefRules? belief = null)
+    private static Game CreateGame(int jumpYears = TestRules.JumpYears, BeliefRules? belief = null, JourneyRules? journey = null)
     {
         var time = new TimeControl(
-            TestRules.World, jumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History, belief);
+            TestRules.World, jumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History, belief, journey);
         var prophet = new ProphetDreams(time, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
@@ -86,11 +86,11 @@ public class SaveDataTests
     }
 
     // 書き出して読み戻し、新しく作ったゲームに当てはめる
-    private static Game RoundTrip(Game game, int jumpYears = TestRules.JumpYears, BeliefRules? belief = null)
+    private static Game RoundTrip(Game game, int jumpYears = TestRules.JumpYears, BeliefRules? belief = null, JourneyRules? journey = null)
     {
         var json = SaveDataSerializer.Write(SaveGame.Capture(game.Time, game.Prophet, Seed, game.Clock));
         Assert.True(SaveDataSerializer.TryParse(json, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var data, out var reason), reason);
-        var loaded = CreateGame(jumpYears, belief);
+        var loaded = CreateGame(jumpYears, belief, journey);
         SaveGame.Apply(data!, loaded.Time, loaded.Prophet, loaded.Clock);
         return loaded;
     }
@@ -120,6 +120,26 @@ public class SaveDataTests
         Assert.Equal(game.Time.Residents.People, loaded.Time.Residents!.People);
         Assert.Equal(game.Time.Dogmas, loaded.Time.Dogmas);
         Assert.Contains(loaded.Time.History!.Entries, entry => entry.Type == HistoryEventType.DogmaForgotten && entry.SymbolId == "SYM_FIRE");
+    }
+
+    [Fact]
+    [Trait("TS", "TS-prophet-journey-006")]
+    public void RoundTrip_旅の途中の予言者_居場所と知っている土地と行き先が戻る()
+    {
+        var journey = new JourneyRules(0f);
+        var game = CreateGame(1, null, journey);
+        game.Time.Jump();
+        game.Time.SetDestination(TravelDirection.East);
+        game.Time.Jump();
+        game.Time.Jump();
+        var before = game.Time.Prophet!;
+
+        var loaded = RoundTrip(game, 1, null, journey);
+
+        Assert.Equal(5, before.Region);
+        Assert.Equal(before.Region, loaded.Time.Prophet!.Region);
+        Assert.Equal(before.KnownRegions, loaded.Time.Prophet.KnownRegions);
+        Assert.Equal(TravelDirection.East, loaded.Time.Prophet.Destination);
     }
 
     [Fact]

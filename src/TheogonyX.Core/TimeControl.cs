@@ -25,13 +25,16 @@ public sealed class TimeControl
     private readonly List<Dogma> _dogmas = [];
     private readonly CivilizationSetup? _civilizationSetup;
     private readonly BeliefRules? _belief;
+    private readonly JourneyRules? _journey;
 
     /// <param name="jumpYears">100年跳躍ボタンで進める年数。</param>
     /// <param name="civilization">地域の文明の計算に使う定義。null なら文明の計算をしない。</param>
     /// <param name="history">年表の定義。null なら年表を残さない。</param>
     /// <param name="belief">住人の信仰の定義。null なら信仰を使わず、ドグマはいつも全員に効く。住人の計算をしないときは無視する。</param>
+    /// <param name="journey">予言者の旅の定義。null なら予言者は動かない。住人の計算をしないときは無視する。</param>
     public TimeControl(
-        WorldRules worldRules, int jumpYears, CivilizationSetup? civilization = null, HistoryRules? history = null, BeliefRules? belief = null)
+        WorldRules worldRules, int jumpYears, CivilizationSetup? civilization = null, HistoryRules? history = null, BeliefRules? belief = null,
+        JourneyRules? journey = null)
     {
         ArgumentNullException.ThrowIfNull(worldRules);
         ArgumentOutOfRangeException.ThrowIfNegative(jumpYears);
@@ -40,6 +43,8 @@ public sealed class TimeControl
         _jumpYears = jumpYears;
         _civilizationSetup = civilization;
         _belief = civilization?.Needs is null ? null : belief;
+        _journey = civilization?.Needs is null ? null : journey;
+        Prophet = InitialProphet();
         World = WorldState.CreateInitial(worldRules);
         Civilization = civilization is null ? null : Civilization.CreateInitial(civilization.Rules);
         Residents = civilization?.Needs is null ? null : Residents.CreateInitial();
@@ -64,6 +69,21 @@ public sealed class TimeControl
     /// <summary>直前の跳躍・1 年の進みで、住人に起きた出来事（ログに出す）。</summary>
     public IReadOnlyList<ResidentEvent> ResidentEvents { get; private set; } = [];
 
+    /// <summary>予言者の居場所・知っている土地・行き先。文明の計算をしないなら null。</summary>
+    public ProphetState? Prophet { get; private set; }
+
+    /// <summary>直前の跳躍・1 年の進みで、予言者が動いた記録（ログに出す）。</summary>
+    public IReadOnlyList<ProphetMove> ProphetMoves { get; private set; } = [];
+
+    /// <summary>予言者の行き先を決める（神の声の行き先）。予言者がいなければ何もしない。</summary>
+    public void SetDestination(TravelDirection destination)
+    {
+        if (Prophet is not null)
+        {
+            Prophet = Prophet with { Destination = destination };
+        }
+    }
+
     /// <summary>直前の跳躍・1 年の進みで、信者がいなくなって忘れられた教え（ログに出す）。</summary>
     public IReadOnlyList<Dogma> ForgottenDogmas { get; private set; } = [];
 
@@ -80,7 +100,7 @@ public sealed class TimeControl
         History?.Add(new HistoryEntry(World.Year, HistoryEventType.DogmaFormed, dogma.TargetSymbolId, dogma.Type));
         if (_belief is not null && Residents is not null && _civilizationSetup is { } setup)
         {
-            BeliefSimulator.Seed(Residents, dogma, setup.Rules.Regions.RegionOf(setup.Rules.ProphetColumn), _belief);
+            BeliefSimulator.Seed(Residents, dogma, Prophet?.Region ?? setup.Rules.Regions.RegionOf(setup.Rules.ProphetColumn), _belief);
         }
     }
 
@@ -132,6 +152,8 @@ public sealed class TimeControl
         Residents = Residents?.Recreate();
         ResidentEvents = [];
         ForgottenDogmas = [];
+        ProphetMoves = [];
+        Prophet = InitialProphet();
         World = initial;
         _dogmas.Clear();
         State = next;
@@ -144,7 +166,7 @@ public sealed class TimeControl
     /// <param name="chapter">年表の今の章の始まり。年表を残さないなら無視する。null なら今の年・カオス度から始める。</param>
     public void Restore(
         WorldState world, IEnumerable<Dogma> dogmas, Civilization civilization, Residents residents, IEnumerable<HistoryEntry>? history = null,
-        ChapterStart? chapter = null)
+        ChapterStart? chapter = null, ProphetState? prophet = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(dogmas);
@@ -156,6 +178,8 @@ public sealed class TimeControl
         History = History is null ? null : new History(history ?? [], History.Rules, chapter ?? new ChapterStart(world.Year, world.ChaosLevel));
         ResidentEvents = [];
         ForgottenDogmas = [];
+        ProphetMoves = [];
+        Prophet = _civilizationSetup is null ? null : prophet ?? InitialProphet();
         _dogmas.Clear();
         _dogmas.AddRange(dogmas);
         State = world.IsDestroyed ? TimeControlState.Destroyed : TimeControlState.Stopped;
@@ -169,6 +193,7 @@ public sealed class TimeControl
         var residents = Residents;
         var events = new List<ResidentEvent>();
         var forgotten = new List<Dogma>();
+        var moves = new List<ProphetMove>();
         var history = History;
         var belief = _belief;
         Func<Dogma, double>? share = belief is null || residents is null ? null : dogma => BeliefSimulator.Share(dogma, residents);
@@ -180,7 +205,7 @@ public sealed class TimeControl
                 var yearEvents = new List<ResidentEvent>();
                 if (setup is not null && civilization is not null)
                 {
-                    CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed, share);
+                    CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed, share, Prophet?.Region);
                     if (residents is not null && setup.Needs is not null)
                     {
                         yearEvents.AddRange(ResidentSimulator.AdvanceYear(
@@ -189,6 +214,15 @@ public sealed class TimeControl
                         {
                             BeliefSimulator.Spread(residents, World.Year, setup.Seed, belief);
                             ForgetDogmas(residents, forgotten);
+                        }
+                        if (_journey is not null && Prophet is not null)
+                        {
+                            var (state, move) = ProphetJourney.AdvanceYear(Prophet, residents, World.Year, setup.Seed, setup.Rules.Regions.Count, _journey);
+                            Prophet = state;
+                            if (move is not null)
+                            {
+                                moves.Add(move);
+                            }
                         }
                     }
                 }
@@ -200,6 +234,7 @@ public sealed class TimeControl
         WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules, afterYear, share);
         ResidentEvents = events;
         ForgottenDogmas = forgotten;
+        ProphetMoves = moves;
         if (World.IsDestroyed && !wasDestroyed)
         {
             history?.Add(new HistoryEntry(World.Year, HistoryEventType.WorldDestroyed));
@@ -207,6 +242,12 @@ public sealed class TimeControl
         }
         State = World.IsDestroyed ? TimeControlState.Destroyed : next;
     }
+
+    private ProphetState? InitialProphet() =>
+        _civilizationSetup is null
+            ? null
+            : ProphetJourney.Initial(
+                _civilizationSetup.Rules.Regions.RegionOf(_civilizationSetup.Rules.ProphetColumn), _civilizationSetup.Rules.Regions.Count);
 
     // 信者が 0 人になった教えを一覧から消し、年表に残す
     private void ForgetDogmas(Residents residents, List<Dogma> forgotten)

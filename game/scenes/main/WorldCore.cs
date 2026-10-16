@@ -73,6 +73,7 @@ public partial class WorldCore : Node2D
         var needsRules = GameDataLoader.ParseNeeds(rulesJson);
         var historyRules = GameDataLoader.ParseHistory(rulesJson);
         var beliefRules = GameDataLoader.ParseBelief(rulesJson);
+        var journeyRules = GameDataLoader.ParseJourney(rulesJson);
         var oracleAiRules = GameDataLoader.ParseOracleAi(rulesJson);
 
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
@@ -83,7 +84,7 @@ public partial class WorldCore : Node2D
         // シードはセーブのもの、無ければ起動時の時刻から作り、記録する（同じシードで同じデッキの並びを再現できる）
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
         var timeControl = new TimeControl(
-            worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules), historyRules, beliefRules);
+            worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules), historyRules, beliefRules, journeyRules);
         _timeControl = timeControl;
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
@@ -104,7 +105,7 @@ public partial class WorldCore : Node2D
         }
         _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, seed, clock));
         _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings);
-        _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings, lightingSettings);
+        _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings, lightingSettings, civilizationRules);
         _sky = new SkyView(this, _ambience, civilizationRules, seed);
         _camera = new CameraView(this, cameraSettings);
         _buildings = new BuildingView(this, timeControl, lightingSettings);
@@ -116,6 +117,7 @@ public partial class WorldCore : Node2D
         _history = new HistoryView(this, timeControl);
         _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
         _screen.TimeAdvanced += () => LogForgottenDogmas(timeControl);
+        _screen.TimeAdvanced += () => LogProphetMoves(timeControl);
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         // 詳細の視点は住人の絵、中拡大・大陸は群衆の点。境目は重ねて薄くしながら切り替える（docs/domain/camera-views.md の「群衆の描き方」）
@@ -250,6 +252,16 @@ public partial class WorldCore : Node2D
         foreach (var dogma in timeControl.ForgottenDogmas)
         {
             GD.Print($"event=dogma_forgotten year={timeControl.World.Year} symbolId={dogma.TargetSymbolId} dogmaType={dogma.Type}");
+        }
+    }
+
+    // 予言者の旅は、毎年あるわけではなく出来事なので Info
+    private static void LogProphetMoves(TimeControl timeControl)
+    {
+        foreach (var move in timeControl.ProphetMoves)
+        {
+            var reason = move.Reason == ProphetMoveReason.Destination ? "destination" : "wander";
+            GD.Print($"event=prophet_moved year={move.Year} region={move.To} reason={reason}");
         }
     }
 

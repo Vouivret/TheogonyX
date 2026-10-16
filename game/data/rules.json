@@ -122,6 +122,9 @@
     "dampen": 0.8,
     "inheritDampen": 0.8
   },
+  "journey": {
+    "wanderProbability": 0.1
+  },
   "needs": {
     "immigrantAge": 20,
     "immigrateBelowAdults": 2,

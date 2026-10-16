@@ -25,6 +25,9 @@ public sealed class AmbienceView
     private readonly TimeControl _timeControl;
     private readonly AmbienceRules _rules;
     private readonly ProphetSettings _prophetSettings;
+    private readonly CivilizationRules _civilizationRules;
+    private readonly Vector2 _terrainPosition;
+    private readonly int _columnInRegion;
     private readonly CanvasModulate _ambience;
     private readonly Sprite2D _prophet;
     private readonly Texture2D _idleTexture;
@@ -43,11 +46,15 @@ public sealed class AmbienceView
     private double _flickerSeconds;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public AmbienceView(Node owner, TimeControl timeControl, AmbienceRules rules, ProphetSettings prophetSettings, CampfireSettings campfireSettings, LightingSettings lightingSettings)
+    public AmbienceView(Node owner, TimeControl timeControl, AmbienceRules rules, ProphetSettings prophetSettings, CampfireSettings campfireSettings, LightingSettings lightingSettings, CivilizationRules civilizationRules)
     {
         _timeControl = timeControl;
         _rules = rules;
         _prophetSettings = prophetSettings;
+        _civilizationRules = civilizationRules;
+        // 予言者は、最初に立つ列の地域の中での位置を保ったまま、居場所の地域に立つ
+        var startColumn = prophetSettings.Column - 1;
+        _columnInRegion = startColumn - civilizationRules.Regions.FirstColumn(civilizationRules.Regions.RegionOf(startColumn));
         _campfireSettings = campfireSettings;
         _lightingSettings = lightingSettings;
         _ambience = owner.GetNode<CanvasModulate>("%Ambience");
@@ -61,6 +68,7 @@ public sealed class AmbienceView
         SpriteLighting.AddShadow(_prophet, WorldScreen.TileSize, new Vector2(WorldScreen.TileSize / 2, 0), lightingSettings);
 
         // 足元を地表の一番上の行の上端に合わせる。原点は足元（Y ソートで足元の高さを比べるため。ShowTexture で Offset を合わせる）。
+        _terrainPosition = terrain.Position;
         _prophet.Position = terrain.Position + new Vector2((prophetSettings.Column - 1) * WorldScreen.TileSize, 0);
 
         (_flame, _campfireLight) = CreateCampfire(_prophet.GetParent(), terrain.Position, campfireSettings);
@@ -110,6 +118,12 @@ public sealed class AmbienceView
         _campfireLight.Visible = brightness > 0f;
         _flame.Visible = brightness > 0f;
         _flame.Modulate = new Color(1f, 1f, 1f, brightness);
+
+        if (_timeControl.Prophet is { } prophetState)
+        {
+            var column = _civilizationRules.Regions.FirstColumn(prophetState.Region) + _columnInRegion;
+            _prophet.Position = new Vector2(_terrainPosition.X + (column * WorldScreen.TileSize), _prophet.Position.Y);
+        }
 
         if (world.IsDestroyed)
         {

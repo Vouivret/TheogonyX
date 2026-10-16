@@ -13,7 +13,7 @@ public static class CivilizationSimulator
     /// </summary>
     public static void AdvanceYear(
         Civilization civilization, WorldState world, IReadOnlyList<Dogma> dogmas, TerrainRules terrain, CivilizationRules rules, int seed,
-        Func<Dogma, double>? share = null)
+        Func<Dogma, double>? share = null, int? prophetRegion = null)
     {
         ArgumentNullException.ThrowIfNull(civilization);
         ArgumentNullException.ThrowIfNull(world);
@@ -58,7 +58,7 @@ public static class CivilizationSimulator
 
         for (var region = 0; region < rules.Regions.Count; region++)
         {
-            var influence = Influence(region, rules);
+            var influence = Influence(region, rules, prophetRegion);
             var factor = EnvironmentMultiplier(tiles, region, rules) * tabooFactor;
             var before = civilization.Regions[region];
             // 値は下がらない（ドグマの強度が負でも伸びは 0 で止める）
@@ -84,10 +84,10 @@ public static class CivilizationSimulator
     }
 
     /// <summary>ドグマの効き目の係数。予言者の地域で 1、離れるほど直線的に弱まり、<see cref="CivilizationRules.ZeroInfluenceDistance"/> 地域離れると 0。</summary>
-    public static double Influence(int region, CivilizationRules rules)
+    public static double Influence(int region, CivilizationRules rules, int? prophetRegion = null)
     {
         ArgumentNullException.ThrowIfNull(rules);
-        var distance = Math.Abs(region - rules.Regions.RegionOf(rules.ProphetColumn));
+        var distance = Math.Abs(region - (prophetRegion ?? rules.Regions.RegionOf(rules.ProphetColumn)));
         return Math.Max(0, 1 - (double)distance / rules.ZeroInfluenceDistance);
     }
 

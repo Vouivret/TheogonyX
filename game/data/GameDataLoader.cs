@@ -228,6 +228,28 @@ public static class GameDataLoader
         return belief;
     }
 
+    public static JourneyRules ParseJourney(string rulesJson)
+    {
+        var section = Parse<JourneySection>(rulesJson, "rules.json").Journey
+            ?? throw new InvalidDataException("予言者の旅の定義が無い: file=rules.json key=journey");
+        JourneyRules journey;
+        try
+        {
+            journey = section.Deserialize<JourneyRules>(StrictOptions)
+                ?? throw new InvalidDataException("予言者の旅の定義が空: file=rules.json key=journey");
+            journey.Validate();
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("予言者の旅の定義を読めない: file=rules.json key=journey", ex);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("予言者の旅の定義の値が範囲外: file=rules.json key=journey", ex);
+        }
+        return journey;
+    }
+
     public static OracleAiRules ParseOracleAi(string rulesJson)
     {
         var section = Parse<OracleAiSection>(rulesJson, "rules.json").OracleAi
@@ -398,6 +420,8 @@ public static class GameDataLoader
     private sealed record NeedsSection(JsonElement? Needs);
 
     private sealed record BeliefSection(JsonElement? Belief);
+
+    private sealed record JourneySection(JsonElement? Journey);
 
     private sealed record HistorySection(JsonElement? History);
 

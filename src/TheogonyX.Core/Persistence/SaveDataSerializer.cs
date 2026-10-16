@@ -203,6 +203,9 @@ public static class SaveDataSerializer
                 pruneCharges = data.Deck.PruneCharges,
             },
             faith = new { value = data.Faith.Value, recentYears = data.Faith.RecentYears },
+            prophet = data.Prophet is null
+                ? null
+                : new { region = data.Prophet.Region, knownRegions = data.Prophet.KnownRegions, destination = data.Prophet.Destination.ToString() },
         });
     }
 
@@ -336,8 +339,10 @@ public static class SaveDataSerializer
         var deck = ReadDeck(Property(root, "deck", JsonValueKind.Object), symbolIds, corruption, oracleRules);
         var faith = ReadFaith(Property(root, "faith", JsonValueKind.Object), world.Year);
 
+        var prophet = ReadProphet(root, civilizationRules.Regions.Count);
+
         return new SaveData(
-            seed, world, dogmas, requestId, answeredYears, speed.Key, elapsedSeconds, civilization, residents, history, chapter, deck, faith);
+            seed, world, dogmas, requestId, answeredYears, speed.Key, elapsedSeconds, civilization, residents, history, chapter, deck, faith, prophet);
     }
 
     // 神託のデッキ。カードは定義にある記号か、汚染ルーン・上位のルーン。シャッフルの回数は 0 以上、混ぜた回数は 0 以上で閾値の数以下
@@ -366,6 +371,32 @@ public static class SaveDataSerializer
     }
 
     // 神威（0 以上）と、直近の神託を下した年（0 以上、今の年以下。古い順）
+    // 版 16 で足した項目。無い（または null）なら、予言者は最初の居場所から始める
+    private static ProphetState? ReadProphet(JsonElement root, int regionCount)
+    {
+        if (!root.TryGetProperty("prophet", out var element) || element.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidSaveDataException("invalid_field");
+        }
+        var region = ReadInt(element, "region");
+        var destinationName = ReadString(element, "destination");
+        var known = Property(element, "knownRegions", JsonValueKind.Array).EnumerateArray()
+            .Select(item => item.ValueKind == JsonValueKind.Number && item.TryGetInt32(out var value) ? value : throw new InvalidSaveDataException("invalid_field"))
+            .ToList();
+        var sorted = known.Order().Distinct().ToList();
+        if (region < 0 || region >= regionCount || !Enum.TryParse<TravelDirection>(destinationName, out var destination)
+            || !Enum.GetNames<TravelDirection>().Contains(destinationName)
+            || !known.SequenceEqual(sorted) || !known.Contains(region) || known.Any(value => value < 0 || value >= regionCount))
+        {
+            throw new InvalidSaveDataException("invalid_prophet");
+        }
+        return new ProphetState(region, known, destination);
+    }
+
     private static OracleFaithState ReadFaith(JsonElement element, int currentYear)
     {
         var value = ReadFloat(element, "value");

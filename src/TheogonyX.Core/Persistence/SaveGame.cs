@@ -31,7 +31,8 @@ public static class SaveGame
             [.. timeControl.History?.Entries ?? []],
             timeControl.History?.Chapter ?? new ChapterStart(world.Year, world.ChaosLevel),
             prophet.Deck.Capture(),
-            prophet.Faith.Capture());
+            prophet.Faith.Capture(),
+            timeControl.Prophet);
     }
 
     /// <summary>
@@ -44,7 +45,7 @@ public static class SaveGame
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(timeControl);
         ArgumentNullException.ThrowIfNull(prophet);
-        timeControl.Restore(data.World, data.Dogmas, data.Civilization, data.Residents, data.History, data.Chapter);
+        timeControl.Restore(data.World, data.Dogmas, data.Civilization, data.Residents, data.History, data.Chapter, data.Prophet);
         prophet.Restore(data.RequestId, data.AnsweredYears);
         prophet.Deck.Restore(data.Deck);
         prophet.RestoreFaith(data.Faith.Value, data.Faith.RecentYears);
