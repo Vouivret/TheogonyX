@@ -226,9 +226,10 @@ public sealed class WorldScreen
             ? Tr("HUD_NO_DOGMA")
             : string.Join("\n", _timeControl.Dogmas.Select(dogma => string.Format(
                 culture,
-                Tr("DOGMA_ENTRY"),
+                Tr("DOGMA_ENTRY_BELIEVERS"),
                 Tr($"SYMBOL_{dogma.TargetSymbolId}"),
-                Tr($"DOGMA_TYPE_{dogma.Type.ToString().ToUpperInvariant()}"))));
+                Tr($"DOGMA_TYPE_{dogma.Type.ToString().ToUpperInvariant()}"),
+                _timeControl.BelieversOf(dogma))));
     }
 
     private void UpdateButtons()

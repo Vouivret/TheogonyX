@@ -9,7 +9,10 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 15;
+    public const int SaveVersion = 16;
+
+    // 壊れたセーブで巨大な配列を作らないための上限（信仰の定義の上限より十分大きい）
+    private const int MaxSavedBeliefs = 16;
 
     /// <summary>受け付ける「直近の神託の年」の数の上限。</summary>
     public const int MaxRecentOracleYears = 1000;
@@ -33,6 +36,7 @@ public static class SaveDataSerializer
     private static readonly Dictionary<HistoryEventType, string> HistoryTypeNames = new()
     {
         [HistoryEventType.DogmaFormed] = "DOGMA_FORMED",
+        [HistoryEventType.DogmaForgotten] = "DOGMA_FORGOTTEN",
         [HistoryEventType.ResidentBrokeDown] = "RESIDENT_BROKE_DOWN",
         [HistoryEventType.NotableDied] = "NOTABLE_DIED",
         [HistoryEventType.WorldDestroyed] = "WORLD_DESTROYED",
@@ -155,6 +159,12 @@ public static class SaveDataSerializer
                     epithet = WriteEpithet(person.Epithet),
                     partnerId = person.PartnerId,
                     housesBuilt = person.HousesBuilt,
+                    beliefs = person.Beliefs.Select(belief => new
+                    {
+                        symbolId = belief.SymbolId,
+                        dogmaType = belief.Type.ToString(),
+                        strength = belief.Strength,
+                    }),
                 }),
                 graves = data.Residents.Graves.Select(grave => new
                 {
@@ -400,7 +410,7 @@ public static class SaveDataSerializer
 
         string? symbolId = null;
         DogmaType? dogmaType = null;
-        if (type.Key == HistoryEventType.DogmaFormed)
+        if (type.Key is HistoryEventType.DogmaFormed or HistoryEventType.DogmaForgotten)
         {
             symbolId = symbolElement.ValueKind == JsonValueKind.String ? symbolElement.GetString() : null;
             var dogmaTypeName = dogmaTypeElement.ValueKind == JsonValueKind.String ? dogmaTypeElement.GetString() : null;
@@ -573,7 +583,10 @@ public static class SaveDataSerializer
             people.Add(new Resident(
                 id, region, birthYear, needs[0], needs[1], needs[2], needs[3], needs[4], health, sanity, breakdown, breakdownYear, task.Key,
                 ReadName(Property(item, "name", JsonValueKind.Object), rules), ReadEpithet(Property(item, "epithet", null), symbolIds),
-                partnerId, housesBuilt));
+                partnerId, housesBuilt)
+            {
+                Beliefs = ReadBeliefs(item, symbolIds),
+            });
         }
         // つがいの相手は、同じ地域にいる別の住人で、相手のパートナーも自分
         foreach (var person in people.Where(person => person.PartnerId is not null))
@@ -605,6 +618,42 @@ public static class SaveDataSerializer
                 ReadEpithet(Property(item, "epithet", null), symbolIds)));
         }
         return new Residents(people.OrderBy(person => person.Id), graves, nextResidentId);
+    }
+
+    // 版 16 で足した項目。無ければ信仰なし
+    private static List<Belief> ReadBeliefs(JsonElement person, HashSet<string> symbolIds)
+    {
+        if (!person.TryGetProperty("beliefs", out var element))
+        {
+            return [];
+        }
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            throw new InvalidSaveDataException("invalid_field");
+        }
+        var beliefs = new List<Belief>();
+        foreach (var item in element.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidSaveDataException("invalid_field");
+            }
+            var symbolId = ReadString(item, "symbolId");
+            var typeName = ReadString(item, "dogmaType");
+            var strength = ReadDouble(item, "strength");
+            if (!symbolIds.Contains(symbolId) || !Enum.GetNames<DogmaType>().Contains(typeName) || !(strength is > 0 and <= 1)
+                || beliefs.Count >= MaxSavedBeliefs)
+            {
+                throw new InvalidSaveDataException("invalid_residents");
+            }
+            var belief = new Belief(symbolId, Enum.Parse<DogmaType>(typeName), strength);
+            if (beliefs.Any(existing => existing.IsSameTeaching(belief)))
+            {
+                throw new InvalidSaveDataException("invalid_residents");
+            }
+            beliefs.Add(belief);
+        }
+        return beliefs;
     }
 
     private static ResidentName ReadName(JsonElement element, NeedsRules rules)

@@ -72,6 +72,7 @@ public partial class WorldCore : Node2D
         var civilizationRules = GameDataLoader.ParseCivilization(rulesJson);
         var needsRules = GameDataLoader.ParseNeeds(rulesJson);
         var historyRules = GameDataLoader.ParseHistory(rulesJson);
+        var beliefRules = GameDataLoader.ParseBelief(rulesJson);
         var oracleAiRules = GameDataLoader.ParseOracleAi(rulesJson);
 
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
@@ -82,7 +83,7 @@ public partial class WorldCore : Node2D
         // シードはセーブのもの、無ければ起動時の時刻から作り、記録する（同じシードで同じデッキの並びを再現できる）
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
         var timeControl = new TimeControl(
-            worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules), historyRules);
+            worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules), historyRules, beliefRules);
         _timeControl = timeControl;
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
@@ -114,6 +115,7 @@ public partial class WorldCore : Node2D
         _screen.TerrainDrawn += _residents.Refresh;
         _history = new HistoryView(this, timeControl);
         _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
+        _screen.TimeAdvanced += () => LogForgottenDogmas(timeControl);
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         // 詳細の視点は住人の絵、中拡大・大陸は群衆の点。境目は重ねて薄くしながら切り替える（docs/domain/camera-views.md の「群衆の描き方」）
@@ -239,6 +241,15 @@ public partial class WorldCore : Node2D
                     GD.Print($"event=resident_arrived year={residentEvent.Year} residentId={person.Id} region={person.Region}");
                     break;
             }
+        }
+    }
+
+    // 教えが忘れられたのはゲーム上の主要な出来事なので Info
+    private static void LogForgottenDogmas(TimeControl timeControl)
+    {
+        foreach (var dogma in timeControl.ForgottenDogmas)
+        {
+            GD.Print($"event=dogma_forgotten year={timeControl.World.Year} symbolId={dogma.TargetSymbolId} dogmaType={dogma.Type}");
         }
     }
 

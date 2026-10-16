@@ -8,6 +8,9 @@ public enum HistoryEventType
     /// <summary>神託でドグマが生まれた。</summary>
     DogmaFormed,
 
+    /// <summary>信者がいなくなって、教えが忘れられた。</summary>
+    DogmaForgotten,
+
     /// <summary>住人が精神崩壊した。</summary>
     ResidentBrokeDown,
 

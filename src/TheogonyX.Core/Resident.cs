@@ -70,6 +70,9 @@ public sealed record Resident(
     int? PartnerId = null,
     int HousesBuilt = 0)
 {
+    /// <summary>信じている教えと強さ（docs/domain/dogma-belief.md）。信仰の計算をしないときは空。</summary>
+    public BeliefSet Beliefs { get; init; } = BeliefSet.Empty;
+
     public int AgeIn(int year) => year - BirthYear;
 }
 

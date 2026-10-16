@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 15, "seed": 42,
+          "saveVersion": 16, "seed": 42,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -71,10 +71,10 @@ public class SaveDataTests
 
     private sealed record Game(TimeControl Time, ProphetDreams Prophet, AutoPlayClock Clock);
 
-    private static Game CreateGame()
+    private static Game CreateGame(int jumpYears = TestRules.JumpYears, BeliefRules? belief = null)
     {
         var time = new TimeControl(
-            TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
+            TestRules.World, jumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History, belief);
         var prophet = new ProphetDreams(time, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
@@ -86,13 +86,40 @@ public class SaveDataTests
     }
 
     // 書き出して読み戻し、新しく作ったゲームに当てはめる
-    private static Game RoundTrip(Game game)
+    private static Game RoundTrip(Game game, int jumpYears = TestRules.JumpYears, BeliefRules? belief = null)
     {
         var json = SaveDataSerializer.Write(SaveGame.Capture(game.Time, game.Prophet, Seed, game.Clock));
         Assert.True(SaveDataSerializer.TryParse(json, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var data, out var reason), reason);
-        var loaded = CreateGame();
+        var loaded = CreateGame(jumpYears, belief);
         SaveGame.Apply(data!, loaded.Time, loaded.Prophet, loaded.Clock);
         return loaded;
+    }
+
+    [Fact]
+    [Trait("TS", "TS-belief-009")]
+    public void RoundTrip_信仰を持つ住人と忘れられた教え_同じ状態に戻り続けた結果も同じ()
+    {
+        var belief = new BeliefRules(MaxBeliefs: 3, SeedRegions: 1, GatherTransmit: 0.5f, PartnerTransmit: 0.5f, Dampen: 0.8f, InheritDampen: 0.8f);
+        var game = CreateGame(1, belief);
+        game.Time.AddDogma(new Dogma("SYM_FIRE", DogmaType.Worship, 0.5f)); // 住人がいないので、次の年に忘れられる
+        for (var i = 0; i < 5; i++)
+        {
+            game.Time.Jump();
+        }
+        game.Time.AddDogma(new Dogma("SYM_TREE", DogmaType.Worship, 0.8f));
+        for (var i = 0; i < 20; i++)
+        {
+            game.Time.Jump();
+        }
+
+        var loaded = RoundTrip(game, 1, belief);
+        game.Time.Jump();
+        loaded.Time.Jump();
+
+        Assert.Contains(game.Time.Residents!.People, person => person.Beliefs.Count > 0);
+        Assert.Equal(game.Time.Residents.People, loaded.Time.Residents!.People);
+        Assert.Equal(game.Time.Dogmas, loaded.Time.Dogmas);
+        Assert.Contains(loaded.Time.History!.Entries, entry => entry.Type == HistoryEventType.DogmaForgotten && entry.SymbolId == "SYM_FIRE");
     }
 
     [Fact]
@@ -366,8 +393,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 15", "\"saveVersion\": 14", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 15, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 16", "\"saveVersion\": 14", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 16, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"year\": 312", "\"year\": -1", "invalid_year")]
     [InlineData("\"forestAmount\": 50", "\"forestAmount\": 1e999", "invalid_number")]

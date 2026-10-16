@@ -12,7 +12,8 @@ public static class CivilizationSimulator
     /// 順番は、寿命が来た建物を廃墟にする → 年数のたった廃墟を沈める → 値を伸ばす → 足りない数の建物を建てる。
     /// </summary>
     public static void AdvanceYear(
-        Civilization civilization, WorldState world, IReadOnlyList<Dogma> dogmas, TerrainRules terrain, CivilizationRules rules, int seed)
+        Civilization civilization, WorldState world, IReadOnlyList<Dogma> dogmas, TerrainRules terrain, CivilizationRules rules, int seed,
+        Func<Dogma, double>? share = null)
     {
         ArgumentNullException.ThrowIfNull(civilization);
         ArgumentNullException.ThrowIfNull(world);
@@ -35,27 +36,30 @@ public static class CivilizationSimulator
         var tiles = TerrainClassifier.ClassifyTiles(world, terrain);
         var techBonus = 0.0;
         var cultureBonus = 0.0;
-        var taboo = false;
+        var tabooShare = 0.0;
         foreach (var dogma in dogmas)
         {
+            var weight = share?.Invoke(dogma) ?? 1.0;
             switch (dogma.Type)
             {
                 case DogmaType.Worship:
-                    cultureBonus += rules.WorshipCulturePerYear * dogma.Intensity;
+                    cultureBonus += rules.WorshipCulturePerYear * dogma.Intensity * weight;
                     break;
                 case DogmaType.Destruction:
-                    techBonus += rules.DestructionTechPerYear * dogma.Intensity;
+                    techBonus += rules.DestructionTechPerYear * dogma.Intensity * weight;
                     break;
                 case DogmaType.Taboo:
-                    taboo = true;
+                    tabooShare = Math.Max(tabooShare, weight);
                     break;
             }
         }
+        // 禁忌の伸びの倍率は、信者の割合の分だけ効く（全員が信じていれば TabooGrowthFactor そのまま）
+        var tabooFactor = tabooShare <= 0 ? 1.0 : tabooShare >= 1 ? rules.TabooGrowthFactor : 1 - tabooShare * (1 - rules.TabooGrowthFactor);
 
         for (var region = 0; region < rules.Regions.Count; region++)
         {
             var influence = Influence(region, rules);
-            var factor = EnvironmentMultiplier(tiles, region, rules) * (taboo ? rules.TabooGrowthFactor : 1.0);
+            var factor = EnvironmentMultiplier(tiles, region, rules) * tabooFactor;
             var before = civilization.Regions[region];
             // 値は下がらない（ドグマの強度が負でも伸びは 0 で止める）
             var tech = Math.Clamp(before.Tech + Math.Max(0, (rules.NaturalGrowthPerYear + techBonus * influence) * factor), 0, 1);

@@ -24,11 +24,14 @@ public sealed class TimeControl
     private readonly int _jumpYears;
     private readonly List<Dogma> _dogmas = [];
     private readonly CivilizationSetup? _civilizationSetup;
+    private readonly BeliefRules? _belief;
 
     /// <param name="jumpYears">100年跳躍ボタンで進める年数。</param>
     /// <param name="civilization">地域の文明の計算に使う定義。null なら文明の計算をしない。</param>
     /// <param name="history">年表の定義。null なら年表を残さない。</param>
-    public TimeControl(WorldRules worldRules, int jumpYears, CivilizationSetup? civilization = null, HistoryRules? history = null)
+    /// <param name="belief">住人の信仰の定義。null なら信仰を使わず、ドグマはいつも全員に効く。住人の計算をしないときは無視する。</param>
+    public TimeControl(
+        WorldRules worldRules, int jumpYears, CivilizationSetup? civilization = null, HistoryRules? history = null, BeliefRules? belief = null)
     {
         ArgumentNullException.ThrowIfNull(worldRules);
         ArgumentOutOfRangeException.ThrowIfNegative(jumpYears);
@@ -36,6 +39,7 @@ public sealed class TimeControl
         _worldRules = worldRules;
         _jumpYears = jumpYears;
         _civilizationSetup = civilization;
+        _belief = civilization?.Needs is null ? null : belief;
         World = WorldState.CreateInitial(worldRules);
         Civilization = civilization is null ? null : Civilization.CreateInitial(civilization.Rules);
         Residents = civilization?.Needs is null ? null : Residents.CreateInitial();
@@ -60,6 +64,12 @@ public sealed class TimeControl
     /// <summary>直前の跳躍・1 年の進みで、住人に起きた出来事（ログに出す）。</summary>
     public IReadOnlyList<ResidentEvent> ResidentEvents { get; private set; } = [];
 
+    /// <summary>直前の跳躍・1 年の進みで、信者がいなくなって忘れられた教え（ログに出す）。</summary>
+    public IReadOnlyList<Dogma> ForgottenDogmas { get; private set; } = [];
+
+    /// <summary>教えを信じている住人の数。信仰を使わないなら 0。</summary>
+    public int BelieversOf(Dogma dogma) => _belief is null || Residents is null ? 0 : BeliefSimulator.BelieversOf(dogma, Residents);
+
     public bool CanDo(TimeControlAction action) => Transitions.ContainsKey((State, action));
 
     /// <summary>ドグマを一覧に加え、年表に残す。状態は変えない。</summary>
@@ -68,6 +78,10 @@ public sealed class TimeControl
         ArgumentNullException.ThrowIfNull(dogma);
         _dogmas.Add(dogma);
         History?.Add(new HistoryEntry(World.Year, HistoryEventType.DogmaFormed, dogma.TargetSymbolId, dogma.Type));
+        if (_belief is not null && Residents is not null && _civilizationSetup is { } setup)
+        {
+            BeliefSimulator.Seed(Residents, dogma, setup.Rules.Regions.RegionOf(setup.Rules.ProphetColumn), _belief);
+        }
     }
 
     /// <summary>カオス度を <paramref name="amount"/> 上げる（上限を越えない）。崩壊の判定は次の年の計算で行う。</summary>
@@ -117,6 +131,7 @@ public sealed class TimeControl
         Civilization = _civilizationSetup is null ? null : Civilization?.Recreate(World, _dogmas, _civilizationSetup.Rules);
         Residents = Residents?.Recreate();
         ResidentEvents = [];
+        ForgottenDogmas = [];
         World = initial;
         _dogmas.Clear();
         State = next;
@@ -140,6 +155,7 @@ public sealed class TimeControl
         Residents = _civilizationSetup?.Needs is null ? null : residents.Copy();
         History = History is null ? null : new History(history ?? [], History.Rules, chapter ?? new ChapterStart(world.Year, world.ChaosLevel));
         ResidentEvents = [];
+        ForgottenDogmas = [];
         _dogmas.Clear();
         _dogmas.AddRange(dogmas);
         State = world.IsDestroyed ? TimeControlState.Destroyed : TimeControlState.Stopped;
@@ -152,7 +168,10 @@ public sealed class TimeControl
         var civilization = Civilization;
         var residents = Residents;
         var events = new List<ResidentEvent>();
+        var forgotten = new List<Dogma>();
         var history = History;
+        var belief = _belief;
+        Func<Dogma, double>? share = belief is null || residents is null ? null : dogma => BeliefSimulator.Share(dogma, residents);
         // 1 年ごとに、文明・住人の計算、年表（住人の出来事・章）の順に進める。年表の行は年の順に並ぶ
         Action? afterYear = history is null && (setup is null || civilization is null)
             ? null
@@ -161,11 +180,16 @@ public sealed class TimeControl
                 var yearEvents = new List<ResidentEvent>();
                 if (setup is not null && civilization is not null)
                 {
-                    CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed);
+                    CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed, share);
                     if (residents is not null && setup.Needs is not null)
                     {
                         yearEvents.AddRange(ResidentSimulator.AdvanceYear(
-                            residents, civilization, World, _dogmas, setup.Needs, setup.Rules, setup.Terrain, setup.Seed));
+                            residents, civilization, World, _dogmas, setup.Needs, setup.Rules, setup.Terrain, setup.Seed, belief));
+                        if (belief is not null)
+                        {
+                            BeliefSimulator.Spread(residents, World.Year, setup.Seed, belief);
+                            ForgetDogmas(residents, forgotten);
+                        }
                     }
                 }
                 events.AddRange(yearEvents);
@@ -173,14 +197,26 @@ public sealed class TimeControl
                 history?.AdvanceChapters(World.Year, World.ChaosLevel);
             };
         var wasDestroyed = World.IsDestroyed;
-        WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules, afterYear);
+        WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules, afterYear, share);
         ResidentEvents = events;
+        ForgottenDogmas = forgotten;
         if (World.IsDestroyed && !wasDestroyed)
         {
             history?.Add(new HistoryEntry(World.Year, HistoryEventType.WorldDestroyed));
             history?.CloseChapter(World.Year, World.ChaosLevel);
         }
         State = World.IsDestroyed ? TimeControlState.Destroyed : next;
+    }
+
+    // 信者が 0 人になった教えを一覧から消し、年表に残す
+    private void ForgetDogmas(Residents residents, List<Dogma> forgotten)
+    {
+        foreach (var dogma in _dogmas.Where(dogma => BeliefSimulator.BelieversOf(dogma, residents) == 0).ToList())
+        {
+            _dogmas.Remove(dogma);
+            forgotten.Add(dogma);
+            History?.Add(new HistoryEntry(World.Year, HistoryEventType.DogmaForgotten, dogma.TargetSymbolId, dogma.Type));
+        }
     }
 
     private TimeControlState NextState(TimeControlAction action) =>

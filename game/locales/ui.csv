@@ -5,6 +5,7 @@ HUD_HARMONY,調和度 {0:F1}%,Harmony {0:F1}%
 HUD_DOGMAS,ドグマ,Dogmas
 HUD_NO_DOGMA,（なし）,(none)
 DOGMA_ENTRY,{0}の{1},{1} of {0}
+DOGMA_ENTRY_BELIEVERS,{0}の{1}　信者 {2} 人,{1} of {0}: {2} believers
 SYMBOL_SYM_TREE,木,Tree
 SYMBOL_SYM_WATER,恵みの雨,Blessed Rain
 SYMBOL_SYM_BLOOD,血,Blood
@@ -35,6 +36,7 @@ HISTORY_TITLE,星の年表,Chronicle of the Star
 HISTORY_EMPTY,（まだ何も起きていない）,(Nothing has happened yet)
 HISTORY_DOGMA_FORMED,{0} 年　{1}が生まれた,Year {0}: {1} was born
 HISTORY_DOGMA_FORMED_ORACLE,{0} 年　{1}が生まれた　「{2}」,Year {0}: {1} was born — "{2}"
+HISTORY_DOGMA_FORGOTTEN,{0} 年　{1}が忘れられた,Year {0}: {1} was forgotten
 HISTORY_RAMPAGE,{0} 年　{1}が狂乱した,Year {0}: {1} went on a rampage
 HISTORY_CATATONIA,{0} 年　{1}が自閉・絶望に沈んだ,Year {0}: {1} sank into despair
 HISTORY_NOTABLE_DIED,{0} 年　{1}が死んだ,Year {0}: {1} died

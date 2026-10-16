@@ -36,7 +36,8 @@ public static class ResidentSimulator
         NeedsRules rules,
         CivilizationRules civilizationRules,
         TerrainRules terrain,
-        int seed)
+        int seed,
+        BeliefRules? belief = null)
     {
         ArgumentNullException.ThrowIfNull(residents);
         ArgumentNullException.ThrowIfNull(civilization);
@@ -262,6 +263,7 @@ public static class ResidentSimulator
                     var child = new Resident(
                         nextId, region, year, 0, 0, 0, 0, 0, rules.MaxHealth, rules.MaxSanity, null, 0,
                         ResidentTask.Idle, NameOfChild(nextId, seed, rules, first.Name, second.Name), null);
+                    child = belief is null ? child : BeliefSimulator.Inherit(child, first, second, belief);
                     people.Add(child);
                     events.Add(new ResidentEvent(ResidentEventType.Born, year, child));
                     nextId++;

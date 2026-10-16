@@ -206,6 +206,28 @@ public static class GameDataLoader
         return needs;
     }
 
+    public static BeliefRules ParseBelief(string rulesJson)
+    {
+        var section = Parse<BeliefSection>(rulesJson, "rules.json").Belief
+            ?? throw new InvalidDataException("信仰の定義が無い: file=rules.json key=belief");
+        BeliefRules belief;
+        try
+        {
+            belief = section.Deserialize<BeliefRules>(StrictOptions)
+                ?? throw new InvalidDataException("信仰の定義が空: file=rules.json key=belief");
+            belief.Validate();
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("信仰の定義を読めない: file=rules.json key=belief", ex);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("信仰の定義の値が範囲外: file=rules.json key=belief", ex);
+        }
+        return belief;
+    }
+
     public static OracleAiRules ParseOracleAi(string rulesJson)
     {
         var section = Parse<OracleAiSection>(rulesJson, "rules.json").OracleAi
@@ -374,6 +396,8 @@ public static class GameDataLoader
         IReadOnlyList<double>? Thresholds);
 
     private sealed record NeedsSection(JsonElement? Needs);
+
+    private sealed record BeliefSection(JsonElement? Belief);
 
     private sealed record HistorySection(JsonElement? History);
 

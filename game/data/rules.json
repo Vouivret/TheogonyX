@@ -114,6 +114,14 @@
     "ruinBurialYears": 150,
     "maxDepth": 3
   },
+  "belief": {
+    "maxBeliefs": 3,
+    "seedRegions": 4,
+    "gatherTransmit": 0.3,
+    "partnerTransmit": 0.5,
+    "dampen": 0.8,
+    "inheritDampen": 0.8
+  },
   "needs": {
     "immigrantAge": 20,
     "immigrateBelowAdults": 2,
