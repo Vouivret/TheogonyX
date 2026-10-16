@@ -153,7 +153,7 @@ public class SaveDataTests
         game.Time.World.Year = 250;
         game.Time.World.ForestAmount = 10f;
         game.Prophet.OnTimeAdvanced();
-        game.Prophet.PronouncePair(0, 1);
+        game.Prophet.SpeakFirst();
         game.Time.World.Year = 312;
         game.Time.World.ForestAmount = 50f;
         game.Time.World.WaterAmount = 10f;
@@ -190,7 +190,7 @@ public class SaveDataTests
 
         Assert.True(loaded.Time.World.IsDestroyed);
         Assert.Equal(TimeControlState.Destroyed, loaded.Time.State);
-        Assert.False(loaded.Prophet.CanPronounce);
+        Assert.NotNull(loaded.Prophet.SpeakRejection());
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public class SaveDataTests
             var game = CreateGame();
             for (var i = 0; i < 3; i++)
             {
-                game.Prophet.PronouncePair(0, 1);
+                game.Prophet.SpeakFirst();
                 game.Time.World.Year += 50;
                 game.Prophet.OnTimeAdvanced();
             }
@@ -225,8 +225,8 @@ public class SaveDataTests
 
         for (var i = 0; i < 4; i++)
         {
-            reference.Prophet.PronouncePair(0, 1);
-            loaded.Prophet.PronouncePair(0, 1);
+            reference.Prophet.SpeakFirst();
+            loaded.Prophet.SpeakFirst();
             reference.Time.World.Year += 50;
             loaded.Time.World.Year += 50;
             reference.Prophet.OnTimeAdvanced();

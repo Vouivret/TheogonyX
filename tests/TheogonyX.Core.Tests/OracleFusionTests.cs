@@ -30,33 +30,6 @@ public class OracleFusionTests
         deck.DrawPile.Count(id => id == cardId) + deck.Hand.Count(id => id == cardId) + deck.DiscardPile.Count(id => id == cardId);
 
     [Fact]
-    [Trait("TS", "TS-oracle-wuxing-009")]
-    public void Interpret_大樹と木_比和で崇拝し強度は1に抑える()
-    {
-        var dogma = WuxingInterpreter.Interpret("RUNE_GREAT_TREE", "SYM_TREE", TestRules.OracleWuxing);
-
-        Assert.NotNull(dogma);
-        Assert.Equal("SYM_TREE", dogma.TargetSymbolId);
-        Assert.Equal(DogmaType.Worship, dogma.Type);
-        // (1.0 + 0.7) ÷ 2 × 1.3 = 1.105 を 1.0 に抑える
-        Assert.Equal(1.0f, dogma.Intensity, Tolerance);
-        Assert.Equal(WuxingRelation.Same, WuxingInterpreter.Judge("RUNE_GREAT_TREE", "SYM_TREE", TestRules.OracleWuxing).Relation);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-wuxing-009")]
-    public void Interpret_業火と木_上位のルーンの重みを使う()
-    {
-        var dogma = WuxingInterpreter.Interpret("RUNE_GREAT_FIRE", "SYM_TREE", TestRules.OracleWuxing);
-
-        // 木が火を生む（相生）。(1.0 + 0.7) ÷ 2 × 1.0
-        Assert.NotNull(dogma);
-        Assert.Equal("SYM_FIRE", dogma.TargetSymbolId);
-        Assert.Equal(DogmaType.Worship, dogma.Type);
-        Assert.Equal(0.85f, dogma.Intensity, Tolerance);
-    }
-
-    [Fact]
     [Trait("TS", "TS-oracle-wuxing-010")]
     public void Fuse_木2枚_木が2枚減り大樹が捨札に加わって持ち分が減る()
     {

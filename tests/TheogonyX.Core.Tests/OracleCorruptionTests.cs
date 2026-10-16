@@ -112,55 +112,44 @@ public class OracleCorruptionTests
 
     [Fact]
     [Trait("TS", "TS-oracle-deck-010")]
-    public void PronouncePair_汚染ルーンを1枚使う_カオス度が10上がり捨札へ移る()
+    public void Speak_汚染ルーンの記号を教えにする_カオス度が10上がり汚染ルーンが捨札へ移る()
     {
         var (prophet, time, deck) = Create();
         SetHand(deck, "RUNE_MADNESS", "SYM_TREE", "SYM_WATER", "SYM_FIRE");
         time.World.ChaosLevel = 20f;
 
-        var result = prophet.PronouncePair(0, 1);
+        var result = prophet.SpeakFirst();
 
         Assert.Equal(1, result.CorruptedCount);
         Assert.Equal(30f, time.World.ChaosLevel, 3);
         Assert.Contains("RUNE_MADNESS", deck.DiscardPile);
+        Assert.Equal("SYM_BLOOD", Assert.Single(time.Dogmas).TargetSymbolId);
     }
 
     [Fact]
     [Trait("TS", "TS-oracle-deck-010")]
-    public void PronouncePair_汚染ルーンを2枚使う_カオス度が20上がる()
+    public void Speak_汚染ルーンの記号ではない教え_汚染ルーンは手札に残りカオス度は上がらない()
     {
         var (prophet, time, deck) = Create();
-        SetHand(deck, "RUNE_MADNESS", "RUNE_DECAY", "SYM_WATER", "SYM_FIRE");
+        SetHand(deck, "SYM_TREE", "RUNE_MADNESS", "SYM_WATER", "SYM_FIRE");
         time.World.ChaosLevel = 20f;
 
-        var result = prophet.PronouncePair(0, 1);
+        var result = prophet.SpeakFirst();
 
-        Assert.Equal(2, result.CorruptedCount);
-        Assert.Equal(40f, time.World.ChaosLevel, 3);
+        Assert.Equal(0, result.CorruptedCount);
+        Assert.Equal(20f, time.World.ChaosLevel, 3);
+        Assert.Contains("RUNE_MADNESS", deck.Hand);
     }
 
     [Fact]
     [Trait("TS", "TS-oracle-deck-010")]
-    public void PronouncePair_汚染ルーンが対象_持つ記号がドグマの対象になる()
-    {
-        var (prophet, time, deck) = Create();
-        SetHand(deck, "RUNE_MADNESS", "SYM_TREE", "SYM_WATER", "SYM_FIRE");
-
-        prophet.PronouncePair(0, 1);
-
-        var dogma = Assert.Single(time.Dogmas);
-        Assert.Equal("SYM_BLOOD", dogma.TargetSymbolId);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-deck-010")]
-    public void PronouncePair_カオス度が上限に近い_上限を越えない()
+    public void Speak_カオス度が上限に近い_上限を越えない()
     {
         var (prophet, time, deck) = Create();
         SetHand(deck, "RUNE_MADNESS", "RUNE_DECAY", "SYM_WATER", "SYM_FIRE");
         time.World.ChaosLevel = 95f;
 
-        prophet.PronouncePair(0, 1);
+        prophet.SpeakFirst();
 
         Assert.Equal(100f, time.World.ChaosLevel, 3);
     }

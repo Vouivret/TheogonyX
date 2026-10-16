@@ -2,13 +2,12 @@ using TheogonyX.Core;
 
 namespace TheogonyX.Core.Tests;
 
+// 神威・神の歪み・依頼・世界再創生（docs/domain/oracle-pair.md）。神託を下す操作は、手札の先頭のカードの記号で語りかける
+// （<see cref="SpeakSupport.SpeakFirst"/>）。ルーン 2 枚の組と五行による旧い神託は、自由文の神託に替えて削除した。
 public class OraclePairTests
 {
     private const int Seed = 42;
     private const float Tolerance = 0.001f;
-
-    private static DeckRules Deck(int handSize, params (string SymbolId, int Count)[] runes) =>
-        new([.. runes.Select(rune => new DeckRuneCount(rune.SymbolId, rune.Count))], handSize);
 
     private static OracleRules WithFaith(float initial) =>
         TestRules.Oracle with { Faith = TestRules.Oracle.Faith with { Initial = initial } };
@@ -22,102 +21,16 @@ public class OraclePairTests
         return (prophet, time, oracleDeck);
     }
 
-    // 手札にある記号の番号（重なっていれば、後ろから）
-    private static int IndexOf(OracleDeck deck, string symbolId, int skip = -1)
-    {
-        for (var i = deck.Hand.Count - 1; i >= 0; i--)
-        {
-            if (deck.Hand[i] == symbolId && i != skip)
-            {
-                return i;
-            }
-        }
-        throw new InvalidOperationException($"手札に無い: {symbolId}");
-    }
-
-    // 2 枚だけの山札（記号は a, b）を、手札に引いた状態で作る
-    private static (ProphetDreams Prophet, TimeControl Time, OracleDeck Deck) CreatePair(string a, string b, OracleRules? oracle = null) =>
-        Create(Deck(2, (a, 1), (b, 1)), oracle);
-
-    [Theory]
-    [Trait("TS", "TS-oracle-pair-001")]
-    [InlineData("SYM_TREE", "SYM_BLOOD", "SYM_TREE", DogmaType.Destruction, 0.7f)] // 穢れ。(0.5 + 0.9) ÷ 2
-    [InlineData("SYM_BLOOD", "SYM_TREE", "SYM_BLOOD", DogmaType.Destruction, 0.7f)]
-    [InlineData("SYM_TREE", "SYM_WATER", "SYM_TREE", DogmaType.Worship, 0.5f)] // 水が木を生む。(0.5 + 0.5) ÷ 2
-    public void PronouncePair_2枚を選ぶ_1枚目が対象のドグマが加わる(string first, string second, string target, DogmaType type, float intensity)
-    {
-        var (prophet, time, deck) = CreatePair(first, second);
-
-        var result = prophet.PronouncePair(IndexOf(deck, first), IndexOf(deck, second));
-
-        var dogma = Assert.Single(time.Dogmas);
-        Assert.Equal(target, dogma.TargetSymbolId);
-        Assert.Equal(type, dogma.Type);
-        Assert.Equal(intensity, dogma.Intensity, Tolerance);
-        Assert.Equal(dogma, result.Dogma);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-pair-002")]
-    public void PronouncePair_2枚を選ぶ_使った2枚が捨札に移り2枚が補われる()
-    {
-        var (prophet, _, deck) = Create();
-        var first = deck.Hand[0];
-        var second = deck.Hand[1];
-        var nextTwo = deck.DrawPile.Take(2).ToList();
-
-        prophet.PronouncePair(0, 1);
-
-        Assert.Equal(4, deck.Hand.Count);
-        Assert.Equal(9, deck.DrawPile.Count);
-        Assert.Equal([first, second], deck.DiscardPile);
-        Assert.Equal(nextTwo, deck.Hand.Skip(2).ToList());
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-pair-003")]
-    public void PairRejection_手札が1枚_下せない()
-    {
-        var (prophet, time, deck) = Create(Deck(1, ("SYM_TREE", 1)));
-
-        Assert.Equal("not_enough_cards", prophet.PairRejection(0, 1));
-        Assert.Throws<InvalidOperationException>(() => prophet.PronouncePair(0, 1));
-        Assert.Single(deck.Hand);
-        Assert.Empty(time.Dogmas);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-pair-003")]
-    public void PairRejection_星が崩壊している_下せない()
-    {
-        var (prophet, time, _) = Create();
-        time.World.IsDestroyed = true;
-
-        Assert.Equal("star_destroyed", prophet.PairRejection(0, 1));
-    }
-
-    [Theory]
-    [Trait("TS", "TS-oracle-pair-003")]
-    [InlineData(0, 9, "card_not_in_hand")]
-    [InlineData(-1, 1, "card_not_in_hand")]
-    [InlineData(2, 2, "same_card")]
-    public void PairRejection_手札の番号が正しくない_下せない(int first, int second, string reason)
-    {
-        var (prophet, _, _) = Create();
-
-        Assert.Equal(reason, prophet.PairRejection(first, second));
-    }
-
     [Fact]
     [Trait("TS", "TS-oracle-pair-004")]
-    public void PronouncePair_依頼中に下す_依頼が済む()
+    public void Speak_依頼中に下す_依頼が済む()
     {
         var (prophet, time, _) = Create();
         time.World.WaterAmount = 10f;
         prophet.OnTimeAdvanced();
         Assert.NotNull(prophet.ActiveRequest);
 
-        var result = prophet.PronouncePair(0, 1);
+        var result = prophet.SpeakFirst();
 
         Assert.NotNull(result.AnsweredRequest);
         Assert.Null(prophet.ActiveRequest);
@@ -125,16 +38,16 @@ public class OraclePairTests
 
     [Fact]
     [Trait("TS", "TS-oracle-pair-005")]
-    public void PronouncePair_同じシードと同じ操作を2回_世界とドグマとデッキが一致する()
+    public void Speak_同じシードと同じ操作を2回_世界とドグマとデッキが一致する()
     {
         (IReadOnlyList<Dogma> Dogmas, List<string> Hand, List<string> Pile, double Faith, float Chaos) Play()
         {
             var (prophet, time, deck) = Create();
             for (var i = 0; i < 4; i++)
             {
-                if (prophet.PairRejection(0, 1) is null)
+                if (prophet.Dialect is null || prophet.SpeakRejection() is null)
                 {
-                    prophet.PronouncePair(0, 1);
+                    prophet.SpeakFirst();
                 }
                 time.World.Year += 3;
                 prophet.OnTimeAdvanced();
@@ -154,22 +67,22 @@ public class OraclePairTests
 
     [Fact]
     [Trait("TS", "TS-oracle-pair-006")]
-    public void PronouncePair_神威が上限_1回で1減る()
+    public void Speak_神威が上限_1回で1減る()
     {
         var (prophet, _, _) = Create();
 
-        prophet.PronouncePair(0, 1);
+        prophet.SpeakFirst();
 
         Assert.Equal(2.0, prophet.Faith!.Value, 3);
     }
 
     [Fact]
     [Trait("TS", "TS-oracle-pair-006")]
-    public void PairRejection_神威がコスト未満_下せない()
+    public void SpeakRejection_神威がコスト未満_下せない()
     {
         var (prophet, time, _) = Create(oracle: WithFaith(0.5f));
 
-        Assert.Equal("not_enough_faith", prophet.PairRejection(0, 1));
+        Assert.Equal("not_enough_faith", prophet.SpeakRejection());
         Assert.Empty(time.Dogmas);
     }
 
@@ -198,17 +111,17 @@ public class OraclePairTests
 
     [Fact]
     [Trait("TS", "TS-oracle-pair-007")]
-    public void PronouncePair_10年に3回_3回目から歪みが起きる()
+    public void Speak_10年に3回_3回目から歪みが起きる()
     {
         var (prophet, time) = CreateWithResident(100);
 
-        var r1 = prophet.PronouncePair(0, 1);
-        var r2 = prophet.PronouncePair(0, 1);
+        var r1 = prophet.SpeakFirst();
+        var r2 = prophet.SpeakFirst();
         Assert.Equal(0, r1.OverloadCount + r2.OverloadCount);
         Assert.Equal(100.0, time.Residents!.People[0].Sanity);
         var chaosBefore = time.World.ChaosLevel;
 
-        var r3 = prophet.PronouncePair(0, 1);
+        var r3 = prophet.SpeakFirst();
 
         Assert.Equal(1, r3.OverloadCount);
         Assert.Equal(80.0, time.Residents.People[0].Sanity);
@@ -217,15 +130,15 @@ public class OraclePairTests
 
     [Fact]
     [Trait("TS", "TS-oracle-pair-007")]
-    public void PronouncePair_2回下して20年後に3回目_歪みは起きない()
+    public void Speak_2回下して20年後に3回目_歪みは起きない()
     {
         var (prophet, time) = CreateWithResident(100);
-        prophet.PronouncePair(0, 1);
-        prophet.PronouncePair(0, 1);
+        prophet.SpeakFirst();
+        prophet.SpeakFirst();
 
         time.World.Year = 20;
         prophet.OnTimeAdvanced();
-        var result = prophet.PronouncePair(0, 1);
+        var result = prophet.SpeakFirst();
 
         Assert.Equal(0, result.OverloadCount);
         Assert.Equal(100.0, time.Residents!.People[0].Sanity);
@@ -247,8 +160,8 @@ public class OraclePairTests
     public void Reset_世界再創生_神威は最初の量に戻り数えた神託は消える()
     {
         var (prophet, time) = CreateWithResident(100);
-        prophet.PronouncePair(0, 1);
-        prophet.PronouncePair(0, 1);
+        prophet.SpeakFirst();
+        prophet.SpeakFirst();
 
         time.Reset();
         prophet.Reset();
@@ -259,19 +172,26 @@ public class OraclePairTests
 
     [Fact]
     [Trait("TS", "TS-oracle-pair-009")]
-    public void SubmitPronouncePair_命令で下す_直接下したのと同じ結果で番号が続く()
+    public void SubmitSpeak_命令で下す_直接下したのと同じ結果で番号が続く()
     {
         var (prophet, time, deck) = Create();
         var queue = new OracleCommandQueue(prophet, time);
+        prophet.SpeakFirst();
+        var before = prophet.Faith.Value;
+        var noun = prophet.Dialect!.Rules.Nouns.First(candidate => candidate.SymbolId == prophet.SymbolOf(prophet.Hand[0]));
+        var hearing = prophet.Hear(new HeardAnswer(noun.Id, "VERB_PROTECT", HeardDestination.None, null, [])).Hearing!;
+        time.World.IsDestroyed = true;
+        var rejected = queue.SubmitSpeak(hearing, "森を守れ");
+        time.World.IsDestroyed = false;
 
-        var outcome = queue.SubmitPronouncePair(0, 1);
-        var rejected = queue.SubmitPronouncePair(0, 0);
+        var outcome = queue.SubmitSpeak(hearing, "森を守れ");
 
-        Assert.True(outcome.Accepted);
-        Assert.Single(time.Dogmas);
-        Assert.Equal("same_card", rejected.RejectedReason);
-        Assert.Equal(2, deck.DiscardPile.Count);
-        Assert.Equal(1, outcome.Command.Sequence);
-        Assert.Equal(2, rejected.Command.Sequence);
+        Assert.Equal("star_destroyed", rejected.RejectedReason);
+        Assert.Null(outcome.RejectedReason);
+        Assert.Equal(2, time.Dogmas.Count);
+        Assert.Equal(before - 1, prophet.Faith.Value, 3);
+        Assert.Equal(1, rejected.Sequence);
+        Assert.Equal(2, outcome.Sequence);
+        Assert.NotEmpty(deck.DiscardPile);
     }
 }

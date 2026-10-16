@@ -9,8 +9,8 @@
 
 | ID | 受け入れ条件 | 観点 | 前提 | 操作 | 期待結果 | 種別 | 実装場所 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TS-ai-presentation-001 | AC-ai-presentation-001 | LLM への頼みの文と本文の形 | 受け入れ条件のとおり | 組み立てる | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleProphecyTests.cs` |
-| TS-ai-presentation-002 | AC-ai-presentation-002 | 応答の検証（外部入力） | 受け入れ条件のとおり | 取り出す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleProphecyTests.cs` |
+| TS-ai-presentation-001 | AC-ai-presentation-001 | LLM への頼みの文と本文の形 | 受け入れ条件のとおり | 組み立てる | 受け入れ条件のとおり | 廃止 | — |
+| TS-ai-presentation-002 | AC-ai-presentation-002 | 応答の検証（外部入力） | 受け入れ条件のとおり | 取り出す | 受け入れ条件のとおり | 廃止 | — |
 | TS-ai-presentation-003 | AC-ai-presentation-003 | 宛先がループバックだけであること、定義の値の範囲 | 受け入れ条件のとおり | 検証する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleProphecyTests.cs` |
 | TS-ai-presentation-004 | AC-ai-presentation-004 | 年表のドグマの行に添えること | 受け入れ条件のとおり | 添える | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleProphecyTests.cs` |
 | TS-ai-presentation-005 | AC-ai-presentation-005 | 神託の文の保存と読み込み、壊れた文 | 受け入れ条件のとおり | 書き出して読み戻す、読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs`（TS-save-data-004 の中で確かめる） |

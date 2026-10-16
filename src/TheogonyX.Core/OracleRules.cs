@@ -28,6 +28,25 @@ public sealed record CorruptedRune(string Id, string SymbolId);
 /// <param name="ChaosPerRune">汚染ルーンを神託に使ったとき、1 枚につき上がるカオス度。</param>
 public sealed record CorruptionRules(IReadOnlyList<float> Thresholds, IReadOnlyList<CorruptedRune> Runes, float ChaosPerRune);
 
+/// <summary>五行の関係（docs/domain/oracle-wuxing.md の「どうする」）。2 枚の組の神託をやめたので、今は倍率の定義の添字にだけ残っている。</summary>
+public enum WuxingRelation
+{
+    /// <summary>同じ五行（比和）。</summary>
+    Same,
+
+    /// <summary>2 枚目が対象を生む（相生）。</summary>
+    Generated,
+
+    /// <summary>2 枚目が対象を剋す（相剋）。</summary>
+    Overcome,
+
+    /// <summary>対象が 2 枚目を剋す（逆らう）。</summary>
+    Rebel,
+
+    /// <summary>対象が 2 枚目を生む（分流）。</summary>
+    Leak,
+}
+
 /// <summary>五行の関係ごとの、強度の倍率。</summary>
 public sealed record WuxingMultipliers(float Same, float Generated, float Overcome, float Rebel, float Leak)
 {

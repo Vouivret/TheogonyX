@@ -49,46 +49,44 @@ public class OracleDeckTests
 
     [Fact]
     [Trait("TS", "TS-oracle-deck-002")]
-    public void SpendPair_手札の2枚_捨札へ移り山札から2枚を補う()
+    public void SpendOne_手札の1枚_捨札へ移り山札から1枚を補う()
     {
         var deck = new OracleDeck(Seed, TestRules.Deck);
-        var first = deck.Hand[1];
-        var second = deck.Hand[3];
-        var nextTwo = deck.DrawPile.Take(2).ToList();
+        var card = deck.Hand[2];
+        var next = deck.DrawPile[0];
 
-        deck.SpendPair(1, 3);
+        deck.SpendOne(2);
 
         Assert.Equal(4, deck.Hand.Count);
-        Assert.Equal(9, deck.DrawPile.Count);
-        Assert.Equal([first, second], deck.DiscardPile);
-        Assert.Equal(nextTwo, deck.Hand.Skip(2).ToList());
+        Assert.Equal(10, deck.DrawPile.Count);
+        Assert.Equal([card], deck.DiscardPile);
+        Assert.Equal(next, deck.Hand[^1]);
     }
 
     [Theory]
     [Trait("TS", "TS-oracle-deck-002")]
-    [InlineData(-1, 1)]
-    [InlineData(0, 9)]
-    [InlineData(2, 2)]
-    public void SpendPair_番号が範囲外か同じ_例外で何も動かない(int first, int second)
+    [InlineData(-1)]
+    [InlineData(4)]
+    public void SpendOne_番号が範囲外_例外で何も動かない(int index)
     {
         var deck = new OracleDeck(Seed, TestRules.Deck);
         var before = deck.Capture();
 
-        Assert.Throws<ArgumentException>(() => deck.SpendPair(first, second));
+        Assert.Throws<ArgumentException>(() => deck.SpendOne(index));
 
         AssertSameDeck(before, deck.Capture());
     }
 
     [Fact]
     [Trait("TS", "TS-oracle-deck-003")]
-    public void SpendPair_山札が尽きている_捨札をシャッフルして戻して引く()
+    public void SpendOne_山札が尽きている_捨札をシャッフルして戻して引く()
     {
-        // 4 枚のデッキ: 手札 4 枚で山札は空。2 枚が捨札に入ってから 2 枚引くので、同じ 4 枚が手札に戻る
+        // 4 枚のデッキ: 手札 4 枚で山札は空。1 枚が捨札に入ってから 1 枚引くので、同じ 4 枚が手札に戻る
         var deck = new OracleDeck(Seed, Rules(4, ("SYM_TREE", 1), ("SYM_WATER", 1), ("SYM_BLOOD", 1), ("SYM_FIRE", 1)));
         Assert.Empty(deck.DrawPile);
         var shuffles = deck.ShuffleCount;
 
-        deck.SpendPair(0, 1);
+        deck.SpendOne(0);
 
         Assert.Equal(4, deck.Hand.Count);
         Assert.Empty(deck.DiscardPile);
@@ -109,7 +107,7 @@ public class OracleDeckTests
 
     [Fact]
     [Trait("TS", "TS-oracle-deck-004")]
-    public void SpendPair_同じシードと同じ操作を繰り返す_引く順が一致する()
+    public void SpendOne_同じシードと同じ操作を繰り返す_引く順が一致する()
     {
         List<string> Play()
         {
@@ -117,7 +115,7 @@ public class OracleDeckTests
             var seen = new List<string>(deck.Hand);
             for (var round = 0; round < 20; round++)
             {
-                deck.SpendPair(0, 1);
+                deck.SpendOne(0);
                 seen.AddRange(deck.Hand);
             }
             return seen;
@@ -137,7 +135,7 @@ public class OracleDeckTests
         var time = new TimeControl(TestRules.World, TestRules.JumpYears);
         var deck = new OracleDeck(Seed, TestRules.Deck);
         var prophet = new ProphetDreams(time, TestRules.ProphetDreams, deck, TestRules.Oracle);
-        prophet.PronouncePair(0, 1);
+        prophet.SpeakFirst();
         var before = deck.Capture();
 
         time.Reset();

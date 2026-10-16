@@ -143,3 +143,9 @@
 
 ## 未決事項（確認したいこと）
 - なし。2026-10-17 に、AI の案の行・器の段を設定ファイルで選ぶこと（PC のスペックから選ぶ処理は入れない）・動詞が聞き取れなかったときの種別を崇拝にすることを、人間が認めた。仮の値は遊びながら決める。
+
+## 実装の記録（2026-10-17）
+- 小段 1〜6 と、旧い 2 枚の神託の削除まで、コアと画面と通信を作った。自動テストと `sh scripts/check.sh` は通っている。**Godot とスマホでの動作は未確認**（手動テスト: `docs/test/belief.md`・`prophet-journey.md`・`oracle-speak-ui.md`・`oracle-prayer.md`）。
+- 旧い神託の削除で消したもの: `ProphetDreams.PronouncePair`・`PairRejection`・`PreviewPair`・`CanPronounce`、`OracleDeck.SpendPair`、旧い命令の待ち行列、`WuxingInterpreter`、`OracleProphecy`（誤解の文の頼み）、スマホの旧い `PRONOUNCE`。
+- **残した定義（削除は別の整理で。`TODO(AI_UNSURE)`）**: 神託の定義の `RuneWeights`・`Wuxing`（`WuxingRules`・`WuxingMultipliers`・`WuxingRelation`）・`GreaterRune.Weight` と、`rules.json` の `oracle.runeWeights`・`oracle.wuxing`・`oracle.greaterRunes[].weight`。2 枚の組の強度を決めるのにだけ使っていたが、今は読み込みで検証するだけで使われない。消すには `OracleRules` の形（テストの `TestRules` を含む）を変える。
+- 融合と精査は、画面から外した（コア・セーブ・定義は残している）。戻すかは未決。

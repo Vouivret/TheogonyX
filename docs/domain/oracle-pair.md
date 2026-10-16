@@ -155,11 +155,11 @@ status: draft   # draft | approved | as-is
 | AC-oracle-pair-001 | （廃止） | | 極性の和による種別。[神託の五行](oracle-wuxing.md)の AC-oracle-wuxing-006 に置き換え |
 | AC-oracle-pair-002 | （廃止） | | 極性の和による種別。AC-oracle-wuxing-007 に置き換え |
 | AC-oracle-pair-003 | （廃止） | | 極性の和による種別。AC-oracle-wuxing-001〜005 に置き換え |
-| AC-oracle-pair-004 | 手札 4 枚・山札 8 枚 | 2 枚を選んで神託を下す | 使った 2 枚が捨札に移り、山札から 2 枚が手札に加わる。手札は 4 枚のまま |
-| AC-oracle-pair-005 | 手札 1 枚（山札も捨札も無い） | 神託を下そうとする | 何も変わらない（下せない） |
-| AC-oracle-pair-006 | 星が崩壊している | 神託を下そうとする | 何も変わらない（下せない） |
+| AC-oracle-pair-004 | （廃止） | | 2 枚の組の神託をやめた。自由文の神託の AC-oracle-pair-024〜027 に置き換え |
+| AC-oracle-pair-005 | （廃止） | | 2 枚の組の神託をやめた。自由文の神託の AC-oracle-pair-024〜027 に置き換え |
+| AC-oracle-pair-006 | （廃止） | | 2 枚の組の神託をやめた。自由文の神託の AC-oracle-pair-024〜027 に置き換え |
 | AC-oracle-pair-007 | 依頼中 | 神託を下す | 依頼が済んで吹き出しが消える。自動進行を止めていたら再開する |
-| AC-oracle-pair-008 | 手札に無いルーンを選ぶ | 神託を下そうとする | 何も変わらず、理由は `card_not_in_hand` |
+| AC-oracle-pair-008 | （廃止） | | 2 枚の組の神託をやめた。自由文の神託の AC-oracle-pair-024〜027 に置き換え |
 | AC-oracle-pair-009 | 同じシード・同じ操作の列 | 2 回計算する | 世界・ドグマ・デッキが一致する |
 | AC-oracle-pair-010 | 神威 3（上限）、コスト 1 | 神託を下す | 神威が 2 になる |
 | AC-oracle-pair-011 | 神威 0.5（コスト 1 未満） | 神託を下そうとする | 何も変わらない（下せない） |

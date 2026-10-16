@@ -109,9 +109,6 @@ public sealed class ProphetDreams
         return greater;
     }
 
-    /// <summary>神託を下せるか。崩壊しておらず、手札が 2 枚以上あり、神威がコスト以上ある。</summary>
-    public bool CanPronounce => !_timeControl.World.IsDestroyed && Deck.Hand.Count >= 2 && Faith.CanAfford;
-
     /// <summary>時間が進んだ後に呼ぶ。神威を溜め、依頼を出すかを決める。</summary>
     public ProphetUpdate OnTimeAdvanced()
     {
@@ -203,71 +200,6 @@ public sealed class ProphetDreams
             dialect.Book.Add(new DialectEntry(noun, null, DialectReason.Known));
         }
         return nouns.Count == 0 ? null : new Prayer(request, nouns);
-    }
-
-    /// <summary>
-    /// 手札の 2 枚（番号は手札の位置。1 枚目が対象）で神託を下したときの、五行の関係と種別の予告（画面の案内に使う）。
-    /// 番号が正しくなければ null。
-    /// </summary>
-    public WuxingJudgement? PreviewPair(int first, int second)
-    {
-        if (first < 0 || second < 0 || first >= Deck.Hand.Count || second >= Deck.Hand.Count || first == second)
-        {
-            return null;
-        }
-        return WuxingInterpreter.Judge(Deck.Hand[first], Deck.Hand[second], _oracleRules);
-    }
-
-    /// <summary>
-    /// 手札の 2 枚（番号は手札の位置）で神託を下せない理由。下せるなら null。
-    /// 理由は <c>star_destroyed</c>・<c>not_enough_cards</c>・<c>card_not_in_hand</c>・<c>same_card</c>・<c>not_enough_faith</c>。
-    /// </summary>
-    public string? PairRejection(int first, int second)
-    {
-        if (_timeControl.World.IsDestroyed)
-        {
-            return "star_destroyed";
-        }
-        if (Deck.Hand.Count < 2)
-        {
-            return "not_enough_cards";
-        }
-        if (first < 0 || second < 0 || first >= Deck.Hand.Count || second >= Deck.Hand.Count)
-        {
-            return "card_not_in_hand";
-        }
-        if (first == second)
-        {
-            return "same_card";
-        }
-        return Faith.CanAfford ? null : "not_enough_faith";
-    }
-
-    /// <summary>
-    /// 手札の 2 枚（1 枚目がドグマの対象）を選んで神託を下す。ドグマを加え、神威を使い、短い年数に重ねすぎたら神の歪みを起こし、
-    /// 使った 2 枚を捨札へ移して 2 枚を補う（docs/domain/oracle-pair.md）。依頼は済み、止めていた自動進行は再開する。
-    /// </summary>
-    /// <exception cref="InvalidOperationException">下せない（<see cref="PairRejection"/> が null でない）。</exception>
-    public OracleResult PronouncePair(int first, int second)
-    {
-        if (PairRejection(first, second) is { } reason)
-        {
-            throw new InvalidOperationException($"神託を下せない: reason={reason}");
-        }
-
-        var world = _timeControl.World;
-        var corruptedCount = new[] { Deck.Hand[first], Deck.Hand[second] }.Count(_oracleRules.IsCorrupted);
-        var dogma = WuxingInterpreter.Interpret(Deck.Hand[first], Deck.Hand[second], _oracleRules);
-        var pairing = new OraclePairing(
-            _oracleRules.SymbolOf(Deck.Hand[second]), WuxingInterpreter.Judge(Deck.Hand[first], Deck.Hand[second], _oracleRules).Relation);
-        if (dogma is not null)
-        {
-            _timeControl.AddDogma(dogma);
-        }
-        Deck.SpendPair(first, second);
-
-        var (overload, answered, resumed) = CompletePronouncement(corruptedCount);
-        return new OracleResult(dogma, answered, resumed, overload, corruptedCount, pairing);
     }
 
     /// <summary>手札のカードが指す記号。</summary>

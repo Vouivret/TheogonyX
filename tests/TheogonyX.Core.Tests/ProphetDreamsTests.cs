@@ -44,14 +44,14 @@ public class ProphetDreamsTests
 
     [Fact]
     [Trait("TS", "TS-prophet-request-009")]
-    public void PronouncePair_依頼で止めた自動進行_神託を下すと再開する()
+    public void Speak_依頼で止めた自動進行_神託を下すと再開する()
     {
         var (prophet, time) = Create();
         time.StartAutoPlay();
         time.World.WaterAmount = 10f;
         prophet.OnTimeAdvanced();
 
-        var result = prophet.PronouncePair(0, 1);
+        var result = prophet.SpeakFirst();
 
         Assert.True(result.ResumedAutoPlay);
         Assert.Equal(TimeControlState.AutoPlaying, time.State);
@@ -59,7 +59,7 @@ public class ProphetDreamsTests
 
     [Fact]
     [Trait("TS", "TS-prophet-request-009")]
-    public void PronouncePair_依頼で止めて自分で再開した_神託でも状態は変わらない()
+    public void Speak_依頼で止めて自分で再開した_神託でも状態は変わらない()
     {
         var (prophet, time) = Create();
         time.StartAutoPlay();
@@ -68,7 +68,7 @@ public class ProphetDreamsTests
         time.StartAutoPlay();
         prophet.OnTimeAdvanced();
 
-        var result = prophet.PronouncePair(0, 1);
+        var result = prophet.SpeakFirst();
 
         Assert.False(result.ResumedAutoPlay);
         Assert.Equal(TimeControlState.AutoPlaying, time.State);
@@ -76,13 +76,13 @@ public class ProphetDreamsTests
 
     [Fact]
     [Trait("TS", "TS-prophet-request-009")]
-    public void PronouncePair_止まっているときに依頼が出た_神託の後も止まったまま()
+    public void Speak_止まっているときに依頼が出た_神託の後も止まったまま()
     {
         var (prophet, time) = Create();
         time.World.WaterAmount = 10f;
         prophet.OnTimeAdvanced();
 
-        var result = prophet.PronouncePair(0, 1);
+        var result = prophet.SpeakFirst();
 
         Assert.False(result.ResumedAutoPlay);
         Assert.Equal(TimeControlState.Stopped, time.State);
@@ -145,13 +145,13 @@ public class ProphetDreamsTests
 
     [Fact]
     [Trait("TS", "TS-prophet-request-003")]
-    public void PronouncePair_渇きの依頼中_依頼が済む()
+    public void Speak_渇きの依頼中_依頼が済む()
     {
         var (prophet, time) = Create();
         time.World.WaterAmount = 10f;
         prophet.OnTimeAdvanced();
 
-        var result = prophet.PronouncePair(0, 1);
+        var result = prophet.SpeakFirst();
 
         Assert.Equal("THIRST", result.AnsweredRequest?.Id);
         Assert.Null(prophet.ActiveRequest);
@@ -181,7 +181,7 @@ public class ProphetDreamsTests
         time.World.WaterAmount = 10f;
         SetYear(time, 100);
         prophet.OnTimeAdvanced();
-        prophet.PronouncePair(0, 1);
+        prophet.SpeakFirst();
 
         SetYear(time, 149);
         var at149 = prophet.OnTimeAdvanced();
@@ -200,7 +200,7 @@ public class ProphetDreamsTests
         time.World.WaterAmount = 10f;
         SetYear(time, 100);
         prophet.OnTimeAdvanced();
-        prophet.PronouncePair(0, 1);
+        prophet.SpeakFirst();
 
         time.World.ForestAmount = 20f;
         SetYear(time, 101);
@@ -230,7 +230,7 @@ public class ProphetDreamsTests
         var (prophet, time) = Create();
         time.World.WaterAmount = 10f;
         prophet.OnTimeAdvanced();
-        prophet.PronouncePair(0, 1);
+        prophet.SpeakFirst();
         time.World.ForestAmount = 10f;
         SetYear(time, 1);
         prophet.OnTimeAdvanced();

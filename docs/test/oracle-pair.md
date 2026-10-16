@@ -9,9 +9,9 @@
 
 | ID | 受け入れ条件 | 観点 | 前提 | 操作 | 期待結果 | 種別 | 実装場所 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TS-oracle-pair-001 | AC-oracle-wuxing-001〜007 | 2 枚を選ぶと、1 枚目が対象のドグマが一覧に加わり、結果と一致する（種別と強度は五行の関係。2026-10-14 に極性の和から置き換え） | 受け入れ条件のとおり | 神託を下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePairTests.cs` |
-| TS-oracle-pair-002 | AC-oracle-pair-004 | 使った 2 枚が捨札へ移り、山札から 2 枚が補われる | 受け入れ条件のとおり | 神託を下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePairTests.cs` |
-| TS-oracle-pair-003 | AC-oracle-pair-005, 006, 008 | 手札が 2 枚未満・崩壊・手札の番号が範囲外か同じ、のとき下せない（理由が返る） | 受け入れ条件のとおり | 神託を下そうとする | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePairTests.cs` |
+| TS-oracle-pair-001 | AC-oracle-wuxing-001〜007 | 2 枚を選ぶと、1 枚目が対象のドグマが一覧に加わり、結果と一致する（種別と強度は五行の関係。2026-10-14 に極性の和から置き換え） | 受け入れ条件のとおり | 神託を下す | 受け入れ条件のとおり | 廃止 | — |
+| TS-oracle-pair-002 | AC-oracle-pair-004 | 使った 2 枚が捨札へ移り、山札から 2 枚が補われる | 受け入れ条件のとおり | 神託を下す | 受け入れ条件のとおり | 廃止 | — |
+| TS-oracle-pair-003 | AC-oracle-pair-005, 006, 008 | 手札が 2 枚未満・崩壊・手札の番号が範囲外か同じ、のとき下せない（理由が返る） | 受け入れ条件のとおり | 神託を下そうとする | 受け入れ条件のとおり | 廃止 | — |
 | TS-oracle-pair-004 | AC-oracle-pair-007 | 依頼中に神託を下すと、依頼が済む | 受け入れ条件のとおり | 神託を下す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePairTests.cs` |
 | TS-oracle-pair-005 | AC-oracle-pair-009 | 同じシード・同じ操作の列で、世界・ドグマ・デッキ・神威が一致する | 受け入れ条件のとおり | 2 回計算する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePairTests.cs` |
 | TS-oracle-pair-006 | AC-oracle-pair-010, 011, 012 | 神威がコストで減り、足りないと下せず、100 年進めても上限で止まる | 受け入れ条件のとおり | 神託を下す・年を進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePairTests.cs` |
