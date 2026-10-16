@@ -85,6 +85,12 @@ public sealed class DreamView
     /// <summary>直近に下した旧い形の神託の、2 枚目の記号と五行の関係（予言者の語りに使う。保存しない）。</summary>
     public OraclePairing? LastPairing { get; private set; }
 
+    /// <summary>予言者が祈った（新しい依頼の祈りか、日々の祈り）。祈りの文を作って <see cref="PrayerText"/> や吹き出しに出すのに使う。</summary>
+    public event Action<Prayer>? Prayed;
+
+    /// <summary>依頼中の吹き出しに出す祈りの文。無ければ（依頼の定型文を出す）null。依頼が済むと消える。</summary>
+    public string? PrayerText { get; set; }
+
     /// <summary>神の言葉を書いて「語りかける」を押した（LLM が使えるとき）。</summary>
     public event Action<string>? SpeakRequested;
 
@@ -146,6 +152,11 @@ public sealed class DreamView
         if (update.PausedAutoPlay)
         {
             GD.Print(FormattableString.Invariant($"event=auto_play_paused year={year} reason=prophet_prayer"));
+        }
+        PrayerText = null;
+        if (update.Prayer is { } prayer)
+        {
+            Prayed?.Invoke(prayer);
         }
         Redraw();
     }
@@ -288,12 +299,13 @@ public sealed class DreamView
 
         if (_prophet.ActiveRequest is { } request)
         {
-            _requestBubble.Text = string.Format(
+            _requestBubble.Text = PrayerText ?? string.Format(
                 CultureInfo.CurrentCulture, Tr("REQUEST_BUBBLE"), Tr($"TROUBLE_{request.Id}"), Tr($"SYMBOL_{request.SymbolId}"));
             _requestBubble.Visible = true;
         }
         else
         {
+            PrayerText = null;
             _requestBubble.Visible = false;
         }
 

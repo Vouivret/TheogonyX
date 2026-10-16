@@ -51,6 +51,7 @@ public sealed class OracleView
         dreams.OraclePronounced += OnOraclePronounced;
         dreams.SpeakRequested += OnSpeakRequested;
         dreams.WordsChosen += OnWordsChosen;
+        dreams.Prayed += OnPrayed;
         // LLM を使わない設定なら、最初から言葉を選ぶ形にする
         dreams.ChoiceMode = !rules.Enabled;
     }
@@ -161,6 +162,64 @@ public sealed class OracleView
         }
         var text = OracleProphecy.ParseResponse(reply);
         return (text, text is null ? "invalid_response" : string.Empty, durationMs);
+    }
+
+    // 予言者が祈った。まず定型の祈り（困りごとのひな形に知っている名詞を入れた文）を出し、LLM が使えれば、できた文に差し替える
+    private void OnPrayed(Prayer prayer)
+    {
+        var words = prayer.NounIds.Select(id => Tr($"WORD_{id}")).ToList();
+        var troubleText = prayer.Request is null ? null : Tr($"TROUBLE_{prayer.Request.Id}");
+        var fallback = FallbackPrayer(prayer, words);
+        var year = _timeControl.World.Year;
+        if (prayer.Request is null)
+        {
+            GD.Print(FormattableString.Invariant($"event=prophet_whispered year={year} count={words.Count}"));
+            if (!_listening)
+            {
+                ShowText(fallback);
+            }
+        }
+        else
+        {
+            _dreams.PrayerText = fallback;
+        }
+        if (_rules.Enabled)
+        {
+            _ = PrayAsync(prayer, troubleText, words, fallback);
+        }
+    }
+
+    private async Task PrayAsync(Prayer prayer, string? troubleText, List<string> words, string fallback)
+    {
+        var body = PrayerWriter.BuildRequest(_rules, troubleText, words, TranslationServer.GetLocale());
+        var (reply, failure, durationMs) = await _client.PostAsync(body);
+        var text = reply is null ? null : PrayerWriter.ParseResponse(reply, words);
+        if (text is null)
+        {
+            GD.PushWarning(FormattableString.Invariant(
+                $"event=oracle_ai_failed year={_timeControl.World.Year} reason={(reply is null ? failure : "invalid_response")} durationMs={durationMs}"));
+            return;
+        }
+        if (prayer.Request is not null)
+        {
+            // 依頼がまだ続いていて、定型の祈りのままのときだけ差し替える
+            if (_prophet.ActiveRequest?.Id == prayer.Request.Id && _dreams.PrayerText == fallback)
+            {
+                _dreams.PrayerText = text;
+                _dreams.Refresh();
+            }
+        }
+        else if (!_listening)
+        {
+            ShowText(text);
+        }
+    }
+
+    // 困りごとごとのひな形に、祈りに入れる名詞を入れた文（名詞が 2 つ未満でも書式が足りるよう、最後の語を繰り返して 3 つにそろえる）
+    private static string FallbackPrayer(Prayer prayer, List<string> words)
+    {
+        object[] args = [words[0], words.Count > 1 ? words[1] : words[0], words.Count > 2 ? words[2] : words[^1]];
+        return string.Format(CultureInfo.CurrentCulture, Tr(prayer.Request is null ? "PRAYER_DAILY" : $"PRAYER_{prayer.Request.Id}"), args);
     }
 
     // 神の言葉を受け取った（LLM が使えるとき）

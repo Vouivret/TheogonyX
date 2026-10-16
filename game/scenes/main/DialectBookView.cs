@@ -85,6 +85,7 @@ public sealed class DialectBookView
         return entry.Reason switch
         {
             DialectReason.Mystery => string.Format(culture, Tr("BOOK_ROW_MYSTERY"), entry.GodWord),
+            DialectReason.Known => string.Format(culture, Tr("BOOK_ROW_KNOWN"), Tr($"WORD_{entry.GodWord}")),
             DialectReason.Unknown => string.Format(culture, Tr("BOOK_ROW_UNKNOWN"), Tr($"WORD_{entry.GodWord}"), Tr($"WORD_{entry.HeardWordId}")),
             _ => string.Format(culture, Tr("BOOK_ROW_DIALECT"), Tr($"WORD_{entry.GodWord}"), Tr($"WORD_{entry.HeardWordId}")),
         };

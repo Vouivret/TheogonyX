@@ -184,3 +184,12 @@ BOOK_ROW_DIALECT,{0} → {1}（この予言者の言葉）,{0} → {1} (this pro
 BOOK_ROW_UNKNOWN,{0} → {1}（知らない言葉）,{0} → {1} (unknown word)
 BOOK_ROW_MYSTERY,「{0}」（謎の言葉）,"""{0}"" (mysterious word)"
 SAVE_OUTDATED,前の星は新しい版では読めないので残して、新しい星で始めました,"The previous planet cannot be read by this version, so it was kept aside. Started a new planet."
+BOOK_ROW_KNOWN,{0}（予言者が知っている言葉）,{0} (a word the prophet knows)
+PRAYER_THIRST,神よ、{0}は渇き、{1}も細っています,"O god, the {0} runs dry and the {1} dwindles."
+PRAYER_FAMINE,神よ、{0}は痩せ、{1}も実りません,"O god, the {0} withers and the {1} bears nothing."
+PRAYER_HEAT,神よ、{0}が焼かれ、{1}も萎れます,"O god, the {0} is scorched and the {1} wilts."
+PRAYER_COLD,神よ、{0}は凍え、{1}も冷え切っています,"O god, the {0} freezes and the {1} is cold."
+PRAYER_CHAOS,神よ、{0}が乱れ、{1}も荒れています,"O god, the {0} is in disorder and the {1} is ravaged."
+PRAYER_UNREST,神よ、{0}は荒れ、{1}も騒いでいます,"O god, the {0} is wild and the {1} is restless."
+PRAYER_RUIN,神よ、{0}は朽ち、{1}も崩れていきます,"O god, the {0} decays and the {1} crumbles."
+PRAYER_DAILY,神よ、{0}と{1}に感謝します,"Thank you, god, for the {0} and the {1}."

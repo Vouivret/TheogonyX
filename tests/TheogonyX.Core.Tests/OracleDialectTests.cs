@@ -11,7 +11,7 @@ public class OracleDialectTests
 
     // 木と水だけが結びつく。火には隣が無い。器は、ずれない段と、すべての語がずれる段
     internal static readonly DialectRules Rules = new(
-        [new DialectNoun("NOUN_FOREST", "SYM_TREE"), new DialectNoun("NOUN_RIVER", "SYM_WATER"), new DialectNoun("NOUN_FLAME", "SYM_FIRE")],
+        [new DialectNoun("NOUN_FOREST", "SYM_TREE"), new DialectNoun("NOUN_RIVER", "SYM_WATER"), new DialectNoun("NOUN_FLAME", "SYM_FIRE"), new DialectNoun("NOUN_BLOOD", "SYM_BLOOD")],
         [
             new DialectVerb("VERB_PROTECT", DogmaType.Worship, 0.7f),
             new DialectVerb("VERB_AVOID", DogmaType.Taboo, 0.7f),

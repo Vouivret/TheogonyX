@@ -19,6 +19,9 @@ public sealed record DialectVessel(string Id, float MisheardRatio);
 /// <param name="ReversalProbability">ずれる動詞のうち、崇拝と破壊が入れ替わる確率。</param>
 /// <param name="DefaultType">動詞が聞き取れなかったときの種別。</param>
 /// <param name="DefaultIntensity">動詞が聞き取れなかったときの強度。</param>
+/// <param name="PrayerMinWords">祈りに入れる名詞の数の下限（仮）。</param>
+/// <param name="PrayerMaxWords">祈りに入れる名詞の数の上限（仮）。</param>
+/// <param name="DailyPrayerYears">困りごとの無い間に、短い祈りをささやく間隔（年。仮）。</param>
 public sealed record DialectRules(
     IReadOnlyList<DialectNoun> Nouns,
     IReadOnlyList<DialectVerb> Verbs,
@@ -26,7 +29,10 @@ public sealed record DialectRules(
     IReadOnlyList<DialectVessel> Vessels,
     float ReversalProbability,
     DogmaType DefaultType,
-    float DefaultIntensity)
+    float DefaultIntensity,
+    int PrayerMinWords = 2,
+    int PrayerMaxWords = 3,
+    int DailyPrayerYears = 20)
 {
     /// <summary>値が範囲の中にあり、ID が重複していないことを確かめる。</summary>
     /// <exception cref="ArgumentException">範囲外の値、重複した ID。</exception>
@@ -41,7 +47,8 @@ public sealed record DialectRules(
             || Vessels.Select(vessel => vessel.Id).Distinct().Count() != Vessels.Count
             || Vessels.Any(vessel => !IsRatio(vessel.MisheardRatio))
             || Verbs.Any(verb => !IsRatio(verb.Intensity))
-            || !IsRatio(ReversalProbability) || !IsRatio(DefaultIntensity))
+            || !IsRatio(ReversalProbability) || !IsRatio(DefaultIntensity)
+            || PrayerMinWords < 1 || PrayerMaxWords < PrayerMinWords || DailyPrayerYears < 1)
         {
             throw new ArgumentException("方言の定義の値が範囲外か、ID が重複している");
         }

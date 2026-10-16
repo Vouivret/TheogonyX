@@ -26,10 +26,16 @@ public sealed class ProphetDreams
         [(true, RequestTrigger.Reset)] = false,
     };
 
+    // 建物・住人・信仰・旅の乱数と同じ並びにならないよう、シードに別の値を混ぜる
+    private const uint PrayerSalt = 0x50524159; // "PRAY"
+
     private readonly TimeControl _timeControl;
     private readonly ProphetDreamRules _rules;
     private readonly OracleRules _oracleRules;
     private readonly Dictionary<string, int> _answeredYears = [];
+
+    // 祈りに入れたことのある記号（まだ入れていない記号は「新しい語」として、次の祈りに入れる）
+    private readonly HashSet<string> _prayedSymbols = [];
     private int _faithYear;
 
     // 依頼のために自動進行を止めたか。神託を下したときに再開するのに使う。
@@ -121,6 +127,10 @@ public sealed class ProphetDreams
         {
             return new ProphetUpdate(null, false, corrupted, gained);
         }
+        if (Dialect is { } dialect)
+        {
+            dialect.NextPrayerYear ??= world.Year + dialect.Rules.DailyPrayerYears;
+        }
 
         // 依頼のあいだにプレイヤーが自動進行を再開したら、神託のときに再開し直す必要は無い
         if (_timeControl.State == TimeControlState.AutoPlaying)
@@ -142,7 +152,57 @@ public sealed class ProphetDreams
             _pausedForRequest = true;
             paused = true;
         }
-        return new ProphetUpdate(newRequest, paused, corrupted, gained);
+        Prayer? prayer = null;
+        if (Dialect is { } prayerDialect)
+        {
+            var dailyDue = newRequest is null && ActiveRequest is null && world.Year >= prayerDialect.NextPrayerYear;
+            if (newRequest is not null || dailyDue)
+            {
+                prayer = ComposePrayer(prayerDialect, newRequest, world.Year);
+                prayerDialect.NextPrayerYear = world.Year + prayerDialect.Rules.DailyPrayerYears;
+            }
+        }
+        return new ProphetUpdate(newRequest, paused, corrupted, gained, prayer);
+    }
+
+    // 祈りに入れる名詞を選ぶ。手札の記号の名詞だけ。汚染ルーンの記号の語を 1 つ混ぜ、まだ祈りに入れていない記号（新しい語）を必ず入れ、
+    // 残りは乱数で選ぶ。入れた名詞は、方言帳に「知っている言葉」として残す
+    private Prayer? ComposePrayer(DialectState dialect, ProphetRequestRule? request, int year)
+    {
+        var rules = dialect.Rules;
+        var handSymbols = Deck.Hand.Select(_oracleRules.SymbolOf).Distinct().ToList();
+        if (handSymbols.Count == 0)
+        {
+            return null;
+        }
+        var random = new Random(unchecked((int)CrowdHash.Hash((uint)dialect.Seed ^ PrayerSalt, (uint)year, request is null ? 0u : 1u)));
+        var corrupted = Deck.Hand.Where(_oracleRules.IsCorrupted).Select(_oracleRules.SymbolOf).Distinct().Take(1).ToList();
+        var fresh = handSymbols.Where(symbol => !_prayedSymbols.Contains(symbol) && !corrupted.Contains(symbol));
+        var count = random.Next(rules.PrayerMinWords, rules.PrayerMaxWords + 1);
+        var chosen = corrupted.Concat(fresh).Take(Math.Max(count, corrupted.Count)).ToList();
+        var others = handSymbols.Except(chosen).ToList();
+        while (chosen.Count < count && others.Count > 0)
+        {
+            var index = random.Next(others.Count);
+            chosen.Add(others[index]);
+            others.RemoveAt(index);
+        }
+
+        var nouns = new List<string>();
+        foreach (var symbol in chosen)
+        {
+            var candidates = rules.Nouns.Where(noun => noun.SymbolId == symbol).ToList();
+            if (candidates.Count > 0)
+            {
+                nouns.Add(candidates[random.Next(candidates.Count)].Id);
+                _prayedSymbols.Add(symbol);
+            }
+        }
+        foreach (var noun in nouns)
+        {
+            dialect.Book.Add(new DialectEntry(noun, null, DialectReason.Known));
+        }
+        return nouns.Count == 0 ? null : new Prayer(request, nouns);
     }
 
     /// <summary>

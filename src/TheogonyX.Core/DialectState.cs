@@ -12,7 +12,8 @@ public sealed record OracleRecord(
 
 /// <summary>セーブに残す方言の状態。</summary>
 public sealed record DialectSave(
-    string VesselId, IReadOnlyList<DialectShift> Shifts, IReadOnlyList<DialectEntry> Book, IReadOnlyList<OracleRecord> Records);
+    string VesselId, IReadOnlyList<DialectShift> Shifts, IReadOnlyList<DialectEntry> Book, IReadOnlyList<OracleRecord> Records,
+    int? NextPrayerYear = null);
 
 /// <summary>
 /// 予言者の方言の状態（語義のずれ表・方言帳・神託の記録）。ずれ表は星を作るときに決め、途中で変えない。
@@ -31,8 +32,15 @@ public sealed class DialectState
     {
         ArgumentNullException.ThrowIfNull(rules);
         Rules = rules;
+        Seed = seed;
         Table = DialectTable.Create(rules, vesselId, seed);
     }
+
+    /// <summary>星のシード。祈りに入れる語を選ぶ乱数を作るのに使う。</summary>
+    public int Seed { get; }
+
+    /// <summary>次に日々の祈りをささやく年。まだ決めていなければ null（最初に時間が進んだときに決める）。</summary>
+    public int? NextPrayerYear { get; set; }
 
     public DialectRules Rules { get; }
 
@@ -68,7 +76,7 @@ public sealed class DialectState
     /// <summary>世界再創生: 神託の記録を捨てる。ずれ表と方言帳は、予言者の言葉の知識なので残す。</summary>
     public void ClearRecords() => _records.Clear();
 
-    public DialectSave Capture() => new(Table.VesselId, [.. Table.Shifts], [.. Book.Entries], [.. _records]);
+    public DialectSave Capture() => new(Table.VesselId, [.. Table.Shifts], [.. Book.Entries], [.. _records], NextPrayerYear);
 
     /// <summary>セーブから読み込んだ状態に置き換える。検証を全部済ませてから置き換える。</summary>
     /// <exception cref="ArgumentException">定義に合わない値。</exception>
@@ -79,9 +87,12 @@ public sealed class DialectState
         var book = new DialectBook();
         foreach (var entry in save.Book)
         {
-            var valid = entry.Reason == DialectReason.Mystery
-                ? entry.HeardWordId is null && AiText.IsPlain(entry.GodWord, OracleHearer.MaxMysteryWordLength)
-                : IsWord(entry.GodWord) && entry.HeardWordId is not null && IsWord(entry.HeardWordId);
+            var valid = entry.Reason switch
+            {
+                DialectReason.Mystery => entry.HeardWordId is null && AiText.IsPlain(entry.GodWord, OracleHearer.MaxMysteryWordLength),
+                DialectReason.Known => entry.HeardWordId is null && Rules.FindNoun(entry.GodWord) is not null,
+                _ => IsWord(entry.GodWord) && entry.HeardWordId is not null && IsWord(entry.HeardWordId),
+            };
             if (!valid || !book.Add(entry))
             {
                 throw new ArgumentException($"方言帳の行が定義に合わない: {entry}", nameof(save));
@@ -100,8 +111,13 @@ public sealed class DialectState
                 throw new ArgumentException($"神託の記録が定義に合わない: year={record.Year}", nameof(save));
             }
         }
+        if (save.NextPrayerYear is < 0)
+        {
+            throw new ArgumentException($"次の祈りの年が正しくない: {save.NextPrayerYear}", nameof(save));
+        }
         Table = table;
         Book = book;
+        NextPrayerYear = save.NextPrayerYear;
         _records.Clear();
         _records.AddRange(save.Records.TakeLast(MaxRecords));
     }

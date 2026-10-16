@@ -176,6 +176,9 @@
       { "id": "VESSEL_PROPHET", "misheardRatio": 0.1 }
     ],
     "reversalProbability": 0.2,
+    "prayerMinWords": 2,
+    "prayerMaxWords": 3,
+    "dailyPrayerYears": 20,
     "defaultType": "Worship",
     "defaultIntensity": 0.7
   },

@@ -9,12 +9,15 @@ public enum DialectReason
     /// <summary>知らない言葉（近い知っている言葉に聞き違えた）。</summary>
     Unknown,
 
+    /// <summary>予言者の祈りに出た、知っている言葉（<see cref="DialectEntry.HeardWordId"/> は null）。</summary>
+    Known,
+
     /// <summary>謎の言葉（どの記号にも当たらず、経典にだけ残る）。</summary>
     Mystery,
 }
 
 /// <summary>
-/// 方言帳の 1 行。神の言葉は概念の ID。謎の言葉は <paramref name="GodWord"/> が神の文の言葉そのもので、
+/// 方言帳の 1 行。神の言葉は概念の ID。知っている言葉は <paramref name="GodWord"/> がその語の ID で、<paramref name="HeardWordId"/> が null。謎の言葉は <paramref name="GodWord"/> が神の文の言葉そのもので、
 /// <paramref name="HeardWordId"/> が null。
 /// </summary>
 public sealed record DialectEntry(string GodWord, string? HeardWordId, DialectReason Reason);

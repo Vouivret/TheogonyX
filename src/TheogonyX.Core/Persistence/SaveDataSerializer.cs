@@ -208,6 +208,7 @@ public static class SaveDataSerializer
                 : new
                 {
                     vesselId = data.Dialect.VesselId,
+                    nextPrayerYear = data.Dialect.NextPrayerYear,
                     shifts = data.Dialect.Shifts.Select(shift => new { fromId = shift.FromId, toId = shift.ToId, kind = shift.Kind.ToString() }),
                     book = data.Dialect.Book.Select(entry => new { godWord = entry.GodWord, heardWordId = entry.HeardWordId, reason = entry.Reason.ToString() }),
                     records = data.Dialect.Records.Select(record => new
@@ -442,7 +443,14 @@ public static class SaveDataSerializer
                 teachingElement.ValueKind == JsonValueKind.Null ? null : ReadDogma(teachingElement, symbolIds),
                 ReadEnum<TravelDirection>(item, "destination"), mysteries, ReadOptionalString(item, "heardText"), ReadOptionalString(item, "narration"));
         }).ToList();
-        return new DialectSave(ReadString(element, "vesselId"), shifts, book, records);
+        int? nextPrayerYear = null;
+        if (element.TryGetProperty("nextPrayerYear", out var nextElement) && nextElement.ValueKind != JsonValueKind.Null)
+        {
+            nextPrayerYear = nextElement.ValueKind == JsonValueKind.Number && nextElement.TryGetInt32(out var next) && next >= 0
+                ? next
+                : throw new InvalidSaveDataException("invalid_dialect");
+        }
+        return new DialectSave(ReadString(element, "vesselId"), shifts, book, records, nextPrayerYear);
     }
 
     // 版 16 で足した項目。無い（または null）なら、予言者は最初の居場所から始める
