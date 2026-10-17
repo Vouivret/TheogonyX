@@ -28,9 +28,6 @@ HUD_NEXT_YEAR,次の年まで {0},Next year in {0}
 BUTTON_RESET,世界再創生,Recreate World
 ORACLE_THINKING,予言者は神託を紡いでいる…,The prophet is weaving an oracle...
 ORACLE_HEADING,「{0}」,"""{0}"""
-ORACLE_FALLBACK_TABOO,{0}を恐れよ。触れる者に災いあれ。,"Fear the {0}. Woe to those who touch it."
-ORACLE_FALLBACK_WORSHIP,{0}を崇めよ。{0}こそが我らを救う。,"Worship the {0}. The {0} alone shall save us."
-ORACLE_FALLBACK_DESTRUCTION,{0}を打ち壊せ。それが神の望みだ。,"Destroy the {0}. It is the will of god."
 BUTTON_HISTORY,年表,Chronicle
 HISTORY_TITLE,星の年表,Chronicle of the Star
 HISTORY_EMPTY,（まだ何も起きていない）,(Nothing has happened yet)

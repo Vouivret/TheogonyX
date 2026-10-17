@@ -34,6 +34,12 @@
 | 精神崩壊 | `BreakdownKind` | SAN 値が 0 になった住人の状態。狂乱（`Rampage`）か自閉・絶望（`Catatonia`）で、3 年続く | Breakdown | 発狂 |
 | 称号 | `ResidentEpithet` | 住人が行いで得る呼び名（例: 血を恐れぬ者）。1 人 1 つで、最初に得たものを残す | Epithet | 二つ名 |
 | 家 | `BuildingType.HouseHut`・`HouseTimber`・`HouseBrick` | 屋根を探す住人が建てる建物。1 軒に 4 人が住める。種類は建った年の地域の技術の段階で決まる（わらぶき小屋・木組みの家・れんがの家） | House | 住居、民家 |
+| 神の声 | `SPEAK`（通信） | プレイヤーが自由な文で書いて予言者に語りかける神託（[神託の作り方](oracle-pair.md)の「自由文の神託」） | Divine voice | |
+| 予言者の語彙 | `OracleDeck` | 予言者が知っている言葉。手札のルーンの記号の名詞と、すべての動詞。画面には見せない（[神託の作り方](oracle-pair.md)） | Prophet vocabulary | |
+| 語義のずれ表 | `DialectTable` | 星のシードと器の段から作る「神の言葉 → 予言者に聞こえる意味」の表（[神託の作り方](oracle-pair.md)） | Dialect table | |
+| 方言帳 | `DialectBook` | 神託と祈りで分かった聞き違えと知っている言葉を、自動で書き留める欄（[神託の作り方](oracle-pair.md)） | Dialect book | |
+| 謎の言葉 | `MysteryWords` | 神の文のうち、どの記号にも当たらない言葉。教えにならず、経典にだけ残る（[神託の作り方](oracle-pair.md)） | Mystery word | |
+| 掟の 1 行 | `ORACLE_LINE_*` | 予言者が告げる吹き出しの頭に出す、記号と種別を決まった形で書いた 1 行（例:「〈木〉を崇めよ」）（[神託の作り方](oracle-pair.md)） | Law line | |
 | 予言者の誤解 | `OracleProphecy`・`OracleText` | 神託でドグマが生まれたとき、予言者が神の意図を誤解して語る文（見出し・意図・教義）。ローカルの LLM が作る表現で、ゲームの計算には関わらない（[AI による表現](ai-presentation.md)） | Prophet's misreading | AI 神託 |
 | 年表 | `History`・`HistoryEntry` | 星に起きた主な出来事（ドグマの誕生・住人の精神崩壊・名のある住人の死・星の崩壊・世界再創生）を年ごとに積んだもの。世界再創生をまたいで残る（[星の年表](history.md)） | Chronicle | 歴史ログ |
 | つがい | `Resident.PartnerId` | 同じ地域で組んだ 2 人の住人。子供をもうけ、死ぬまで続く | Partner | 夫婦、カップル |

@@ -187,4 +187,19 @@ public class OracleDialectTests
         Assert.False(book.Add(entry with { }));
         Assert.Single(book.Entries);
     }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-dialect-010")]
+    public void Add_同じ神の言葉_新しい行に置き換える()
+    {
+        var book = new DialectBook();
+        book.Add(new DialectEntry("NOUN_RIVER", null, DialectReason.Known));
+        book.Add(new DialectEntry("VERB_PROTECT", "VERB_CUT", DialectReason.Dialect));
+
+        Assert.True(book.Add(new DialectEntry("NOUN_RIVER", "NOUN_FOREST", DialectReason.Unknown)));
+
+        Assert.Equal(
+            [new DialectEntry("VERB_PROTECT", "VERB_CUT", DialectReason.Dialect), new DialectEntry("NOUN_RIVER", "NOUN_FOREST", DialectReason.Unknown)],
+            book.Entries);
+    }
 }

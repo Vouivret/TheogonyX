@@ -18,6 +18,7 @@
 | TS-oracle-dialect-007 | AC-oracle-pair-022 | 方角は通じ、北・南・土地の名は「なし」に聞き違える。行き先だけの神託も聞ける | 受け入れ条件のとおり | 聞き取る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleDialectTests.cs` |
 | TS-oracle-dialect-008 | AC-oracle-pair-023 | 定義に無い語は聞こえなかったことにし、壊れた答えを理由つきで拒む | 受け入れ条件のとおり | 聞き取る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleDialectTests.cs` |
 | TS-oracle-dialect-009 | （仕様書の「方言帳」） | 方言帳は同じ行を 2 度足さない | 同じ行 | 2 度足す | 2 度目は足されず、1 行のまま | 自動 | `tests/TheogonyX.Core.Tests/OracleDialectTests.cs` |
+| TS-oracle-dialect-010 | AC-oracle-pair-044 | 同じ神の言葉の行は、新しい行に置き換わる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleDialectTests.cs` |
 
 ## 対象外
 

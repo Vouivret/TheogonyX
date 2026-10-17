@@ -22,7 +22,10 @@ public enum DialectReason
 /// </summary>
 public sealed record DialectEntry(string GodWord, string? HeardWordId, DialectReason Reason);
 
-/// <summary>方言帳（神託で分かった聞き違えを、自動で書き留める欄）。同じ行は 2 度足さない。</summary>
+/// <summary>
+/// 方言帳（神託で分かった聞き違えを、自動で書き留める欄）。同じ神の言葉は 1 行だけ持ち、新しい結果で置き換える
+/// （知っている言葉が、手札が変わって知らない言葉になったときなど）。
+/// </summary>
 public sealed class DialectBook
 {
     private readonly List<DialectEntry> _entries = [];
@@ -30,7 +33,7 @@ public sealed class DialectBook
     /// <summary>行（古い順。見せるときは新しい順に並べる）。</summary>
     public IReadOnlyList<DialectEntry> Entries => _entries;
 
-    /// <summary>行を足す。すでに同じ行があれば足さず false。</summary>
+    /// <summary>行を足す。同じ神の言葉の行があれば消してから、新しい行として足す。すでに同じ行があれば変えず false。</summary>
     public bool Add(DialectEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -38,6 +41,7 @@ public sealed class DialectBook
         {
             return false;
         }
+        _entries.RemoveAll(existing => existing.GodWord == entry.GodWord);
         _entries.Add(entry);
         return true;
     }
