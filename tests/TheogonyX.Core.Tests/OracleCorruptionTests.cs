@@ -181,9 +181,9 @@ public class OracleCorruptionTests
         prophet.OnTimeAdvanced();
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
-            [AutoPlaySpeed.Normal] = 1.0,
-            [AutoPlaySpeed.Fast] = 0.1,
-            [AutoPlaySpeed.RealTime] = 86400.0,
+            [AutoPlaySpeed.X1] = 600.0,
+            [AutoPlaySpeed.X2] = 300.0,
+            [AutoPlaySpeed.X3] = 200.0,
         });
         var expected = deck.Capture();
 
@@ -209,7 +209,7 @@ public class OracleCorruptionTests
         var (prophet, time, _) = Create();
         time.World.ChaosLevel = 90f;
         prophet.OnTimeAdvanced();
-        var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double> { [AutoPlaySpeed.Normal] = 1.0, [AutoPlaySpeed.Fast] = 0.1, [AutoPlaySpeed.RealTime] = 86400.0 });
+        var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double> { [AutoPlaySpeed.X1] = 600.0, [AutoPlaySpeed.X2] = 300.0, [AutoPlaySpeed.X3] = 200.0, });
         var json = SaveDataSerializer.Write(SaveGame.Capture(time, prophet, Seed, clock));
 
         var ok = SaveDataSerializer.TryParse(

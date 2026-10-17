@@ -21,9 +21,9 @@ DOGMA_TYPE_DESTRUCTION,破壊（乱れ）,Destruction (Disorder)
 BUTTON_JUMP,{0}年跳躍,Skip {0} Years
 BUTTON_AUTO_PLAY,自動進行,Auto-play
 BUTTON_PAUSE,一時停止,Pause
-BUTTON_SPEED_NORMAL,速さ: 通常,Speed: Normal
-BUTTON_SPEED_FAST,速さ: 高速,Speed: Fast
-BUTTON_SPEED_REAL_TIME,速さ: 現実同期,Speed: Real Time
+BUTTON_SPEED_X1,速さ: 1 倍,Speed: x1
+BUTTON_SPEED_X2,速さ: 2 倍,Speed: x2
+BUTTON_SPEED_X3,速さ: 3 倍,Speed: x3
 HUD_NEXT_YEAR,次の年まで {0},Next year in {0}
 BUTTON_RESET,世界再創生,Recreate World
 ORACLE_THINKING,予言者は神託を紡いでいる…,The prophet is weaving an oracle...

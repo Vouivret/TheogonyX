@@ -78,9 +78,9 @@ public class SaveDataTests
         var prophet = new ProphetDreams(time, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
-            [AutoPlaySpeed.Normal] = 1.0,
-            [AutoPlaySpeed.Fast] = 0.1,
-            [AutoPlaySpeed.RealTime] = 86400.0,
+            [AutoPlaySpeed.X1] = 600.0,
+            [AutoPlaySpeed.X2] = 300.0,
+            [AutoPlaySpeed.X3] = 200.0,
         });
         return new Game(time, prophet, clock);
     }
@@ -241,18 +241,18 @@ public class SaveDataTests
 
     [Fact]
     [Trait("TS", "TS-save-data-006")]
-    public void RoundTrip_現実同期で進み3600秒_速さと進みが戻り止まっている()
+    public void RoundTrip_3倍で進み100秒_速さと進みが戻り止まっている()
     {
         var game = CreateGame();
         game.Clock.CycleSpeed();
         game.Clock.CycleSpeed();
-        game.Clock.Tick(3600.0);
+        game.Clock.Tick(100.0);
         game.Time.StartAutoPlay();
 
         var loaded = RoundTrip(game);
 
-        Assert.Equal(AutoPlaySpeed.RealTime, loaded.Clock.Speed);
-        Assert.Equal(3600.0, loaded.Clock.ElapsedSeconds);
+        Assert.Equal(AutoPlaySpeed.X3, loaded.Clock.Speed);
+        Assert.Equal(100.0, loaded.Clock.ElapsedSeconds);
         Assert.Equal(TimeControlState.Stopped, loaded.Time.State);
     }
 

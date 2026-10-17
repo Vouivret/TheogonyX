@@ -98,9 +98,9 @@ public partial class WorldCore : Node2D
         _timeControl = timeControl;
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
-            [AutoPlaySpeed.Normal] = 1.0 / timeSettings.NormalYearsPerSecond,
-            [AutoPlaySpeed.Fast] = 1.0 / timeSettings.FastYearsPerSecond,
-            [AutoPlaySpeed.RealTime] = timeSettings.RealTimeSecondsPerYear,
+            [AutoPlaySpeed.X1] = timeSettings.SecondsPerYear,
+            [AutoPlaySpeed.X2] = timeSettings.SecondsPerYear / 2,
+            [AutoPlaySpeed.X3] = timeSettings.SecondsPerYear / 3,
         });
         var deck = new OracleDeck(seed, GameDataLoader.ParseDeck(rulesJson, dreamRules));
         var prophet = new ProphetDreams(timeControl, prophetDreamRules, deck, oracleRules);

@@ -113,9 +113,9 @@ public class OracleSpeakTests
         dialect.AttachNarration(0, "森を守れ、西へ", "森を切れ", "予言者は斧を取った");
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
-            [AutoPlaySpeed.Normal] = 1.0,
-            [AutoPlaySpeed.Fast] = 0.1,
-            [AutoPlaySpeed.RealTime] = 86400.0,
+            [AutoPlaySpeed.X1] = 600.0,
+            [AutoPlaySpeed.X2] = 300.0,
+            [AutoPlaySpeed.X3] = 200.0,
         });
         var json = SaveDataSerializer.Write(SaveGame.Capture(time, prophet, Seed, clock));
         Assert.True(

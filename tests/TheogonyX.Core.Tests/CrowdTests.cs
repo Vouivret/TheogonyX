@@ -246,13 +246,13 @@ public class CrowdTests
 
     [Theory]
     [Trait("TS", "TS-crowd-013")]
-    [InlineData(TimeControlState.Stopped, AutoPlaySpeed.Normal, 0f)]
-    [InlineData(TimeControlState.Stopped, AutoPlaySpeed.Fast, 0f)]
-    [InlineData(TimeControlState.Destroyed, AutoPlaySpeed.Normal, 0f)]
-    [InlineData(TimeControlState.AutoPlaying, AutoPlaySpeed.Normal, 1f)]
-    [InlineData(TimeControlState.AutoPlaying, AutoPlaySpeed.RealTime, 1f)]
-    [InlineData(TimeControlState.AutoPlaying, AutoPlaySpeed.Fast, 3f)]
-    public void TimeScaleOf_時間の操作_自動進行中だけ進み高速では速い(TimeControlState state, AutoPlaySpeed speed, float expected)
+    [InlineData(TimeControlState.Stopped, AutoPlaySpeed.X1, 0f)]
+    [InlineData(TimeControlState.Stopped, AutoPlaySpeed.X3, 0f)]
+    [InlineData(TimeControlState.Destroyed, AutoPlaySpeed.X1, 0f)]
+    [InlineData(TimeControlState.AutoPlaying, AutoPlaySpeed.X1, 1f)]
+    [InlineData(TimeControlState.AutoPlaying, AutoPlaySpeed.X2, 2f)]
+    [InlineData(TimeControlState.AutoPlaying, AutoPlaySpeed.X3, 3f)]
+    public void TimeScaleOf_時間の操作_自動進行中だけ進み2倍と3倍では速い(TimeControlState state, AutoPlaySpeed speed, float expected)
     {
         Assert.Equal(expected, Crowd.TimeScaleOf(state, speed, TestRules.Crowd));
     }

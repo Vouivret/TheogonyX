@@ -22,7 +22,7 @@ public sealed class AutoPlayClock
         _secondsPerYear = secondsPerYear;
     }
 
-    public AutoPlaySpeed Speed { get; private set; } = AutoPlaySpeed.Normal;
+    public AutoPlaySpeed Speed { get; private set; } = AutoPlaySpeed.X1;
 
     /// <summary>その年の進み（秒）。</summary>
     public double ElapsedSeconds { get; private set; }
@@ -51,14 +51,14 @@ public sealed class AutoPlayClock
         return true;
     }
 
-    /// <summary>通常 → 高速 → 現実同期 → 通常 と回し、進みを 0 にする。</summary>
+    /// <summary>1 倍 → 2 倍 → 3 倍 → 1 倍 と回し、進みを 0 にする。</summary>
     public void CycleSpeed()
     {
         Speed = Speed switch
         {
-            AutoPlaySpeed.Normal => AutoPlaySpeed.Fast,
-            AutoPlaySpeed.Fast => AutoPlaySpeed.RealTime,
-            _ => AutoPlaySpeed.Normal,
+            AutoPlaySpeed.X1 => AutoPlaySpeed.X2,
+            AutoPlaySpeed.X2 => AutoPlaySpeed.X3,
+            _ => AutoPlaySpeed.X1,
         };
         ElapsedSeconds = 0;
     }

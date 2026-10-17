@@ -97,7 +97,8 @@ public sealed class Crowd
     }
 
     /// <summary>
-    /// 実際の時間 1 秒で群衆の時間を何秒進めるか。自動進行中だけ進み（高速では速く）、止まっている間は 0。
+    /// 実際の時間 1 秒で群衆の時間を何秒進めるか。自動進行中だけ進み（2 倍・3 倍では速く）、止まっている間は 0。
+    /// 1 倍で 1、3 倍で <see cref="CrowdRules.FastTimeScale"/>、2 倍はその真ん中。
     /// </summary>
     public static float TimeScaleOf(TimeControlState state, AutoPlaySpeed speed, CrowdRules rules)
     {
@@ -106,7 +107,12 @@ public sealed class Crowd
         {
             return 0f;
         }
-        return speed == AutoPlaySpeed.Fast ? rules.FastTimeScale : 1f;
+        return speed switch
+        {
+            AutoPlaySpeed.X3 => rules.FastTimeScale,
+            AutoPlaySpeed.X2 => (1f + rules.FastTimeScale) / 2f,
+            _ => 1f,
+        };
     }
 
     /// <summary>始めの配置・向きに戻し、歩数を 0 にする（世界再創生）。</summary>

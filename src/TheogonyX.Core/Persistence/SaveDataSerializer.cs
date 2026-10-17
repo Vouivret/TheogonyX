@@ -19,9 +19,9 @@ public static class SaveDataSerializer
 
     private static readonly Dictionary<AutoPlaySpeed, string> SpeedNames = new()
     {
-        [AutoPlaySpeed.Normal] = "NORMAL",
-        [AutoPlaySpeed.Fast] = "FAST",
-        [AutoPlaySpeed.RealTime] = "REAL_TIME",
+        [AutoPlaySpeed.X1] = "X1",
+        [AutoPlaySpeed.X2] = "X2",
+        [AutoPlaySpeed.X3] = "X3",
     };
 
     private static readonly Dictionary<BuildingType, string> BuildingTypeNames = new()
@@ -338,6 +338,8 @@ public static class SaveDataSerializer
 
         var autoPlayElement = Property(root, "autoPlay", JsonValueKind.Object);
         var speedName = ReadString(autoPlayElement, "speed");
+        // 速さの名前を変える前（通常・高速・現実同期）のセーブも、同じ段として読む
+        speedName = speedName switch { "NORMAL" => "X1", "FAST" => "X2", "REAL_TIME" => "X3", _ => speedName };
         var speed = SpeedNames.FirstOrDefault(pair => pair.Value == speedName);
         if (speed.Value is null)
         {

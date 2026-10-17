@@ -167,16 +167,16 @@ public sealed class WorldScreen
     {
         _speedButton.Text = Tr(_clock.Speed switch
         {
-            AutoPlaySpeed.Fast => "BUTTON_SPEED_FAST",
-            AutoPlaySpeed.RealTime => "BUTTON_SPEED_REAL_TIME",
-            _ => "BUTTON_SPEED_NORMAL",
+            AutoPlaySpeed.X2 => "BUTTON_SPEED_X2",
+            AutoPlaySpeed.X3 => "BUTTON_SPEED_X3",
+            _ => "BUTTON_SPEED_X1",
         });
     }
 
-    // 現実同期で自動進行しているときだけ、次の年までの残り時間を hh:mm:ss で出す
+    // 自動進行しているときだけ、次の年までの残り時間を hh:mm:ss で出す
     private void DrawNextYear()
     {
-        var visible = _clock.Speed == AutoPlaySpeed.RealTime && _timeControl.State == TimeControlState.AutoPlaying;
+        var visible = _timeControl.State == TimeControlState.AutoPlaying;
         _nextYearLabel.Visible = visible;
         if (!visible)
         {
