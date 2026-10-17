@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 16, "seed": 42,
+          "saveVersion": 17, "seed": 42,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -413,8 +413,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 16", "\"saveVersion\": 14", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 16, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 17", "\"saveVersion\": 14", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 17, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"year\": 312", "\"year\": -1", "invalid_year")]
     [InlineData("\"forestAmount\": 50", "\"forestAmount\": 1e999", "invalid_number")]

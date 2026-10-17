@@ -190,3 +190,4 @@ PRAYER_CHAOS,神よ、{0}が乱れ、{1}も荒れています,"O god, the {0} is
 PRAYER_UNREST,神よ、{0}は荒れ、{1}も騒いでいます,"O god, the {0} is wild and the {1} is restless."
 PRAYER_RUIN,神よ、{0}は朽ち、{1}も崩れていきます,"O god, the {0} decays and the {1} crumbles."
 PRAYER_DAILY,神よ、{0}と{1}に感謝します,"Thank you, god, for the {0} and the {1}."
+HISTORY_SCRIPT_DECAYED,{0} 年　人の字が崩れた,Year {0}: The script of the people decayed

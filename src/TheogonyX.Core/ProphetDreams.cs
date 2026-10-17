@@ -121,9 +121,14 @@ public sealed class ProphetDreams
         _faithYear = world.Year;
         var corrupted = InjectCorruption(world.ChaosLevel);
         var gained = Deck.GainFromBuildings(_timeControl.Civilization?.Buildings ?? []);
+        var scriptDecayed = Script?.Update(world.Year, _timeControl.Civilization?.Buildings ?? [], _timeControl.Residents) ?? false;
+        if (scriptDecayed)
+        {
+            _timeControl.History?.Add(new HistoryEntry(world.Year, HistoryEventType.ScriptDecayed));
+        }
         if (world.IsDestroyed)
         {
-            return new ProphetUpdate(null, false, corrupted, gained);
+            return new ProphetUpdate(null, false, corrupted, gained, ScriptDecayed: scriptDecayed);
         }
         if (Dialect is { } dialect)
         {
@@ -160,7 +165,7 @@ public sealed class ProphetDreams
                 prayerDialect.NextPrayerYear = world.Year + prayerDialect.Rules.DailyPrayerYears;
             }
         }
-        return new ProphetUpdate(newRequest, paused, corrupted, gained, prayer);
+        return new ProphetUpdate(newRequest, paused, corrupted, gained, prayer, scriptDecayed);
     }
 
     // 祈りに入れる名詞を選ぶ。手札の記号の名詞だけ。汚染ルーンの記号の語を 1 つ混ぜ、まだ祈りに入れていない記号（新しい語）を必ず入れ、
@@ -205,6 +210,16 @@ public sealed class ProphetDreams
 
     /// <summary>手札のカードが指す記号。</summary>
     public string SymbolOf(string cardId) => _oracleRules.SymbolOf(cardId);
+
+    /// <summary>星の字の状態。文字の神託を使わないなら null。</summary>
+    public ScriptState? Script { get; private set; }
+
+    /// <summary>文字の神託（星の字・刻まれた字・手帳）を使えるようにする。</summary>
+    public void AttachScript(ScriptState script)
+    {
+        ArgumentNullException.ThrowIfNull(script);
+        Script = script;
+    }
 
     /// <summary>方言の状態。自由文の神託を使わないなら null。</summary>
     public DialectState? Dialect { get; private set; }
@@ -311,6 +326,7 @@ public sealed class ProphetDreams
     {
         Faith.Reset();
         Dialect?.ClearRecords();
+        Script?.Reset();
         Deck.ResetCorruption();
         Deck.GrantPruneCharges();
         Deck.ResetBuildingCount();

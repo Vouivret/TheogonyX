@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 16;
+    public const int SaveVersion = 17;
 
     // 壊れたセーブで巨大な配列を作らないための上限（信仰の定義の上限より十分大きい）
     private const int MaxSavedBeliefs = 16;
@@ -37,6 +37,7 @@ public static class SaveDataSerializer
     {
         [HistoryEventType.DogmaFormed] = "DOGMA_FORMED",
         [HistoryEventType.DogmaForgotten] = "DOGMA_FORGOTTEN",
+        [HistoryEventType.ScriptDecayed] = "SCRIPT_DECAYED",
         [HistoryEventType.ResidentBrokeDown] = "RESIDENT_BROKE_DOWN",
         [HistoryEventType.NotableDied] = "NOTABLE_DIED",
         [HistoryEventType.WorldDestroyed] = "WORLD_DESTROYED",
@@ -203,6 +204,40 @@ public static class SaveDataSerializer
                 pruneCharges = data.Deck.PruneCharges,
             },
             faith = new { value = data.Faith.Value, recentYears = data.Faith.RecentYears },
+            script = data.Script is null
+                ? null
+                : new
+                {
+                    arrangement = data.Script.Arrangement.ToString(),
+                    similarPair = new[] { data.Script.SimilarPair.A, data.Script.SimilarPair.B },
+                    decayed = data.Script.Decayed,
+                    radicals = data.Script.Radicals.Select(radical => new
+                    {
+                        id = radical.Id,
+                        kind = radical.Kind.ToString(),
+                        key = radical.Key,
+                        strokes = radical.Strokes.Select(WriteStroke),
+                        decay = WriteStroke(radical.DecayStroke),
+                    }),
+                    carvings = data.Script.Carvings.Select(carving => new
+                    {
+                        kind = carving.Kind.ToString(),
+                        glyph = new
+                        {
+                            first = carving.Glyph.First,
+                            second = carving.Glyph.Second,
+                            direction = carving.Glyph.Direction,
+                            arrangement = carving.Glyph.Arrangement.ToString(),
+                        },
+                        region = carving.Region,
+                        column = carving.Column,
+                        row = carving.Row,
+                        year = carving.Year,
+                        decayed = carving.Decayed,
+                        buildingId = carving.BuildingId,
+                    }),
+                    notebook = data.Script.Notebook,
+                },
             dialect = data.Dialect is null
                 ? null
                 : new
@@ -366,9 +401,10 @@ public static class SaveDataSerializer
 
         var prophet = ReadProphet(root, civilizationRules.Regions.Count);
         var dialect = ReadDialect(root, symbolIds, world.Year);
+        var script = ReadScript(root, world.Year);
 
         return new SaveData(
-            seed, world, dogmas, requestId, answeredYears, speed.Key, elapsedSeconds, civilization, residents, history, chapter, deck, faith, prophet, dialect);
+            seed, world, dogmas, requestId, answeredYears, speed.Key, elapsedSeconds, civilization, residents, history, chapter, deck, faith, prophet, dialect, script);
     }
 
     // 神託のデッキ。カードは定義にある記号か、汚染ルーン・上位のルーン。シャッフルの回数は 0 以上、混ぜた回数は 0 以上で閾値の数以下
@@ -397,6 +433,82 @@ public static class SaveDataSerializer
     }
 
     // 神威（0 以上）と、直近の神託を下した年（0 以上、今の年以下。古い順）
+    private static int[] WriteStroke(Stroke stroke) => [stroke.X1, stroke.Y1, stroke.X2, stroke.Y2];
+
+    // 版 17 で足した項目。無い（または null）なら、星の字は星を作るときのものから始める。
+    // 部品が字の定義に合うかは、読み込んだ後に ScriptState.Restore が確かめる（ここでは形だけ）
+    private static ScriptSave? ReadScript(JsonElement root, int currentYear)
+    {
+        if (!root.TryGetProperty("script", out var element) || element.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            throw new InvalidSaveDataException("invalid_field");
+        }
+        TEnum ReadEnum<TEnum>(JsonElement parent, string name) where TEnum : struct, Enum
+        {
+            var text = ReadString(parent, name);
+            return Enum.GetNames<TEnum>().Contains(text) ? Enum.Parse<TEnum>(text) : throw new InvalidSaveDataException("invalid_script");
+        }
+        string? ReadOptionalString(JsonElement parent, string name)
+        {
+            var value = Property(parent, name, null);
+            return value.ValueKind switch
+            {
+                JsonValueKind.Null => null,
+                JsonValueKind.String => value.GetString(),
+                _ => throw new InvalidSaveDataException("invalid_field"),
+            };
+        }
+        IEnumerable<JsonElement> Items(JsonElement parent, string name) => Property(parent, name, JsonValueKind.Array).EnumerateArray()
+            .Select(item => item.ValueKind == JsonValueKind.Object ? item : throw new InvalidSaveDataException("invalid_field"));
+        Stroke ReadStroke(JsonElement item)
+        {
+            var values = item.ValueKind == JsonValueKind.Array
+                ? item.EnumerateArray().Select(value => value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number) ? number : -1).ToList()
+                : [];
+            return values.Count == 4 ? Stroke.Of(values[0], values[1], values[2], values[3]) : throw new InvalidSaveDataException("invalid_script");
+        }
+
+        var radicals = Items(element, "radicals").Select(item => new ScriptRadical(
+            ReadString(item, "id"), ReadEnum<RadicalKind>(item, "kind"), ReadString(item, "key"),
+            [.. Property(item, "strokes", JsonValueKind.Array).EnumerateArray().Select(ReadStroke)], ReadStroke(Property(item, "decay", null))))
+            .ToList();
+        var pair = Property(element, "similarPair", JsonValueKind.Array).EnumerateArray()
+            .Select(item => item.ValueKind == JsonValueKind.String ? item.GetString()! : throw new InvalidSaveDataException("invalid_script"))
+            .ToList();
+        if (pair.Count != 2)
+        {
+            throw new InvalidSaveDataException("invalid_script");
+        }
+        var carvings = Items(element, "carvings").Select(item =>
+        {
+            var glyph = Property(item, "glyph", JsonValueKind.Object);
+            var buildingElement = Property(item, "buildingId", null);
+            int? buildingId = buildingElement.ValueKind switch
+            {
+                JsonValueKind.Null => null,
+                JsonValueKind.Number when buildingElement.TryGetInt32(out var value) => value,
+                _ => throw new InvalidSaveDataException("invalid_field"),
+            };
+            return new CarvedGlyph(
+                ReadEnum<CarvingKind>(item, "kind"),
+                new Glyph(ReadString(glyph, "first"), ReadOptionalString(glyph, "second"), ReadOptionalString(glyph, "direction"), ReadEnum<GlyphArrangement>(glyph, "arrangement")),
+                ReadInt(item, "region"), ReadInt(item, "column"), ReadInt(item, "row"),
+                ReadYearUpTo(Property(item, "year", JsonValueKind.Number), currentYear), ReadBool(item, "decayed"), buildingId);
+        }).ToList();
+        var notebook = new Dictionary<string, string>();
+        foreach (var property in Property(element, "notebook", JsonValueKind.Object).EnumerateObject())
+        {
+            notebook[property.Name] = property.Value.ValueKind == JsonValueKind.String
+                ? property.Value.GetString()!
+                : throw new InvalidSaveDataException("invalid_script");
+        }
+        return new ScriptSave(radicals, ReadEnum<GlyphArrangement>(element, "arrangement"), (pair[0], pair[1]), ReadBool(element, "decayed"), carvings, notebook);
+    }
+
     // 版 16 で足した項目。無い（または null）なら、方言の状態は星を作るときのものから始める。
     // 語の ID が定義に合うかは、読み込んだ後に DialectState.Restore が確かめる（ここでは形だけ）
     private static DialectSave? ReadDialect(JsonElement root, HashSet<string> symbolIds, int currentYear)

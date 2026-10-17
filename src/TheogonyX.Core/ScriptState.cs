@@ -1,0 +1,272 @@
+namespace TheogonyX.Core;
+
+/// <summary>刻まれた字の種類（docs/domain/script-decipher.md の「世界に刻まれた字」）。</summary>
+public enum CarvingKind
+{
+    /// <summary>地形の目印（湖の岸の「水」など）。意味の部品だけの字。星を作るときに刻む。</summary>
+    Landmark,
+
+    /// <summary>工房の札（金＋崇拝）。</summary>
+    Workshop,
+
+    /// <summary>家の札（土）。</summary>
+    House,
+
+    /// <summary>祠の札（その地域でいちばん信じられている教え）。</summary>
+    Shrine,
+
+    /// <summary>禁忌の札（禁忌を信じる人が多い地域）。</summary>
+    Taboo,
+}
+
+/// <summary>地形の目印を刻む場所（データ定義）。</summary>
+public sealed record ScriptLandmark(string SymbolId, int Column, int Row);
+
+/// <summary>
+/// 世界に刻まれた字 1 つ。<paramref name="Decayed"/> は刻んだ時代の形（崩れる前に刻んだ字は、崩れた後も前の形のまま）。
+/// <paramref name="BuildingId"/> は建物の札のとき、その建物の ID（建物が無くなると札も消える）。
+/// </summary>
+public sealed record CarvedGlyph(CarvingKind Kind, Glyph Glyph, int Region, int Column, int Row, int Year, bool Decayed, int? BuildingId = null);
+
+/// <summary>手帳に神が書き込める意味（部品ごとに 1 つ選ぶ）。<see cref="Unknown"/> は「分からない」。</summary>
+public static class NotebookLabels
+{
+    public const string Unknown = "UNKNOWN";
+}
+
+/// <summary>セーブに残す、星の字の状態。</summary>
+public sealed record ScriptSave(
+    IReadOnlyList<ScriptRadical> Radicals, GlyphArrangement Arrangement, (string A, string B) SimilarPair, bool Decayed,
+    IReadOnlyList<CarvedGlyph> Carvings, IReadOnlyDictionary<string, string> Notebook);
+
+/// <summary>
+/// 星の字の状態（docs/domain/script-decipher.md）。字のしくみ・崩れ・世界に刻まれた字・字の手帳を持つ。
+/// 刻まれた字は、時間が進んだ後に <see cref="Update"/> で、建物と信仰から書き換える。
+/// </summary>
+public sealed class ScriptState
+{
+    private readonly List<CarvedGlyph> _carvings = [];
+
+    // 手帳: 載った部品の ID → 神の書き込み（意味の一覧のどれか。初めは「分からない」）
+    private readonly Dictionary<string, string> _notebook = [];
+
+    /// <param name="regions">地域と列の対応（禁忌の札を刻む列を決める）。</param>
+    public ScriptState(ScriptRules rules, PlanetScript script, RegionMap regions, IReadOnlyList<ScriptLandmark> landmarks, float tabooPlateShare)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        ArgumentNullException.ThrowIfNull(script);
+        ArgumentNullException.ThrowIfNull(regions);
+        ArgumentNullException.ThrowIfNull(landmarks);
+        Rules = rules;
+        Script = script;
+        Regions = regions;
+        Landmarks = landmarks;
+        TabooPlateShare = tabooPlateShare;
+        CarveLandmarks();
+    }
+
+    public ScriptRules Rules { get; }
+
+    public PlanetScript Script { get; private set; }
+
+    public RegionMap Regions { get; }
+
+    public IReadOnlyList<ScriptLandmark> Landmarks { get; }
+
+    /// <summary>禁忌の札を刻む、地域の住人のうちの信者の割合（これ以上）。</summary>
+    public float TabooPlateShare { get; }
+
+    /// <summary>字が崩れた後の時代か。</summary>
+    public bool Decayed { get; private set; }
+
+    /// <summary>世界に刻まれた字（刻んだ順）。</summary>
+    public IReadOnlyList<CarvedGlyph> Carvings => _carvings;
+
+    /// <summary>手帳に載った部品と、神の書き込み。</summary>
+    public IReadOnlyDictionary<string, string> Notebook => _notebook;
+
+    /// <summary>神が組める部品（手帳に載った部品）。</summary>
+    public IReadOnlySet<string> KnownRadicals => _notebook.Keys.ToHashSet();
+
+    /// <summary>
+    /// 時間が進んだ後に呼ぶ。崩れの年を越えたら崩れた時代にし、建物の札・祠の札・禁忌の札を書き換える。
+    /// </summary>
+    /// <returns>この呼び出しで字が崩れたか（年表に残すのに使う）。</returns>
+    public bool Update(int year, IReadOnlyList<Building> buildings, Residents? residents)
+    {
+        ArgumentNullException.ThrowIfNull(buildings);
+        var decayedNow = false;
+        if (!Decayed && year >= Rules.DecayYears)
+        {
+            Decayed = true;
+            decayedNow = true;
+        }
+
+        // 無くなった建物の札を消す
+        var standing = buildings.Select(building => building.Id).ToHashSet();
+        _carvings.RemoveAll(carving => carving.BuildingId is { } id && !standing.Contains(id));
+
+        foreach (var building in buildings.OrderBy(building => building.Id))
+        {
+            var glyph = building.Type switch
+            {
+                BuildingType.Workshop => Script.GlyphFor("SYM_METAL", DogmaType.Worship),
+                BuildingType.Shrine => MostBelieved(residents, building.Region) is { } teaching ? Script.GlyphFor(teaching.SymbolId, teaching.Type) : null,
+                _ when building.Type.IsHouse() => Script.GlyphFor("SYM_EARTH"),
+                _ => null,
+            };
+            var kind = building.Type switch
+            {
+                BuildingType.Workshop => CarvingKind.Workshop,
+                BuildingType.Shrine => CarvingKind.Shrine,
+                _ => CarvingKind.House,
+            };
+            var index = _carvings.FindIndex(carving => carving.BuildingId == building.Id);
+            if (glyph is null)
+            {
+                // 信者のいない祠は、札を刻まない（刻んであれば消す）
+                if (index >= 0)
+                {
+                    _carvings.RemoveAt(index);
+                }
+                continue;
+            }
+            if (index >= 0 && _carvings[index].Glyph == glyph)
+            {
+                continue;
+            }
+            if (index >= 0)
+            {
+                _carvings.RemoveAt(index);
+            }
+            _carvings.Add(new CarvedGlyph(kind, glyph, building.Region, building.Column, building.Row, year, Decayed, building.Id));
+        }
+
+        UpdateTabooPlates(year, residents);
+        return decayedNow;
+    }
+
+    /// <summary>刻まれた字か祈りの字を見た。その字の部品を手帳に載せる（載っていれば何もしない）。</summary>
+    /// <returns>新しく載った部品の数。</returns>
+    public int Discover(Glyph glyph)
+    {
+        ArgumentNullException.ThrowIfNull(glyph);
+        var added = 0;
+        foreach (var id in new[] { glyph.First, glyph.Second, glyph.Direction }.OfType<string>())
+        {
+            if (Script.Find(id) is not null && _notebook.TryAdd(id, NotebookLabels.Unknown))
+            {
+                added++;
+            }
+        }
+        return added;
+    }
+
+    /// <summary>手帳の部品に、神の推理を書き込む。</summary>
+    /// <param name="label">意味の一覧（記号の ID・種別の名前・方角の名前）か <see cref="NotebookLabels.Unknown"/>。</param>
+    /// <exception cref="ArgumentException">手帳に載っていない部品・一覧に無い意味。</exception>
+    public void Label(string radicalId, string label)
+    {
+        if (!_notebook.ContainsKey(radicalId) || !IsLabel(label))
+        {
+            throw new ArgumentException($"手帳に無い部品か、一覧に無い意味: radicalId={radicalId} label={label}");
+        }
+        _notebook[radicalId] = label;
+    }
+
+    /// <summary>手帳に書き込める意味か（字の部品が表す意味のどれか、または「分からない」）。</summary>
+    public bool IsLabel(string label) => label == NotebookLabels.Unknown || Script.Radicals.Any(radical => radical.Key == label);
+
+    public ScriptSave Capture() =>
+        new(Script.Radicals, Script.Arrangement, Script.SimilarPair, Decayed, [.. _carvings], new Dictionary<string, string>(_notebook));
+
+    /// <summary>セーブから読み込んだ状態に置き換える。検証を済ませてから置き換える。</summary>
+    /// <exception cref="ArgumentException">定義に合わない値。</exception>
+    public void Restore(ScriptSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        var script = PlanetScript.Restore(Rules, save.Radicals, save.Arrangement, save.SimilarPair);
+        bool IsRadical(string? id) => id is null || script.Find(id) is not null;
+        var valid = save.Carvings.All(carving => script.Find(carving.Glyph.First) is not null && IsRadical(carving.Glyph.Second)
+                && IsRadical(carving.Glyph.Direction) && carving.Region >= 0 && carving.Region < Regions.Count && carving.Year >= 0
+                && Enum.IsDefined(carving.Kind) && Enum.IsDefined(carving.Glyph.Arrangement))
+            && save.Notebook.All(pair => script.Find(pair.Key) is not null
+                && (pair.Value == NotebookLabels.Unknown || script.Radicals.Any(radical => radical.Key == pair.Value)));
+        if (!valid)
+        {
+            throw new ArgumentException("刻まれた字か手帳が、字の定義に合わない", nameof(save));
+        }
+        Script = script;
+        Decayed = save.Decayed;
+        _carvings.Clear();
+        _carvings.AddRange(save.Carvings);
+        _notebook.Clear();
+        foreach (var (id, label) in save.Notebook)
+        {
+            _notebook[id] = label;
+        }
+    }
+
+    /// <summary>世界再創生: 建物と信仰の札を消し、地形の目印を刻み直す。字のしくみ・崩れ・手帳は残す（神の知識）。</summary>
+    public void Reset()
+    {
+        _carvings.Clear();
+        CarveLandmarks();
+    }
+
+    private void CarveLandmarks()
+    {
+        foreach (var landmark in Landmarks)
+        {
+            if (Script.Find(RadicalKind.Meaning, landmark.SymbolId) is not null)
+            {
+                _carvings.Add(new CarvedGlyph(
+                    CarvingKind.Landmark, Script.GlyphFor(landmark.SymbolId), Regions.RegionOf(landmark.Column), landmark.Column, landmark.Row, 0, Decayed));
+            }
+        }
+    }
+
+    // 地域ごとに、住人のうちの信者の割合がいちばん高い禁忌（割合が同じなら記号の ID の順）が、割合の閾値以上なら札を刻む
+    private void UpdateTabooPlates(int year, Residents? residents)
+    {
+        for (var region = 0; region < Regions.Count; region++)
+        {
+            var people = residents?.People.Where(person => person.Region == region).ToList() ?? [];
+            var top = people.Count == 0
+                ? null
+                : people.SelectMany(person => person.Beliefs.Where(belief => belief.Type == DogmaType.Taboo).Select(belief => belief.SymbolId).Distinct())
+                    .GroupBy(symbol => symbol)
+                    .Select(group => (Symbol: group.Key, Share: (double)group.Count() / people.Count))
+                    .Where(entry => entry.Share + 1e-6 >= TabooPlateShare)
+                    .OrderByDescending(entry => entry.Share).ThenBy(entry => entry.Symbol, StringComparer.Ordinal)
+                    .Select(entry => entry.Symbol)
+                    .FirstOrDefault();
+            var index = _carvings.FindIndex(carving => carving.Kind == CarvingKind.Taboo && carving.Region == region);
+            var glyph = top is null || Script.Find(RadicalKind.Meaning, top) is null ? null : Script.GlyphFor(top, DogmaType.Taboo);
+            if (index >= 0 && (glyph is null || _carvings[index].Glyph != glyph))
+            {
+                _carvings.RemoveAt(index);
+                index = -1;
+            }
+            if (glyph is not null && index < 0)
+            {
+                _carvings.Add(new CarvedGlyph(CarvingKind.Taboo, glyph, region, Regions.FirstColumn(region), 0, year, Decayed));
+            }
+        }
+    }
+
+    // 地域の住人のうち、いちばん多くの人が信じている教え（人数が同じなら記号の ID・種別の順）。信者がいなければ null
+    private static (string SymbolId, DogmaType Type)? MostBelieved(Residents? residents, int region)
+    {
+        if (residents is null)
+        {
+            return null;
+        }
+        var top = residents.People.Where(person => person.Region == region)
+            .SelectMany(person => person.Beliefs.Select(belief => (belief.SymbolId, belief.Type)).Distinct())
+            .GroupBy(teaching => teaching)
+            .OrderByDescending(group => group.Count()).ThenBy(group => group.Key.SymbolId, StringComparer.Ordinal).ThenBy(group => group.Key.Type)
+            .FirstOrDefault();
+        return top?.Key;
+    }
+}

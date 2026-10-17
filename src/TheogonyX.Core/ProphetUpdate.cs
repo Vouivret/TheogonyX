@@ -6,8 +6,10 @@ namespace TheogonyX.Core;
 /// <param name="CorruptedAdded">カオス度の閾値を越えて、山札に混ぜた汚染ルーンの数。</param>
 /// <param name="RunesGained">建物が建って、捨札に加わった基本ルーンの数。</param>
 /// <param name="Prayer">予言者がささやいた祈り（新しい依頼の祈りか、日々の祈り）。祈っていなければ null。</param>
+/// <param name="ScriptDecayed">この時間の進みで、星の字が崩れた。</param>
 public sealed record ProphetUpdate(
-    ProphetRequestRule? NewRequest, bool PausedAutoPlay, int CorruptedAdded = 0, int RunesGained = 0, Prayer? Prayer = null);
+    ProphetRequestRule? NewRequest, bool PausedAutoPlay, int CorruptedAdded = 0, int RunesGained = 0, Prayer? Prayer = null,
+    bool ScriptDecayed = false);
 
 /// <summary>
 /// 予言者の祈り（docs/domain/oracle-pair.md の「祈りの言葉と語彙の見せ方」）。祈りの文は、困りごとと、予言者が知っている名詞から作る。

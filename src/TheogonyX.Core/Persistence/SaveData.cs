@@ -12,6 +12,7 @@ namespace TheogonyX.Core.Persistence;
 /// <param name="Chapter">年表の今の章の始まり。</param>
 /// <param name="Deck">神託のデッキ（山札・手札・捨札・シャッフルの回数）。</param>
 /// <param name="Faith">神威の量と、直近の神託を下した年。</param>
+/// <param name="Script">星の字の状態（字のしくみ・崩れ・刻まれた字・手帳）。使っていなければ null。</param>
 /// <param name="Dialect">方言の状態（ずれ表・方言帳・神託の記録）。使っていなければ null。</param>
 /// <param name="Prophet">予言者の居場所・知っている土地・行き先。無ければ（古いセーブ・文明の計算をしない）null。</param>
 public sealed record SaveData(
@@ -29,4 +30,5 @@ public sealed record SaveData(
     OracleDeckState Deck,
     OracleFaithState Faith,
     ProphetState? Prophet = null,
-    DialectSave? Dialect = null);
+    DialectSave? Dialect = null,
+    ScriptSave? Script = null);

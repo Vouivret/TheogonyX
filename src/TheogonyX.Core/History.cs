@@ -23,6 +23,9 @@ public enum HistoryEventType
     /// <summary>世界再創生をした。</summary>
     WorldRecreated,
 
+    /// <summary>星の字が崩れた（docs/domain/script-decipher.md）。</summary>
+    ScriptDecayed,
+
     /// <summary>章が終わった（100 年ごと・崩壊・再創生）。始まりの年とカオス度を持つ（docs/domain/history.md）。</summary>
     ChapterEnded,
 }

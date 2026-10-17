@@ -33,7 +33,8 @@ public static class SaveGame
             prophet.Deck.Capture(),
             prophet.Faith.Capture(),
             timeControl.Prophet,
-            prophet.Dialect?.Capture());
+            prophet.Dialect?.Capture(),
+            prophet.Script?.Capture());
     }
 
     /// <summary>
@@ -50,6 +51,10 @@ public static class SaveGame
         if (data.Dialect is { } dialect && prophet.Dialect is { } state)
         {
             state.Restore(dialect);
+        }
+        if (data.Script is { } script && prophet.Script is { } scriptState)
+        {
+            scriptState.Restore(script);
         }
         timeControl.Restore(data.World, data.Dogmas, data.Civilization, data.Residents, data.History, data.Chapter, data.Prophet);
         prophet.Restore(data.RequestId, data.AnsweredYears);
