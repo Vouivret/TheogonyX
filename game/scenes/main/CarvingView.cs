@@ -22,6 +22,8 @@ public sealed class CarvingView
     private readonly GlyphView _rubbing;
     private readonly Label _info;
     private readonly Label _found;
+    private readonly SubViewport _viewport;
+    private readonly List<(Rect2 Area, CarvedGlyph Carving)> _hits = [];
     private string _shown = string.Empty;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
@@ -30,6 +32,7 @@ public sealed class CarvingView
         _prophet = prophet;
         var terrain = owner.GetNode<TileMapLayer>("%Terrain");
         _terrainOrigin = terrain.Position;
+        _viewport = owner.GetNode<SubViewport>("%WorldViewport");
         // 建物・予言者より手前に描く（印が隠れないように）
         _marks = new Node2D { Name = "Carvings", ZIndex = 10 };
         terrain.GetParent().AddChild(_marks);
@@ -53,6 +56,29 @@ public sealed class CarvingView
     /// <summary>拓本の欄で字を開いて、部品を手帳に載せた（保存し直すのに使う）。</summary>
     public event Action? Discovered;
 
+    /// <summary>
+    /// 画面の位置の印を押したら、拓本の欄を開く。印は SubViewport の中にあり、SubViewportContainer がマウスを通さないので、
+    /// Control の入力ではなく、HUD が受け取らなかったクリックの位置から探す。
+    /// </summary>
+    /// <returns>印を押したか。</returns>
+    public bool HandleInput(InputEvent inputEvent)
+    {
+        if (inputEvent is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click)
+        {
+            return false;
+        }
+        var world = _viewport.CanvasTransform.AffineInverse() * click.Position;
+        foreach (var (area, carving) in _hits)
+        {
+            if (area.HasPoint(world))
+            {
+                Open(carving);
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>地表を描き直した後に呼ぶ。刻まれた字が変わっていれば、印を作り直す。</summary>
     public void Refresh(TileType[,] _) => Refresh();
 
@@ -71,6 +97,7 @@ public sealed class CarvingView
             _marks.RemoveChild(child);
             child.QueueFree();
         }
+        _hits.Clear();
         if (script is null)
         {
             return;
@@ -81,18 +108,10 @@ public sealed class CarvingView
             {
                 Size = new Vector2(MarkSize, MarkSize),
                 Position = _terrainOrigin + new Vector2(carving.Column * WorldScreen.TileSize + 2, carving.Row * WorldScreen.TileSize - MarkSize),
-                MouseFilter = Control.MouseFilterEnum.Stop,
-                TooltipText = Tr("RUBBING_HINT"),
+                MouseFilter = Control.MouseFilterEnum.Ignore,
             };
             mark.Show(script.Script, carving.Glyph, carving.Decayed);
-            var shown = carving;
-            mark.GuiInput += input =>
-            {
-                if (input is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left })
-                {
-                    Open(shown);
-                }
-            };
+            _hits.Add((new Rect2(mark.Position, mark.Size), carving));
             _marks.AddChild(mark);
         }
     }

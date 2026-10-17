@@ -218,7 +218,7 @@ public partial class WorldCore : Node2D
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (_residents?.HandleInput(@event) == true || _camera?.HandleInput(@event) == true)
+        if (_carvings?.HandleInput(@event) == true || _residents?.HandleInput(@event) == true || _camera?.HandleInput(@event) == true)
         {
             GetViewport().SetInputAsHandled();
         }
