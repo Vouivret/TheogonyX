@@ -26,6 +26,8 @@ public partial class WorldCore : Node2D
     private ResidentView? _residents;
     private HistoryView? _history;
     private CarvingView? _carvings;
+    private NotebookView? _notebook;
+    private ScriptComposerView? _composer;
     private DialectBookView? _dialectBook;
     private CrowdView? _crowd;
     private DreamView? _dreams;
@@ -161,6 +163,24 @@ public partial class WorldCore : Node2D
         _oracle.Spoken += Save;
         _oracle.StateChanged += _screen.Refresh;
         _screen.TimeAdvanced += _oracle.HidePrayerGlyphsIfAnswered;
+        // 字の神託: 入力欄の代わりに「字を組む」ボタンを出し、手帳の部品で字を組んで下す
+        _notebook = new NotebookView(this, prophet);
+        _composer = new ScriptComposerView(this, prophet);
+        _dreams.ScriptMode = prophet.Script is not null;
+        _dreams.ComposeRequested += _composer.Toggle;
+        var oracle = _oracle;
+        var composer = _composer;
+        _composer.Submitted += glyphs =>
+        {
+            if (oracle.SpeakScript(glyphs))
+            {
+                composer.Reset();
+            }
+        };
+        _notebook.Changed += _composer.Redraw;
+        _notebook.Changed += Save;
+        _carvings!.Discovered += _composer.Redraw;
+        _screen.TimeAdvanced += _composer.Redraw;
         _myth = new MythView(timeControl, oracleAiRules, _ollama);
         _myth.MythAttached += Save;
         _screen.Jumped += Save;
@@ -188,6 +208,7 @@ public partial class WorldCore : Node2D
         _camera?.Process(delta);
         _residents?.Process(delta);
         _history?.Process();
+        _notebook?.Process();
         _dialectBook?.Process();
         _oracle?.Process(delta);
         _myth?.Process(delta);

@@ -202,3 +202,23 @@ RUBBING_KIND_HOUSE,家の札,House plate
 RUBBING_KIND_SHRINE,祠の札,Shrine plate
 RUBBING_KIND_TABOO,禁忌の札,Taboo plate
 BUTTON_CLOSE,閉じる,Close
+BUTTON_COMPOSE,字を組む,Compose glyphs
+BUTTON_NOTEBOOK,手帳,Notebook
+ORACLE_GUIDE_COMPOSE,手帳の部品で字を組み、語りかけよ,Compose glyphs from your notebook and speak.
+COMPOSE_TITLE,字を組む,Compose glyphs
+COMPOSE_CURRENT,組んでいる字,Current glyph
+COMPOSE_SLOT_FIRST,左・上,Left / top
+COMPOSE_SLOT_SECOND,右・下,Right / bottom
+COMPOSE_SLOT_DIRECTION,下の小さな部品,Small mark below
+COMPOSE_ARRANGE_LR,並び: 左右,Arrange: left-right
+COMPOSE_ARRANGE_TB,並び: 上下,Arrange: top-bottom
+COMPOSE_ADD,字を足す,Add glyph
+COMPOSE_CLEAR,消す,Clear
+NOTEBOOK_TITLE,字の手帳,Glyph notebook
+NOTEBOOK_EMPTY,（まだ部品を写していない。地表の印を押して拓本を取ろう）,(No radicals yet. Click carved marks to take rubbings.)
+NOTEBOOK_UNKNOWN,？,?
+NOTEBOOK_TYPE_WORSHIP,崇める,worship
+NOTEBOOK_TYPE_TABOO,触れるな,taboo
+NOTEBOOK_TYPE_DESTRUCTION,壊せ,destroy
+ORACLE_READ,人の読み：{0},The people read: {0}
+ORACLE_READ_UNREADABLE,読めない字,an unreadable glyph

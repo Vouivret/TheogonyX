@@ -85,6 +85,69 @@ public sealed class OracleView
         }
     }
 
+    /// <summary>
+    /// 神が組んだ字の列で神託を下す（docs/domain/script-decipher.md の「書く」）。人の読みと、掟の 1 行・行き先を吹き出しに出す。
+    /// </summary>
+    /// <returns>下せたか（下せなければ理由をログに出す）。</returns>
+    public bool SpeakScript(IReadOnlyList<Glyph> glyphs)
+    {
+        var year = _timeControl.World.Year;
+        var outcome = _prophet.SpeakScript(glyphs);
+        if (outcome.Result is not { } result || outcome.Reading is not { } reading)
+        {
+            GD.PushWarning(FormattableString.Invariant($"event=oracle_script_rejected year={year} reason={outcome.RejectedReason} count={glyphs.Count}"));
+            return false;
+        }
+        if (result.Dogma is { } dogma)
+        {
+            GD.Print(FormattableString.Invariant(
+                $"event=dogma_formed year={year} symbolId={dogma.TargetSymbolId} dogmaType={dogma.Type} intensity={dogma.Intensity}"));
+        }
+        else
+        {
+            GD.Print(FormattableString.Invariant($"event=oracle_unreadable year={year} count={glyphs.Count}"));
+        }
+        if (result.AnsweredRequest is { } request)
+        {
+            GD.Print(FormattableString.Invariant($"event=prayer_answered year={year} requestType={request.Id}"));
+        }
+        if (result.OverloadCount > 0)
+        {
+            GD.Print(FormattableString.Invariant($"event=oracle_overload year={year} count={result.OverloadCount} chaosLevel={_timeControl.World.ChaosLevel}"));
+        }
+        if (result.ResumedAutoPlay)
+        {
+            GD.Print(FormattableString.Invariant($"event=auto_play_resumed year={year} reason=oracle_pronounced"));
+        }
+        ShowText(ReadingText(reading));
+        _dreams.Refresh();
+        StateChanged?.Invoke();
+        Spoken?.Invoke();
+        return true;
+    }
+
+    // 吹き出しの文: 掟の 1 行、人が字をどう読んだか（字ごと）、行き先
+    private static string ReadingText(ScriptReading reading)
+    {
+        var culture = CultureInfo.CurrentCulture;
+        var lines = new List<string>();
+        if (reading.Teaching is { } teaching)
+        {
+            lines.Add(string.Format(culture, Tr($"ORACLE_LINE_{teaching.Type.ToString().ToUpperInvariant()}"), Tr($"SYMBOL_{teaching.TargetSymbolId}")));
+        }
+        var glyphs = reading.Glyphs.Select(glyph => glyph.IsReadable
+            ? Tr($"SYMBOL_{glyph.SymbolId}")
+                + (glyph.Type is { } type ? "・" + Tr($"NOTEBOOK_TYPE_{type.ToString().ToUpperInvariant()}") : string.Empty)
+                + (glyph.Direction != TravelDirection.None ? "・" + Tr($"DIRECTION_{glyph.Direction.ToString().ToUpperInvariant()}") : string.Empty)
+            : Tr("ORACLE_READ_UNREADABLE"));
+        lines.Add(string.Format(culture, Tr("ORACLE_READ"), string.Join(" ／ ", glyphs)));
+        if (reading.Destination != TravelDirection.None)
+        {
+            lines.Add(Tr(reading.Destination == TravelDirection.East ? "ORACLE_DESTINATION_EAST" : "ORACLE_DESTINATION_WEST"));
+        }
+        return string.Join('\n', lines);
+    }
+
     // 予言者が祈った。まず定型の祈り（困りごとのひな形に知っている名詞を入れた文）を出し、LLM が使えれば、できた文に差し替える
     private void OnPrayed(Prayer prayer)
     {

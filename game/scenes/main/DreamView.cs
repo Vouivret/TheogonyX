@@ -30,8 +30,10 @@ public sealed class DreamView
     private readonly OptionButton _directionChoice;
     private readonly List<string?> _nounIds = [];
     private string _handShown = string.Empty;
+    private readonly Button _composeButton;
     private bool _listening;
     private bool _choiceMode;
+    private bool _scriptMode;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
     public DreamView(Node owner, ProphetDreams prophet, OracleCommandQueue commands, TimeControl timeControl)
@@ -65,6 +67,9 @@ public sealed class DreamView
         {
             _dreamCards.AddChild(control);
         }
+        _composeButton = new Button { Name = "ComposeButton", Text = "BUTTON_COMPOSE", Visible = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        _composeButton.Pressed += () => ComposeRequested?.Invoke();
+        _dreamCards.AddChild(_composeButton);
         _oracleButton.Reparent(_dreamCards);
         _oracleButton.Text = "BUTTON_SPEAK";
         _oracleButton.Pressed += OnOracleButtonPressed;
@@ -112,6 +117,20 @@ public sealed class DreamView
         set
         {
             _choiceMode = value;
+            Redraw();
+        }
+    }
+
+    /// <summary>「字を組む」を押した（字の神託の形のとき）。</summary>
+    public event Action? ComposeRequested;
+
+    /// <summary>字の神託の形か（入力欄・言葉を選ぶ欄の代わりに「字を組む」ボタンを出す）。</summary>
+    public bool ScriptMode
+    {
+        get => _scriptMode;
+        set
+        {
+            _scriptMode = value;
             Redraw();
         }
     }
@@ -288,8 +307,10 @@ public sealed class DreamView
     private void Redraw()
     {
         RebuildNounChoice();
-        _input.Visible = !_choiceMode;
-        _nounChoice.Visible = _directionChoice.Visible = _verbChoice.Visible = _choiceMode;
+        _input.Visible = !_choiceMode && !_scriptMode;
+        _nounChoice.Visible = _directionChoice.Visible = _verbChoice.Visible = _choiceMode && !_scriptMode;
+        _oracleButton.Visible = !_scriptMode;
+        _composeButton.Visible = _scriptMode;
         UpdateControls();
         _dreamGuide.Text = GuideText();
 
@@ -334,6 +355,7 @@ public sealed class DreamView
         var faith = _prophet.Faith;
         var key = _listening ? "ORACLE_GUIDE_LISTENING"
             : !faith.CanAfford ? "ORACLE_GUIDE_NO_FAITH"
+            : _scriptMode ? "ORACLE_GUIDE_COMPOSE"
             : _choiceMode ? "ORACLE_GUIDE_CHOOSE_WORDS"
             : "ORACLE_GUIDE_SPEAK";
         return string.Format(CultureInfo.CurrentCulture, Tr("ORACLE_GUIDE_FAITH"), Tr(key), faith.Value, faith.Max);

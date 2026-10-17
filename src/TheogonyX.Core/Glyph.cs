@@ -22,5 +22,8 @@ public sealed record GlyphReading(string? SymbolId, DogmaType? Type, TravelDirec
 /// <param name="Glyphs">字ごとの読み（神が組んだ順）。</param>
 public sealed record ScriptReading(Dogma? Teaching, TravelDirection Destination, IReadOnlyList<GlyphReading> Glyphs);
 
+/// <summary>字の神託を下した結果。<paramref name="RejectedReason"/> が null なら、<paramref name="Result"/> と <paramref name="Reading"/> がある。</summary>
+public sealed record ScriptSpeakOutcome(string? RejectedReason, SpeakResult? Result, ScriptReading? Reading);
+
 /// <summary>読み取りの結果。<paramref name="RejectedReason"/> が null なら <paramref name="Reading"/> がある。</summary>
 public sealed record ScriptReadOutcome(ScriptReading? Reading, string? RejectedReason);
