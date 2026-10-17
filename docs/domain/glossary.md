@@ -74,6 +74,36 @@
 | 発明・発明の木・前提 | | 地域が知っている技と、その前提のつながり（[発明の木](invention-tree.md)） | Invention / Invention tree / Prerequisite | |
 | 時代の名前 | | 知っている発明から付く名札（石器・青銅器・鉄器・中世） | Era label | |
 | 失われた発明 | | 一度知られたが、伝える人がいなくなって失われた発明 | Lost invention | |
+| 宗派 | | 同じ教えの一覧を信じる人の集まり。神の宗派・人が唱えた宗派・自然崇拝がある（[宗教](religion.md)） | Sect | |
+| 神の宗派 | | プレイヤーの神託から生まれた教えを信じる宗派 | Sect of the god | |
+| 人が唱えた宗派 | | 危機の中で人が唱えた教えから生まれた宗派 | Human-founded sect | |
+| 自然崇拝 | | 星を作ったときから、住む土地の地形に合う記号を弱く崇める宗派 | Animism | |
+| 教祖 | | 人が唱えた宗派を始めた人 | Founder | |
+| 分裂 | | 宗派が 2 つに分かれること | Schism | |
+| 宗派の長 | | 宗派をまとめる人。教祖や予言者の後を継ぐ | High priest | |
+| 祭り | | 地域ごとに行う、宗派の儀礼 | Festival | |
+| 聖地 | | 予言者の死んだ地など、巡礼の目的地になる場所（[聖地](holy-site.md)） | Holy site | |
+| 巡礼 | | 信者が聖地を訪れること | Pilgrimage | |
+| 霊廟・聖堂 | | 聖地に建つ 2 種類の建物 | Mausoleum / Sanctuary | |
+| 奇跡 | | 信者の祈りで溜まる奇跡の力を使い、神が信者のいる地域に直接手を下すこと（[奇跡](miracle.md)） | Miracle | 神威の行い |
+| 奇跡の力 | | 奇跡の種類ごとに溜まる力。満ちると 1 回使える | Miracle charge | |
+| 天候の奇跡・一瞬の奇跡 | | その年の天候の揺らぎを動かす奇跡と、その場で効く奇跡 | Weather miracle / Instant miracle | |
+| 恵みの雨・暖かさ・涼しさ・癒し・豊作・雷 | | 最初に入れる 6 種類の奇跡 | Blessed rain / Warmth / Coolness / Healing / Bountiful harvest / Lightning | |
+| 戦の奇跡 | | 戦の中で語られる 8 種類の奇跡（神風など） | War miracle | |
+| 植生 | | 気温と雨で決まる、地域の草木のまとまり（[自然の種類](natural-kinds.md)） | Biome | |
+| 土 | | 地域の土の種類。森の量・水のもち・農耕の向きに効く | Soil order | |
+| 鉱床 | | 地域・タイルに眠る鉱物 | Deposit | |
+| 食物連鎖 | | 植生・動物・人の、食べる・食べられるつながり | Food chain | |
+| 家畜にできる | | 人が飼い慣らせる動物の性質 | Domesticable | |
+| 絶滅 | | 種類が星から絶えること | Extinction | |
+| 文化 | | 地域の建築・言葉・文字・統治・衣服・料理・神話のまとまり（[文化の種類](culture-kinds.md)） | Culture | |
+| 建築の様式 | | 集落の家の作り方と見た目 | Architectural style | |
+| 言葉の系図 | | 言葉が分かれてできた親子のつながり | Language tree | |
+| 文字 | | 地域が使う書き方 | Script | |
+| 統治の形 | | 国の治め方（群れ・部族・王国・神権政治など） | Form of government | |
+| 神話の型 | | 地域に生まれる神話の筋の型 | Myth type | |
+| 服装・流行 | | 住人の服と、地域で広がって廃れる服の好み（[服装と流行](fashion.md)） | Clothing / Trend | |
+| パーツ・色の差し替え | | 服の絵を組み立てる部品と、同じ絵の色を替えること | Outfit part / Palette swap | |
 | 予言者の誤解 | `OracleProphecy`・`OracleText` | 神託でドグマが生まれたとき、予言者が神の意図を誤解して語る文（見出し・意図・教義）。ローカルの LLM が作る表現で、ゲームの計算には関わらない（[AI による表現](ai-presentation.md)） | Prophet's misreading | AI 神託 |
 | 年表 | `History`・`HistoryEntry` | 星に起きた主な出来事（ドグマの誕生・住人の精神崩壊・称号を持つ住人の死・星の崩壊・世界再創生）を年ごとに積んだもの。世界再創生をまたいで残る（[星の年表](history.md)） | Chronicle | 歴史ログ |
 | つがい | `Resident.PartnerId` | 同じ地域で組んだ 2 人の住人。子供をもうけ、死ぬまで続く | Partner | 夫婦、カップル |
