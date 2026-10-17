@@ -149,7 +149,9 @@ public class ScriptStateTests
         state.Label(state.Carvings[0].Glyph.First, "SYM_WATER");
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
-            [AutoPlaySpeed.X1] = 600.0, [AutoPlaySpeed.X2] = 300.0, [AutoPlaySpeed.X3] = 200.0,
+            [AutoPlaySpeed.X1] = 600.0,
+            [AutoPlaySpeed.X2] = 300.0,
+            [AutoPlaySpeed.X3] = 200.0,
         });
         time.World.Year = 400;
         var json = SaveDataSerializer.Write(SaveGame.Capture(time, prophet, Seed, clock));
