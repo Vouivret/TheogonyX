@@ -40,6 +40,19 @@
 | 方言帳 | `DialectBook` | 神託と祈りで分かった聞き違えと知っている言葉を、自動で書き留める欄（[神託の作り方](oracle-pair.md)） | Dialect book | |
 | 謎の言葉 | `MysteryWords` | 神の文のうち、どの記号にも当たらない言葉。教えにならず、経典にだけ残る（[神託の作り方](oracle-pair.md)） | Mystery word | |
 | 掟の 1 行 | `ORACLE_LINE_*` | 予言者が告げる吹き出しの頭に出す、記号と種別を決まった形で書いた 1 行（例:「〈木〉を崇めよ」）（[神託の作り方](oracle-pair.md)） | Law line | |
+| 信仰 | `Belief` | 住人が信じている教えと、その強さ。1 人 3 つまで（[信仰としてのドグマ](dogma-belief.md)） | Belief | |
+| 信者 | | ある教えを信じている住人 | Believer | |
+| 信仰の強さ | `Belief.Strength` | 信仰ごとの強さ（0.0〜1.0）。画面には数字で出さない | Devotion | |
+| 忘れられた教え | | 信者が 0 人になって一覧から消えた教え。年表に「忘れられた」と残る | Forgotten teaching | |
+| 後継 | | 予言者が死んだとき、信者の中から選ばれて次の予言者になる住人（[予言者の暮らし](prophet-life.md)） | Successor | |
+| 神の沈黙 | | 後継の候補がいなくて予言者が絶え、神託を下せない時期（[予言者の暮らし](prophet-life.md)） | Divine silence | |
+| 地域の環境 | | 96 の地域それぞれが持つ森林量・水資源・気温・カオス度・調和度。星全体の値は、その平均（[地域の環境](regional-environment.md)） | Regional environment | |
+| 土台の地形 | `BaseTerrain` | 地域ごとに 1 つ持つ固定の地形（海・沿岸・平野・森林・山岳）。星を作るときに決まる | Base terrain | |
+| 環境の異常 | | 地域の森林量・水資源・気温から、土台の地形の上に塗るタイル（氷河・焦土・砂漠・密林・草地） | Terrain anomaly | |
+| ならし | | 毎年、隣どうしの地域の値を少しずつ近づけること（拡散） | Diffusion | |
+| 段 | | 地域の格子の横の並び（6 段）。上から北の極・北の中緯度・北の低緯度・南の低緯度・南の中緯度・南の極 | Latitude band | 緯度帯 |
+| 大陸 | | 星を作るときに、大陸の種から広げた陸の地域の塊 | Continent | |
+| 星の視点・地域の視点・詳細の視点 | | カメラの 3 段の視点。星全体／数地域／1 地域ほどが画面に入る（[カメラの視点](camera-views.md)） | Planet / Region / Detail view | 大陸の視点・中拡大の視点・マクロ・メゾ・ミクロ |
 | 予言者の誤解 | `OracleProphecy`・`OracleText` | 神託でドグマが生まれたとき、予言者が神の意図を誤解して語る文（見出し・意図・教義）。ローカルの LLM が作る表現で、ゲームの計算には関わらない（[AI による表現](ai-presentation.md)） | Prophet's misreading | AI 神託 |
 | 年表 | `History`・`HistoryEntry` | 星に起きた主な出来事（ドグマの誕生・住人の精神崩壊・名のある住人の死・星の崩壊・世界再創生）を年ごとに積んだもの。世界再創生をまたいで残る（[星の年表](history.md)） | Chronicle | 歴史ログ |
 | つがい | `Resident.PartnerId` | 同じ地域で組んだ 2 人の住人。子供をもうけ、死ぬまで続く | Partner | 夫婦、カップル |
