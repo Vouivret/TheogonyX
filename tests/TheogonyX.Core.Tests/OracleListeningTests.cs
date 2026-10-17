@@ -95,15 +95,15 @@ public class OracleListeningTests
 
     [Fact]
     [Trait("TS", "TS-oracle-listening-006")]
-    public void BuildPrompt_聞き違えた語_聞こえた言葉と聞き違えた語と神の文を渡す()
+    public void BuildPrompt_聞き違えた語_聞こえた言葉とカオス度だけを渡し神の文と元の語は渡さない()
     {
         var world = new WorldState { ChaosLevel = 40f, HarmonyLevel = 60f };
 
-        var prompt = OracleNarrationWriter.BuildPrompt("森を守れ", "森", "囲う", [("守る", "囲う")], world, "ja");
+        var prompt = OracleNarrationWriter.BuildPrompt("森", "囲う", world, "ja");
 
         Assert.Contains("聞こえた言葉: 森 / 囲う", prompt);
-        Assert.Contains("守る -> 囲う", prompt);
-        Assert.Contains("<<<森を守れ>>>", prompt);
         Assert.Contains("カオス度 40", prompt);
+        Assert.DoesNotContain("守る", prompt);
+        Assert.DoesNotContain("<<<", prompt);
     }
 }

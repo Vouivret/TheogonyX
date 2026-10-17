@@ -300,12 +300,8 @@ public sealed class OracleView
         static string? Word(string? id) => id is null ? null : Tr($"WORD_{id}");
         var verb = Word(hearing.HeardVerbId);
         var required = new[] { Word(hearing.HeardNounId), verb is null ? null : OracleNarrationWriter.VerbStem(verb) }.OfType<string>().ToList();
-        var shifts = hearing.BookEntries
-            .Where(entry => entry.Reason != DialectReason.Mystery && entry.HeardWordId is not null)
-            .Select(entry => (Word(entry.GodWord)!, Word(entry.HeardWordId)!))
-            .ToList();
         var body = OracleNarrationWriter.BuildRequest(
-            _rules, godText, Word(hearing.HeardNounId), Word(hearing.HeardVerbId), shifts, _timeControl.World, TranslationServer.GetLocale());
+            _rules, Word(hearing.HeardNounId), Word(hearing.HeardVerbId), _timeControl.World, TranslationServer.GetLocale());
         var (reply, failure, durationMs) = await _client.PostAsync(body);
         var narration = reply is null ? null : OracleNarrationWriter.ParseResponse(reply, required);
         if (narration is null)
