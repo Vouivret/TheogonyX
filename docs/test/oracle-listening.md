@@ -13,7 +13,7 @@
 | TS-oracle-listening-002 | AC-oracle-pair-032 | 正しい答えを読める | 受け入れ条件のとおり | 答えを読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleListeningTests.cs` |
 | TS-oracle-listening-003 | AC-oracle-pair-033 | 壊れた答えを使わない | 受け入れ条件のとおり | 答えを読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleListeningTests.cs` |
 | TS-oracle-listening-004 | AC-oracle-pair-034 | 神の文の長さ・制御文字の検証 | 受け入れ条件のとおり | 確かめる | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleListeningTests.cs` |
-| TS-oracle-listening-005 | AC-oracle-pair-035 | 聞こえた文に聞き違えた語が入っていなければ使わない | 受け入れ条件のとおり | 答えを読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleListeningTests.cs` |
+| TS-oracle-listening-005 | AC-oracle-pair-035 | 聞こえた文に聞き違えた語が入っていなければ使わない（動詞は活用した形も認める） | 受け入れ条件のとおり | 答えを読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleListeningTests.cs` |
 | TS-oracle-listening-006 | AC-oracle-pair-036 | 語りの頼みに聞こえた言葉などを渡す | 受け入れ条件のとおり | 頼みを組み立てる | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OracleListeningTests.cs` |
 
 ## 対象外

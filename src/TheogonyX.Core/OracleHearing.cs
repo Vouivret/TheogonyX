@@ -43,7 +43,8 @@ public sealed record HearOutcome(Hearing? Hearing, string? RejectedReason);
 /// <summary>
 /// 予言者の聞き違え（docs/domain/oracle-pair.md の「方言のように聞き違える」）。
 /// 知らない言葉を先に取り、ずれ表は動詞、次に名詞の順で、1 回の神託で 1 か所までずらす。謎の言葉は数えない。
-/// 答えが定義に合わないときは、例外にせず理由（<c>unknown_word</c>・<c>substitute_required</c>・<c>invalid_substitute</c>・
+/// 定義に無い名詞・動詞は「当てはまらなかった」（null）として扱う。知らない言葉の聞き違え先を LLM が選ばなかったときは、
+/// 選べる名詞から乱数で選ぶ。答えが定義に合わないときは、例外にせず理由（<c>substitute_required</c>・<c>invalid_substitute</c>・
 /// <c>invalid_mystery_word</c>・<c>nothing_heard</c>）を返す。
 /// </summary>
 public static class OracleHearer
@@ -53,19 +54,19 @@ public static class OracleHearer
     public const int MaxMysteryWords = 5;
 
     /// <param name="handSymbolIds">手札の記号。予言者が知っている名詞の記号。</param>
-    public static HearOutcome Hear(DialectRules rules, DialectTable table, IReadOnlyCollection<string> handSymbolIds, HeardAnswer answer)
+    /// <param name="random">知らない言葉の聞き違え先を、LLM が選ばなかったときに選ぶ乱数。</param>
+    public static HearOutcome Hear(
+        DialectRules rules, DialectTable table, IReadOnlyCollection<string> handSymbolIds, HeardAnswer answer, Random random)
     {
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(table);
         ArgumentNullException.ThrowIfNull(handSymbolIds);
         ArgumentNullException.ThrowIfNull(answer);
+        ArgumentNullException.ThrowIfNull(random);
 
+        // 小さな LLM は一覧に無い ID を作ることがあるので、聞き取り全体を捨てずに、その語だけ聞こえなかったことにする
         var noun = answer.NounId is null ? null : rules.FindNoun(answer.NounId);
         var verb = answer.VerbId is null ? null : rules.FindVerb(answer.VerbId);
-        if ((answer.NounId is not null && noun is null) || (answer.VerbId is not null && verb is null))
-        {
-            return Reject("unknown_word");
-        }
         var mysteries = answer.MysteryWords ?? [];
         if (mysteries.Count > MaxMysteryWords || mysteries.Any(word => !AiText.IsPlain(word, MaxMysteryWordLength)))
         {
@@ -82,14 +83,24 @@ public static class OracleHearer
         var unknown = noun is not null && !handSymbolIds.Contains(noun.SymbolId);
         if (unknown)
         {
-            var substitute = answer.SubstituteNounId is null ? null : rules.FindNoun(answer.SubstituteNounId);
+            DialectNoun? substitute;
             if (answer.SubstituteNounId is null)
             {
-                return Reject("substitute_required");
+                // 小さな LLM は聞き違え先を空で返しがちなので、選べる名詞（定義の順）から乱数で選ぶ
+                var candidates = rules.Nouns.Where(candidate => IsValidSubstitute(rules, handSymbolIds, noun!, candidate)).ToList();
+                if (candidates.Count == 0)
+                {
+                    return Reject("substitute_required");
+                }
+                substitute = candidates[random.Next(candidates.Count)];
             }
-            if (substitute is null || !IsValidSubstitute(rules, handSymbolIds, noun!, substitute))
+            else
             {
-                return Reject("invalid_substitute");
+                substitute = rules.FindNoun(answer.SubstituteNounId);
+                if (substitute is null || !IsValidSubstitute(rules, handSymbolIds, noun!, substitute))
+                {
+                    return Reject("invalid_substitute");
+                }
             }
             heardNoun = substitute;
             entries.Add(new DialectEntry(noun!.Id, substitute.Id, DialectReason.Unknown));

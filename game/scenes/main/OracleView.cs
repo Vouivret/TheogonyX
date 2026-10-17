@@ -298,7 +298,8 @@ public sealed class OracleView
             return;
         }
         static string? Word(string? id) => id is null ? null : Tr($"WORD_{id}");
-        var required = new[] { Word(hearing.HeardNounId), Word(hearing.HeardVerbId) }.OfType<string>().ToList();
+        var verb = Word(hearing.HeardVerbId);
+        var required = new[] { Word(hearing.HeardNounId), verb is null ? null : OracleNarrationWriter.VerbStem(verb) }.OfType<string>().ToList();
         var shifts = hearing.BookEntries
             .Where(entry => entry.Reason != DialectReason.Mystery && entry.HeardWordId is not null)
             .Select(entry => (Word(entry.GodWord)!, Word(entry.HeardWordId)!))

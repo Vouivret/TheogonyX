@@ -29,7 +29,7 @@ public class OracleDialectTests
         new(noun, verb, destination, substitute, mysteries ?? []);
 
     private static HearOutcome Hear(string vessel, string[] hand, HeardAnswer answer) =>
-        OracleHearer.Hear(Rules, DialectTable.Create(Rules, vessel, Seed), hand, answer);
+        OracleHearer.Hear(Rules, DialectTable.Create(Rules, vessel, Seed), hand, answer, new Random(Seed));
 
     [Fact]
     [Trait("TS", "TS-oracle-dialect-001")]
@@ -113,15 +113,27 @@ public class OracleDialectTests
 
     [Fact]
     [Trait("TS", "TS-oracle-dialect-005")]
-    public void Hear_知らない言葉の聞き違え先_手札の外か隣の外か無いときは拒む()
+    public void Hear_知らない言葉の聞き違え先_手札の外か隣の外は拒み_選べる名詞が無いときも拒む()
     {
         // 水は手札に無く、水の隣の木は手札にある。火は水の隣ではないので選べない
         string[] hand = ["SYM_TREE", "SYM_FIRE"];
 
-        Assert.Equal("substitute_required", Hear(Silent, hand, Answer("NOUN_RIVER")).RejectedReason);
+        Assert.Equal("substitute_required", Hear(Silent, [], Answer("NOUN_RIVER")).RejectedReason);
         Assert.Equal("invalid_substitute", Hear(Silent, hand, Answer("NOUN_RIVER", substitute: "NOUN_FLAME")).RejectedReason);
         Assert.Equal("invalid_substitute", Hear(Silent, hand, Answer("NOUN_RIVER", substitute: "NOUN_RIVER")).RejectedReason);
         Assert.Null(Hear(Silent, hand, Answer("NOUN_RIVER", substitute: "NOUN_FOREST")).RejectedReason);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-dialect-005")]
+    public void Hear_知らない言葉の聞き違え先をLLMが選ばない_選べる名詞から選ぶ()
+    {
+        // 手札は木と火。水の隣で手札にあるのは木だけなので、選べる名詞は「森」だけ
+        var hearing = Hear(Silent, ["SYM_TREE", "SYM_FIRE"], Answer("NOUN_RIVER", "VERB_PROTECT")).Hearing!;
+
+        Assert.Equal("NOUN_FOREST", hearing.HeardNounId);
+        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f), hearing.Teaching);
+        Assert.Equal([new DialectEntry("NOUN_RIVER", "NOUN_FOREST", DialectReason.Unknown)], hearing.BookEntries);
     }
 
     [Fact]
@@ -153,12 +165,12 @@ public class OracleDialectTests
 
     [Fact]
     [Trait("TS", "TS-oracle-dialect-008")]
-    public void Hear_壊れた答え_定義に無いIDと長すぎる謎の言葉と何も聞こえない答えは拒む()
+    public void Hear_壊れた答え_定義に無いIDは聞こえなかったことにし_長すぎる謎の言葉と何も聞こえない答えは拒む()
     {
         string[] hand = ["SYM_TREE"];
 
-        Assert.Equal("unknown_word", Hear(Silent, hand, Answer("NOUN_UNKNOWN")).RejectedReason);
-        Assert.Equal("unknown_word", Hear(Silent, hand, Answer(verb: "VERB_UNKNOWN")).RejectedReason);
+        Assert.Equal("nothing_heard", Hear(Silent, hand, Answer("NOUN_UNKNOWN", "VERB_UNKNOWN")).RejectedReason);
+        Assert.Equal("NOUN_FOREST", Hear(Silent, hand, Answer("NOUN_FOREST", "VERB_UNKNOWN")).Hearing!.HeardNounId);
         Assert.Equal("invalid_mystery_word", Hear(Silent, hand, Answer("NOUN_FOREST", mysteries: [new string('あ', OracleHearer.MaxMysteryWordLength + 1)])).RejectedReason);
         Assert.Equal("invalid_mystery_word", Hear(Silent, hand, Answer("NOUN_FOREST", mysteries: ["電\n気"])).RejectedReason);
         Assert.Equal("nothing_heard", Hear(Silent, hand, Answer(mysteries: ["電気"])).RejectedReason);

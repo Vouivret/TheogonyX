@@ -74,7 +74,19 @@ public static class OracleNarrationWriter
     }
 
     /// <summary>
+    /// 動詞を聞こえた文に入っているか確かめるときの形。文の中では活用する（守る → 守れ）ので、最初の語の最後の 1 字を外す
+    /// （守る → 守、育てる → 育て、protect → protec）。1 字の語はそのまま。
+    /// </summary>
+    public static string VerbStem(string verb)
+    {
+        ArgumentNullException.ThrowIfNull(verb);
+        var head = verb.Split(' ', 2)[0];
+        return head.Length >= 2 ? head[..^1] : head;
+    }
+
+    /// <summary>
     /// 応答から取り出す。形が崩れている・長すぎる・空のとき、または聞こえた文に <paramref name="requiredWords"/> が入っていないとき null。
+    /// 動詞は <see cref="VerbStem"/> の形で渡す。
     /// </summary>
     public static NarrationText? ParseResponse(string body, IReadOnlyList<string> requiredWords)
     {

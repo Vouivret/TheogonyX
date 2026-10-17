@@ -35,7 +35,10 @@ public sealed class DialectBookView
         var column = new VBoxContainer { Name = "DialectColumn" };
         column.AddChild(new Label { Name = "DialectTitle", Text = "BOOK_TITLE" });
         column.AddChild(scroll);
-        _panel = new PanelContainer { Name = "DialectPanel", Visible = false, Position = new Vector2(16, 60), Size = new Vector2(264, 140) };
+        // 地図と祈りの吹き出しに重ならないよう、右の欄の上（年・カオス度・ドグマの一覧の場所）に重ねる。ボタンの列は隠さない
+        _panel = new PanelContainer { Name = "DialectPanel", Visible = false, Position = new Vector2(288, 16), Size = new Vector2(176, 96) };
+        // 下の HUD の文字が透けないよう、背景を塗りつぶす
+        _panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0.12f, 0.1f, 0.1f), ContentMarginLeft = 4, ContentMarginRight = 4 });
         _panel.AddChild(column);
         owner.GetNode<Node>("Hud").AddChild(_panel);
 

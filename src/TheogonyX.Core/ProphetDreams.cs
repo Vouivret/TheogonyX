@@ -28,6 +28,7 @@ public sealed class ProphetDreams
 
     // 建物・住人・信仰・旅の乱数と同じ並びにならないよう、シードに別の値を混ぜる
     private const uint PrayerSalt = 0x50524159; // "PRAY"
+    private const uint HearSalt = 0x48454152; // "HEAR"
 
     private readonly TimeControl _timeControl;
     private readonly ProphetDreamRules _rules;
@@ -219,12 +220,13 @@ public sealed class ProphetDreams
     public string? SpeakRejection() =>
         _timeControl.World.IsDestroyed ? "star_destroyed" : Faith.CanAfford ? null : "not_enough_faith";
 
-    /// <summary>聞き取りの答えを、予言者の語彙（手札の記号）と方言で聞き違える。</summary>
+    /// <summary>聞き取りの答えを、予言者の語彙（手札の記号）と方言で聞き違える。聞き違え先を選ぶ乱数は、星のシードと年で決める。</summary>
     /// <exception cref="InvalidOperationException">方言の状態を付けていない。</exception>
     public HearOutcome Hear(HeardAnswer answer)
     {
         var dialect = Dialect ?? throw new InvalidOperationException("方言の状態が無い");
-        return OracleHearer.Hear(dialect.Rules, dialect.Table, [.. Deck.Hand.Select(_oracleRules.SymbolOf).Distinct()], answer);
+        var random = new Random(unchecked((int)CrowdHash.Hash((uint)dialect.Seed ^ HearSalt, (uint)_timeControl.World.Year, 0u)));
+        return OracleHearer.Hear(dialect.Rules, dialect.Table, [.. Deck.Hand.Select(_oracleRules.SymbolOf).Distinct()], answer, random);
     }
 
     /// <summary>

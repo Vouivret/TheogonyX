@@ -82,6 +82,18 @@ public class OracleListeningTests
     }
 
     [Fact]
+    [Trait("TS", "TS-oracle-listening-005")]
+    public void VerbStem_活用した動詞も聞こえた文に入っているとみなす()
+    {
+        var conjugated = Response("""{"heard": "森を守れ", "narration": "予言者は森を守った"}""");
+
+        Assert.Equal("守", OracleNarrationWriter.VerbStem("守る"));
+        Assert.Equal("育て", OracleNarrationWriter.VerbStem("育てる"));
+        Assert.Equal("refrai", OracleNarrationWriter.VerbStem("refrain from"));
+        Assert.NotNull(OracleNarrationWriter.ParseResponse(conjugated, ["森", OracleNarrationWriter.VerbStem("守る")]));
+    }
+
+    [Fact]
     [Trait("TS", "TS-oracle-listening-006")]
     public void BuildPrompt_聞き違えた語_聞こえた言葉と聞き違えた語と神の文を渡す()
     {
