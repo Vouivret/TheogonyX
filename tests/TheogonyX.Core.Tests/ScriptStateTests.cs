@@ -46,6 +46,7 @@ public class ScriptStateTests
         Building[] buildings =
         [
             new(1, BuildingType.Workshop, 3, 6, 0, 500), new(2, BuildingType.HouseHut, 3, 7, 2, 500), new(3, BuildingType.Shrine, 3, 6, 4, 500),
+            new(4, BuildingType.HouseHut, 3, 7, 4, 500),
         ];
         var residents = new Residents(
             [Person(1, 3, Teaching("SYM_FIRE", DogmaType.Worship)), Person(2, 3, Teaching("SYM_TREE", DogmaType.Taboo)), Person(3, 3, Teaching("SYM_TREE", DogmaType.Taboo))],
@@ -56,6 +57,7 @@ public class ScriptStateTests
         var plates = state.Carvings.Where(carving => carving.BuildingId is not null).ToDictionary(carving => carving.BuildingId!.Value);
         Assert.Equal(state.Script.GlyphFor("SYM_METAL", DogmaType.Worship), plates[1].Glyph);
         Assert.Equal(state.Script.GlyphFor("SYM_EARTH"), plates[2].Glyph);
+        Assert.False(plates.ContainsKey(4));
         Assert.Equal(state.Script.GlyphFor("SYM_TREE", DogmaType.Taboo), plates[3].Glyph);
         Assert.Equal(CarvingKind.Shrine, plates[3].Kind);
         Assert.Equal(10, plates[3].Year);

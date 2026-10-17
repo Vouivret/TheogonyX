@@ -191,3 +191,14 @@ PRAYER_UNREST,神よ、{0}は荒れ、{1}も騒いでいます,"O god, the {0} i
 PRAYER_RUIN,神よ、{0}は朽ち、{1}も崩れていきます,"O god, the {0} decays and the {1} crumbles."
 PRAYER_DAILY,神よ、{0}と{1}に感謝します,"Thank you, god, for the {0} and the {1}."
 HISTORY_SCRIPT_DECAYED,{0} 年　人の字が崩れた,Year {0}: The script of the people decayed
+RUBBING_TITLE,拓本,Rubbing
+RUBBING_HINT,刻まれた字（押すと拓本を取る）,A carved glyph (click to take a rubbing)
+RUBBING_INFO,{0}　{1} 年に刻まれた,{0}: carved in year {1}
+RUBBING_FOUND,手帳に新しく {0} 個の部品を写した,Copied {0} new radicals into the notebook
+RUBBING_KNOWN,この字の部品は、もう手帳にある,The radicals of this glyph are already in the notebook
+RUBBING_KIND_LANDMARK,地形の目印,Landmark
+RUBBING_KIND_WORKSHOP,工房の札,Workshop plate
+RUBBING_KIND_HOUSE,家の札,House plate
+RUBBING_KIND_SHRINE,祠の札,Shrine plate
+RUBBING_KIND_TABOO,禁忌の札,Taboo plate
+BUTTON_CLOSE,閉じる,Close

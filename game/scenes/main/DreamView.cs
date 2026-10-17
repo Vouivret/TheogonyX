@@ -148,6 +148,10 @@ public sealed class DreamView
         {
             GD.Print(FormattableString.Invariant($"event=auto_play_paused year={year} reason=prophet_prayer"));
         }
+        if (update.ScriptDecayed)
+        {
+            GD.Print(FormattableString.Invariant($"event=script_decayed year={year}"));
+        }
         PrayerText = null;
         if (update.Prayer is { } prayer)
         {

@@ -255,6 +255,34 @@ public static class GameDataLoader
         return (dialect, vessel);
     }
 
+    /// <returns>星の字の定義・地形の目印・禁忌の札を刻む信者の割合。</returns>
+    public static (ScriptRules Rules, IReadOnlyList<ScriptLandmark> Landmarks, float TabooPlateShare) ParseScript(string rulesJson)
+    {
+        var section = Parse<ScriptSection>(rulesJson, "rules.json").Script
+            ?? throw new InvalidDataException("字の定義が無い: file=rules.json key=script");
+        ScriptFile file;
+        try
+        {
+            file = section.Deserialize<ScriptFile>(StrictOptions)
+                ?? throw new InvalidDataException("字の定義が空: file=rules.json key=script");
+            var rules = new ScriptRules(file.GridSize, file.MinStrokes, file.MaxStrokes, file.DecayYears, file.TeachingIntensity);
+            rules.Validate();
+            if (file.TabooPlateShare is <= 0f or > 1f || file.Landmarks is null)
+            {
+                throw new ArgumentException("禁忌の札の割合か地形の目印が正しくない");
+            }
+            return (rules, file.Landmarks, file.TabooPlateShare);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("字の定義を読めない: file=rules.json key=script", ex);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("字の定義の値が範囲外: file=rules.json key=script", ex);
+        }
+    }
+
     public static JourneyRules ParseJourney(string rulesJson)
     {
         var section = Parse<JourneySection>(rulesJson, "rules.json").Journey
@@ -449,6 +477,12 @@ public static class GameDataLoader
     private sealed record BeliefSection(JsonElement? Belief);
 
     private sealed record JourneySection(JsonElement? Journey);
+
+    private sealed record ScriptSection(JsonElement? Script);
+
+    private sealed record ScriptFile(
+        int GridSize, int MinStrokes, int MaxStrokes, int DecayYears, float TeachingIntensity, float TabooPlateShare,
+        IReadOnlyList<ScriptLandmark> Landmarks);
 
     private sealed record DialectSection(JsonElement? Dialect, string? DialectVessel);
 

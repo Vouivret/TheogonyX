@@ -24,6 +24,8 @@ public sealed class OracleView
     private readonly ProphetDreams _prophet;
     private readonly OracleCommandQueue _commands;
     private readonly PanelContainer _bubble;
+    private readonly PanelContainer _prayerPanel;
+    private readonly HBoxContainer _prayerGlyphs;
     private readonly Label _label;
     private double _hideInSeconds;
     private bool _listening;
@@ -45,6 +47,10 @@ public sealed class OracleView
         _bubble.AddChild(_label);
         owner.GetNode<Node>("Hud").AddChild(_bubble);
         dreams.SpeakRequested += OnSpeakRequested;
+        _prayerGlyphs = new HBoxContainer { Name = "PrayerGlyphs" };
+        _prayerPanel = new PanelContainer { Name = "PrayerGlyphPanel", Visible = false, Position = new Vector2(150, 92), MouseFilter = Control.MouseFilterEnum.Ignore };
+        _prayerPanel.AddChild(_prayerGlyphs);
+        owner.GetNode<Node>("Hud").AddChild(_prayerPanel);
         dreams.WordsChosen += OnWordsChosen;
         dreams.Prayed += OnPrayed;
         // LLM を使わない設定なら、最初から言葉を選ぶ形にする
@@ -60,6 +66,14 @@ public sealed class OracleView
     /// <summary>毎フレーム呼ぶ。吹き出しを出しておく時間を数える。</summary>
     public void Process(double delta)
     {
+        if (_prayerHideInSeconds > 0)
+        {
+            _prayerHideInSeconds -= delta;
+            if (_prayerHideInSeconds <= 0)
+            {
+                HidePrayerGlyphsIfAnswered();
+            }
+        }
         if (!_bubble.Visible || _hideInSeconds <= 0)
         {
             return;
@@ -74,6 +88,7 @@ public sealed class OracleView
     // 予言者が祈った。まず定型の祈り（困りごとのひな形に知っている名詞を入れた文）を出し、LLM が使えれば、できた文に差し替える
     private void OnPrayed(Prayer prayer)
     {
+        ShowPrayerGlyphs(prayer);
         var words = prayer.NounIds.Select(id => Tr($"WORD_{id}")).ToList();
         var troubleText = prayer.Request is null ? null : Tr($"TROUBLE_{prayer.Request.Id}");
         var fallback = FallbackPrayer(prayer, words);
@@ -119,6 +134,47 @@ public sealed class OracleView
         else if (!_listening)
         {
             ShowText(text);
+        }
+    }
+
+    /// <summary>依頼が済んだら、祈りの字を隠す（時間が進んだ後に呼ぶ）。</summary>
+    public void HidePrayerGlyphsIfAnswered()
+    {
+        if (_prophet.ActiveRequest is null && _prayerHideInSeconds <= 0)
+        {
+            _prayerPanel.Visible = false;
+        }
+    }
+
+    private double _prayerHideInSeconds;
+
+    // 祈りの字（人の字）を並べ、その部品を手帳に載せる。日々の祈りは、吹き出しと同じ秒数だけ出す
+    private void ShowPrayerGlyphs(Prayer prayer)
+    {
+        if (_prophet.Script is not { } script || _prophet.Dialect is not { } dialect)
+        {
+            return;
+        }
+        var symbols = prayer.NounIds.Select(id => dialect.Rules.FindNoun(id)?.SymbolId).OfType<string>().ToList();
+        var glyphs = ScriptReader.PrayerGlyphs(script.Script, prayer.Request, symbols);
+        foreach (var child in _prayerGlyphs.GetChildren())
+        {
+            _prayerGlyphs.RemoveChild(child);
+            child.QueueFree();
+        }
+        var added = 0;
+        foreach (var glyph in glyphs)
+        {
+            var view = new GlyphView { CustomMinimumSize = new Vector2(32, 32), MouseFilter = Control.MouseFilterEnum.Ignore };
+            view.Show(script.Script, glyph, script.Decayed);
+            _prayerGlyphs.AddChild(view);
+            added += script.Discover(glyph);
+        }
+        _prayerPanel.Visible = glyphs.Count > 0;
+        _prayerHideInSeconds = prayer.Request is null ? _rules.BubbleSeconds : 0;
+        if (added > 0)
+        {
+            GD.Print(FormattableString.Invariant($"event=glyph_discovered count={added}"));
         }
     }
 

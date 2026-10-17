@@ -180,6 +180,20 @@
     "defaultType": "Worship",
     "defaultIntensity": 0.7
   },
+  "script": {
+    "gridSize": 4,
+    "minStrokes": 3,
+    "maxStrokes": 6,
+    "decayYears": 300,
+    "teachingIntensity": 0.7,
+    "tabooPlateShare": 0.3,
+    "landmarks": [
+      { "symbolId": "SYM_WATER", "column": 19, "row": 8 },
+      { "symbolId": "SYM_FIRE", "column": 11, "row": 2 },
+      { "symbolId": "SYM_TREE", "column": 3, "row": 2 },
+      { "symbolId": "SYM_EARTH", "column": 29, "row": 2 }
+    ]
+  },
   "journey": {
     "wanderProbability": 0.1
   },

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Godot;
 using TheogonyX.Core;
 using TheogonyX.Core.Persistence;
@@ -24,6 +25,7 @@ public partial class WorldCore : Node2D
     private StrataView? _strata;
     private ResidentView? _residents;
     private HistoryView? _history;
+    private CarvingView? _carvings;
     private DialectBookView? _dialectBook;
     private CrowdView? _crowd;
     private DreamView? _dreams;
@@ -77,15 +79,17 @@ public partial class WorldCore : Node2D
         var journeyRules = GameDataLoader.ParseJourney(rulesJson);
         var oracleAiRules = GameDataLoader.ParseOracleAi(rulesJson);
         var (dialectRules, dialectVessel) = GameDataLoader.ParseDialect(rulesJson);
+        var (scriptRules, scriptLandmarks, tabooPlateShare) = GameDataLoader.ParseScript(rulesJson);
 
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
         _saveStore = new SaveStore("user://save", TimeProvider.System);
         var oracleRules = GameDataLoader.ParseOracleRules(rulesJson, dreamRules);
         var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, needsRules, oracleRules, out var loadFailed, out var outdated);
         // 方言の状態が定義に合わないセーブは、何も当てはめる前に壊れたセーブとして扱う
-        if (saved?.Dialect is { } savedDialect && !FitsDialect(dialectRules, dialectVessel, savedDialect))
+        if ((saved?.Dialect is { } savedDialect && !FitsDialect(dialectRules, dialectVessel, savedDialect))
+            || (saved?.Script is { } savedScript && !FitsScript(scriptRules, civilizationRules.Regions, savedScript)))
         {
-            GD.PushWarning("event=save_load_failed reason=invalid_dialect");
+            GD.PushWarning("event=save_load_failed reason=invalid_dialect_or_script");
             loadFailed = true;
             _saveStore.KeepBroken();
             saved = null;
@@ -105,6 +109,9 @@ public partial class WorldCore : Node2D
         var deck = new OracleDeck(seed, GameDataLoader.ParseDeck(rulesJson, dreamRules));
         var prophet = new ProphetDreams(timeControl, prophetDreamRules, deck, oracleRules);
         prophet.AttachDialect(new DialectState(dialectRules, dialectVessel, seed));
+        var symbolIds = dreamRules.Symbols.Select(symbol => symbol.Id).ToList();
+        prophet.AttachScript(new ScriptState(
+            scriptRules, PlanetScript.Create(scriptRules, symbolIds, seed), civilizationRules.Regions, scriptLandmarks, tabooPlateShare));
         if (saved is not null)
         {
             SaveGame.Apply(saved, timeControl, prophet, clock);
@@ -126,6 +133,9 @@ public partial class WorldCore : Node2D
         _residents = new ResidentView(this, timeControl, civilizationRules, needsRules, _ambience, seed, cameraSettings.ResidentIcons);
         _screen.TerrainDrawn += _residents.Refresh;
         _history = new HistoryView(this, timeControl);
+        _carvings = new CarvingView(this, prophet);
+        _screen.TerrainDrawn += _carvings.Refresh;
+        _carvings.Discovered += Save;
         _dialectBook = new DialectBookView(this, prophet);
         _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
         _screen.TimeAdvanced += () => LogForgottenDogmas(timeControl);
@@ -150,6 +160,7 @@ public partial class WorldCore : Node2D
         _oracle = new OracleView(this, timeControl, _dreams, oracleAiRules, _ollama, prophet, commands);
         _oracle.Spoken += Save;
         _oracle.StateChanged += _screen.Refresh;
+        _screen.TimeAdvanced += _oracle.HidePrayerGlyphsIfAnswered;
         _myth = new MythView(timeControl, oracleAiRules, _ollama);
         _myth.MythAttached += Save;
         _screen.Jumped += Save;
@@ -234,6 +245,21 @@ public partial class WorldCore : Node2D
         broken = true;
         store.KeepBroken();
         return null;
+    }
+
+    // 保存した星の字が、今の定義に合うか（合わなければ読み込まない）
+    private static bool FitsScript(ScriptRules rules, RegionMap regions, ScriptSave save)
+    {
+        try
+        {
+            var probe = PlanetScript.Restore(rules, save.Radicals, save.Arrangement, save.SimilarPair);
+            new ScriptState(rules, probe, regions, [], 0.3f).Restore(save);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 
     // 保存した方言の状態が、今の定義に合うか（合わなければ読み込まない）

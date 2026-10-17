@@ -106,13 +106,16 @@ public sealed class ScriptState
         var standing = buildings.Select(building => building.Id).ToHashSet();
         _carvings.RemoveAll(carving => carving.BuildingId is { } id && !standing.Contains(id));
 
+        // 家の札は、地域ごとにいちばん古い家（ID の小さい家）にだけ刻む（地表が札で埋まらないように）
+        var platedHouses = buildings.Where(building => building.Type.IsHouse())
+            .GroupBy(building => building.Region).Select(group => group.Min(building => building.Id)).ToHashSet();
         foreach (var building in buildings.OrderBy(building => building.Id))
         {
             var glyph = building.Type switch
             {
                 BuildingType.Workshop => Script.GlyphFor("SYM_METAL", DogmaType.Worship),
                 BuildingType.Shrine => MostBelieved(residents, building.Region) is { } teaching ? Script.GlyphFor(teaching.SymbolId, teaching.Type) : null,
-                _ when building.Type.IsHouse() => Script.GlyphFor("SYM_EARTH"),
+                _ when building.Type.IsHouse() && platedHouses.Contains(building.Id) => Script.GlyphFor("SYM_EARTH"),
                 _ => null,
             };
             var kind = building.Type switch
