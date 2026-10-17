@@ -52,7 +52,7 @@ public class HostMessageWriterTests
         var root = json.RootElement;
 
         Assert.Equal("ORACLE_STATE", root.GetProperty("type").GetString());
-        Assert.Equal(2, root.GetProperty("version").GetInt32());
+        Assert.Equal(3, root.GetProperty("version").GetInt32());
         var faith = root.GetProperty("faith");
         Assert.Equal(3.0, faith.GetProperty("value").GetDouble(), 3);
         Assert.Equal(3.0, faith.GetProperty("max").GetDouble(), 3);
@@ -155,5 +155,19 @@ public class HostMessageWriterTests
         Assert.Equal("電気", entry.GetProperty("godWord").GetString());
         Assert.Equal(JsonValueKind.Null, entry.GetProperty("heardWordId").ValueKind);
         Assert.Equal("MYSTERY", entry.GetProperty("reason").GetString());
+    }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-pair-011")]
+    public void OracleState_字の神託_語りかけ方はSCRIPTでスマホからは語りかけられない()
+    {
+        var (prophet, _) = CreateProphet();
+
+        using var json = JsonDocument.Parse(HostMessageWriter.OracleState(prophet, false, false, true, null, scriptMode: true));
+        var root = json.RootElement;
+
+        Assert.Equal("SCRIPT", root.GetProperty("mode").GetString());
+        Assert.False(root.GetProperty("canSpeak").GetBoolean());
+        Assert.Empty(root.GetProperty("nouns").EnumerateArray());
     }
 }

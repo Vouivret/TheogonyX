@@ -15,6 +15,7 @@
   "ORACLE_GUIDE_FAITH": "{0}  Faith {1} / {2}",
   "BUTTON_SPEAK": "Speak",
   "SPEAK_PLACEHOLDER": "Write the god's words",
+  "ORACLE_GUIDE_SCRIPT": "Compose glyphs from the notebook on the PC screen to speak.",
   "ORACLE_GUIDE_SPEAK": "Speak to the prophet.",
   "ORACLE_GUIDE_LISTENING": "The prophet is listening...",
   "ORACLE_GUIDE_CHOOSE_WORDS": "Choose words (noun / verb / destination).",

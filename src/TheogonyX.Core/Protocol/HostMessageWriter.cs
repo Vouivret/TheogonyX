@@ -33,7 +33,8 @@ public static class HostMessageWriter
     /// <param name="listening">予言者が聞いている途中か。</param>
     /// <param name="choiceMode">言葉を選んで語りかける形（<c>WORDS</c>）か。</param>
     /// <param name="prayerText">依頼中の祈りの文。無ければ null。</param>
-    public static string OracleState(ProphetDreams prophet, bool isDestroyed, bool listening, bool choiceMode, string? prayerText)
+    /// <param name="scriptMode">字の神託（<c>SCRIPT</c>）か。字は PC で組むので、スマホからは語りかけられない。</param>
+    public static string OracleState(ProphetDreams prophet, bool isDestroyed, bool listening, bool choiceMode, string? prayerText, bool scriptMode = false)
     {
         ArgumentNullException.ThrowIfNull(prophet);
         var faith = prophet.Faith;
@@ -44,10 +45,10 @@ public static class HostMessageWriter
 
         // 言葉を選ぶ形のときだけ、選べる言葉を送る。名詞は、手札の記号の名詞だけ
         var knownSymbols = prophet.Hand.Select(prophet.SymbolOf).ToHashSet();
-        var nouns = choiceMode && dialect is not null
+        var nouns = choiceMode && !scriptMode && dialect is not null
             ? dialect.Rules.Nouns.Where(noun => knownSymbols.Contains(noun.SymbolId)).Select(noun => noun.Id).ToList()
             : [];
-        var verbs = choiceMode && dialect is not null ? dialect.Rules.Verbs.Select(verb => verb.Id).ToList() : [];
+        var verbs = choiceMode && !scriptMode && dialect is not null ? dialect.Rules.Verbs.Select(verb => verb.Id).ToList() : [];
 
         var told = dialect?.Records.Count > 0
             ? dialect.Records[^1] is { } record
@@ -75,11 +76,11 @@ public static class HostMessageWriter
         return JsonSerializer.Serialize(new
         {
             type = "ORACLE_STATE",
-            version = 2,
+            version = 3,
             faith = new { value = faith.Value, max = faith.Max, cost = faith.Cost },
-            canSpeak = !isDestroyed && !listening && dialect is not null && faith.CanAfford,
+            canSpeak = !scriptMode && !isDestroyed && !listening && dialect is not null && faith.CanAfford,
             isDestroyed,
-            mode = choiceMode ? "WORDS" : "VOICE",
+            mode = scriptMode ? "SCRIPT" : choiceMode ? "WORDS" : "VOICE",
             listening,
             request,
             nouns,

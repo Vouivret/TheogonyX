@@ -18,8 +18,8 @@ export const MESSAGE_TYPE = Object.freeze({
   PRONOUNCE: "PRONOUNCE",
 });
 
-/** ORACLE_STATE のバージョン。手札と pairs をやめ、語りかけ方・告げた神託・方言帳を持たせた（version 2） */
-export const ORACLE_STATE_VERSION = 2;
+/** ORACLE_STATE のバージョン。version 2 で手札と pairs をやめ、version 3 で mode に SCRIPT（PC で字を組む神託）を足した */
+export const ORACLE_STATE_VERSION = 3;
 
 /** PRONOUNCE のバージョン。手札の番号をやめ、名詞・動詞・行き先を持たせた（version 3） */
 export const PRONOUNCE_VERSION = 3;
@@ -37,6 +37,7 @@ export const ERROR_REASON = Object.freeze({
 export const ORACLE_MODE = Object.freeze({
   VOICE: "VOICE",
   WORDS: "WORDS",
+  SCRIPT: "SCRIPT",
 });
 
 /** PRONOUNCE の destination、ORACLE_STATE の told.destination */
@@ -68,7 +69,7 @@ export const FRAME_HEADER_LENGTH = 2;
  * @typedef {{ year: number, teaching: Teaching | null, heardNounId: string | null, heardVerbId: string | null,
  *   destination: string, mysteryWords: string[], heardText: string | null, narration: string | null }} Told
  * @typedef {{ godWord: string, heardWordId: string | null, reason: string }} BookEntry
- * @typedef {{ type: "ORACLE_STATE", version: 2, faith: Faith, canSpeak: boolean, isDestroyed: boolean,
+ * @typedef {{ type: "ORACLE_STATE", version: 3, faith: Faith, canSpeak: boolean, isDestroyed: boolean,
  *   mode: string, listening: boolean, request: ProphetRequest | null, nouns: string[], verbs: string[],
  *   told: Told | null, book: BookEntry[] }} OracleStateMessage
  * @typedef {PairedMessage | ErrorMessage | OracleStateMessage} HostMessage
@@ -125,7 +126,7 @@ function isOracleState(message) {
     && Number.isFinite(message.faith.value) && Number.isFinite(message.faith.max) && Number.isFinite(message.faith.cost)
     && typeof message.canSpeak === "boolean"
     && typeof message.isDestroyed === "boolean"
-    && (message.mode === ORACLE_MODE.VOICE || message.mode === ORACLE_MODE.WORDS)
+    && Object.values(ORACLE_MODE).includes(message.mode)
     && typeof message.listening === "boolean"
     && Array.isArray(message.nouns) && message.nouns.every(isText)
     && Array.isArray(message.verbs) && message.verbs.every(isText)

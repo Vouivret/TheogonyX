@@ -144,7 +144,7 @@ public sealed class DreamView
 
     /// <summary>スマホに送る、今の神託の状態（<c>ORACLE_STATE</c>）。</summary>
     public string StateMessage() =>
-        HostMessageWriter.OracleState(_prophet, _timeControl.World.IsDestroyed, _listening, _choiceMode, PrayerText);
+        HostMessageWriter.OracleState(_prophet, _timeControl.World.IsDestroyed, _listening, _choiceMode, PrayerText, _scriptMode);
 
     /// <summary>100 年跳躍の後と、自動進行の 1 年ごとに呼ぶ。</summary>
     public void OnTimeAdvanced()
@@ -218,6 +218,7 @@ public sealed class DreamView
     private string? RemoteRejection(bool wantChoiceMode) =>
         _timeControl.World.IsDestroyed ? "star_destroyed"
         : _prophet.Dialect is null ? "no_dialect"
+        : _scriptMode ? "script_mode"
         : _listening ? "listening"
         : !_prophet.Faith.CanAfford ? "not_enough_faith"
         : _choiceMode != wantChoiceMode ? (wantChoiceMode ? "voice_mode" : "words_mode")

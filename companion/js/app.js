@@ -230,10 +230,12 @@ function renderOracle() {
   const state = isPaired ? oracleState : null;
   const shown = state ?? oracleState;
   const wordsMode = shown?.mode === protocol.ORACLE_MODE.WORDS;
+  // 字の神託は PC の画面で字を組むので、スマホでは入力欄も選ぶ欄も出さない
+  const scriptMode = shown?.mode === protocol.ORACLE_MODE.SCRIPT;
   const canSpeak = state?.canSpeak ?? false;
 
-  voiceRow.hidden = wordsMode;
-  wordsRow.hidden = !wordsMode;
+  voiceRow.hidden = wordsMode || scriptMode;
+  wordsRow.hidden = !wordsMode || scriptMode;
   godText.disabled = !canSpeak;
   speakButton.disabled = !(canSpeak && isValidGodText(godText.value));
   if (wordsMode && shown !== null) {
@@ -280,6 +282,8 @@ function guideText(state) {
     key = "ORACLE_GUIDE_LISTENING";
   } else if (state.faith.value + 1e-6 < state.faith.cost) {
     key = "ORACLE_GUIDE_NO_FAITH";
+  } else if (state.mode === protocol.ORACLE_MODE.SCRIPT) {
+    key = "ORACLE_GUIDE_SCRIPT";
   } else if (state.mode === protocol.ORACLE_MODE.WORDS) {
     key = "ORACLE_GUIDE_CHOOSE_WORDS";
   }
