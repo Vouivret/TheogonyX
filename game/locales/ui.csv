@@ -206,14 +206,15 @@ BUTTON_COMPOSE,字を組む,Compose glyphs
 BUTTON_NOTEBOOK,手帳,Notebook
 ORACLE_GUIDE_COMPOSE,手帳の部品で字を組み、語りかけよ,Compose glyphs from your notebook and speak.
 COMPOSE_TITLE,字を組む,Compose glyphs
-COMPOSE_CURRENT,組んでいる字,Current glyph
-COMPOSE_SLOT_FIRST,左・上,Left / top
-COMPOSE_SLOT_SECOND,右・下,Right / bottom
-COMPOSE_SLOT_DIRECTION,下の小さな部品,Small mark below
-COMPOSE_ARRANGE_LR,並び: 左右,Arrange: left-right
-COMPOSE_ARRANGE_TB,並び: 上下,Arrange: top-bottom
-COMPOSE_ADD,字を足す,Add glyph
-COMPOSE_CLEAR,消す,Clear
+COMPOSE_ARRANGE_LR,横に並べる,Side by side
+COMPOSE_ARRANGE_TB,縦に重ねる,Stacked
+COMPOSE_CLEAR_GLYPH,この字を消す,Clear this glyph
+COMPOSE_PALETTE,手帳の部品（押すと光る枠に入る）,Notebook radicals (click to put in the lit box)
+COMPOSE_SENTENCE,語る言葉,Words
+COMPOSE_HINT_EMPTY,手帳に部品が無い。地表の字の印を押して拓本を取ろう,No radicals yet. Click carved marks on the map to take rubbings.
+COMPOSE_HINT_PLACE,部品を押すと光る枠に入る。枠を押すと入れる場所を選べる（光る枠をもう一度押すと外れる）,Click a radical to put it in the lit box. Click a box to choose it (click the lit box again to empty it).
+COMPOSE_HINT_READY,このまま語りかけるか、「語る言葉」の次の枠を押して字を足そう（3 字まで）,"Speak now, or click the next box under Words to add a glyph (up to 3)."
+COMPOSE_HINT_FULL,3 字まで組める。語りかけよう,Up to 3 glyphs. Speak when ready.
 NOTEBOOK_TITLE,字の手帳,Glyph notebook
 NOTEBOOK_EMPTY,（まだ部品を写していない。地表の印を押して拓本を取ろう）,(No radicals yet. Click carved marks to take rubbings.)
 NOTEBOOK_UNKNOWN,？,?

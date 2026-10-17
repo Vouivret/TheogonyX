@@ -24,6 +24,9 @@ public partial class GlyphView : Control
     /// <summary>背景の色（透明なら塗らない）。</summary>
     public Color Background { get; set; } = new(0.08f, 0.05f, 0.11f, 0.85f);
 
+    /// <summary>縁の色（透明なら描かない）。選んでいる字を目立たせるのに使う。</summary>
+    public Color Outline { get; set; } = Colors.Transparent;
+
     /// <summary>描く字を替える。</summary>
     public void Show(PlanetScript script, Glyph glyph, bool decayed)
     {
@@ -40,6 +43,10 @@ public partial class GlyphView : Control
         if (Background.A > 0f)
         {
             DrawRect(new Rect2(Vector2.Zero, Size), Background);
+        }
+        if (Outline.A > 0f)
+        {
+            DrawRect(new Rect2(Vector2.Zero, Size), Outline, false, 1f);
         }
         if (_script is null || _glyph is null)
         {
@@ -76,6 +83,9 @@ public partial class GlyphView : Control
         {
             return;
         }
+        // 細長い枠では部品が潰れて見分けにくいので、縦横の比を 1.5 倍までにして真ん中に置く
+        var size = new Vector2(Mathf.Min(box.Size.X, box.Size.Y * 1.5f), Mathf.Min(box.Size.Y, box.Size.X * 1.5f));
+        box = new Rect2(box.Position + (box.Size - size) / 2, size);
         var inner = box.Grow(-Mathf.Min(box.Size.X, box.Size.Y) * 0.1f);
         Vector2 Point(int x, int y) => inner.Position + new Vector2(inner.Size.X * x / _cells, inner.Size.Y * y / _cells);
         foreach (var stroke in radical.ShapeIn(_decayed))
