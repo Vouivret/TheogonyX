@@ -56,6 +56,7 @@ public static class OracleListening
             prompt.AppendLine($"予言者が知っている名詞: {List(knownNouns)}");
             prompt.AppendLine("noun は文の主な対象に最も近い名詞の ID、verb は文の動作に最も近い動詞の ID。当てはまらなければ null。");
             prompt.AppendLine("noun が「予言者が知っている名詞」に無いときは、substitute に、知っている名詞のうち意味がいちばん近い ID を選べ。noun が知っているものなら substitute は null。");
+            prompt.AppendLine("文に名詞が書かれていなければ noun は null。行き先（東・西など）は destination にだけ入れ、noun・verb・mystery には入れない。");
             prompt.AppendLine("destination は、文が行き先を示すなら east / west / north / south（方角）か place（土地の名）、無ければ none。");
             prompt.AppendLine("どの名詞にも当てはまらない言葉（一覧に無いもの）は、mystery に文の言葉そのままで入れよ（最大 5 個）。");
             prompt.AppendLine($"<<<{godText}>>>");
@@ -70,6 +71,7 @@ public static class OracleListening
             prompt.AppendLine($"Nouns the prophet knows: {List(knownNouns)}");
             prompt.AppendLine("noun is the ID of the noun closest to the main object of the text, verb the ID of the verb closest to its action. Use null if none fits.");
             prompt.AppendLine("If noun is not among the nouns the prophet knows, set substitute to the ID of the known noun closest in meaning. If noun is known, substitute is null.");
+            prompt.AppendLine("If the text names no noun, noun is null. Put a destination (east, west, ...) only in destination, never in noun, verb or mystery.");
             prompt.AppendLine("destination is east / west / north / south (a direction) or place (a named land) if the text names where to go, otherwise none.");
             prompt.AppendLine("Words that fit no noun (not in the list) go into mystery exactly as written in the text (at most 5).");
             prompt.AppendLine($"<<<{godText}>>>");

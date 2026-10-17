@@ -130,6 +130,21 @@ public class BeliefTests
     }
 
     [Fact]
+    [Trait("TS", "TS-belief-010")]
+    public void AddDogma_同じ教えをもう一度告げる_一覧と年表は1つのまま()
+    {
+        var time = CreateTime();
+        time.Jump(); // 各地域に住人が 1 人ずつ移り住む（8 人）
+        time.AddDogma(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f));
+
+        time.AddDogma(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f));
+
+        Assert.Equal([new Dogma("SYM_TREE", DogmaType.Worship, 0.7f)], time.Dogmas);
+        Assert.Single(time.History!.Entries, entry => entry.Type == HistoryEventType.DogmaFormed);
+        Assert.Equal(3, time.BelieversOf(time.Dogmas[0]));
+    }
+
+    [Fact]
     [Trait("TS", "TS-belief-007")]
     public void Jump_信者のいない教え_忘れられて一覧から消え年表に残る()
     {

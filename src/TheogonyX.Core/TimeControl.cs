@@ -92,15 +92,23 @@ public sealed class TimeControl
 
     public bool CanDo(TimeControlAction action) => Transitions.ContainsKey((State, action));
 
-    /// <summary>ドグマを一覧に加え、年表に残す。状態は変えない。</summary>
+    /// <summary>
+    /// ドグマを一覧に加え、年表に残す。状態は変えない。同じ教え（記号と種別が同じ）がもう一覧にあれば、行は足さず年表にも残さず、
+    /// 予言者の近くの住人にその教えを改めて信じさせる。
+    /// </summary>
     public void AddDogma(Dogma dogma)
     {
         ArgumentNullException.ThrowIfNull(dogma);
-        _dogmas.Add(dogma);
-        History?.Add(new HistoryEntry(World.Year, HistoryEventType.DogmaFormed, dogma.TargetSymbolId, dogma.Type));
+        var preached = _dogmas.FirstOrDefault(existing => existing.TargetSymbolId == dogma.TargetSymbolId && existing.Type == dogma.Type);
+        if (preached is null)
+        {
+            preached = dogma;
+            _dogmas.Add(dogma);
+            History?.Add(new HistoryEntry(World.Year, HistoryEventType.DogmaFormed, dogma.TargetSymbolId, dogma.Type));
+        }
         if (_belief is not null && Residents is not null && _civilizationSetup is { } setup)
         {
-            BeliefSimulator.Seed(Residents, dogma, Prophet?.Region ?? setup.Rules.Regions.RegionOf(setup.Rules.ProphetColumn), _belief);
+            BeliefSimulator.Seed(Residents, preached, Prophet?.Region ?? setup.Rules.Regions.RegionOf(setup.Rules.ProphetColumn), _belief);
         }
     }
 
