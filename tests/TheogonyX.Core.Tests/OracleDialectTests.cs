@@ -173,7 +173,14 @@ public class OracleDialectTests
         Assert.Equal("NOUN_FOREST", Hear(Silent, hand, Answer("NOUN_FOREST", "VERB_UNKNOWN")).Hearing!.HeardNounId);
         Assert.Equal("invalid_mystery_word", Hear(Silent, hand, Answer("NOUN_FOREST", mysteries: [new string('あ', OracleHearer.MaxMysteryWordLength + 1)])).RejectedReason);
         Assert.Equal("invalid_mystery_word", Hear(Silent, hand, Answer("NOUN_FOREST", mysteries: ["電\n気"])).RejectedReason);
-        Assert.Equal("nothing_heard", Hear(Silent, hand, Answer(mysteries: ["電気"])).RejectedReason);
+        Assert.Equal("nothing_heard", Hear(Silent, hand, Answer()).RejectedReason);
+        Assert.Equal("nothing_heard", Hear(Silent, [], Answer(mysteries: ["電気"])).RejectedReason);
+
+        // 謎の言葉だけでも、知っている名詞のどれかに聞き違えて必ず教えになる
+        var mysteryOnly = Hear(Silent, hand, Answer(mysteries: ["空を見上げよ"])).Hearing!;
+        Assert.Equal("NOUN_FOREST", mysteryOnly.HeardNounId);
+        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f), mysteryOnly.Teaching);
+        Assert.Equal(["空を見上げよ"], mysteryOnly.MysteryWords);
     }
 
     [Fact]

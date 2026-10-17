@@ -140,4 +140,17 @@ public class OraclePrayerTests
         Assert.Contains("使う名詞: 森, 川", PrayerWriter.BuildPrompt("渇き", ["森", "川"], "ja"));
         Assert.Contains("困りごとは無い", PrayerWriter.BuildPrompt(null, ["森", "川"], "ja"));
     }
+
+    [Fact]
+    [Trait("TS", "TS-oracle-prayer-009")]
+    public void ParseResponse_引用符が崩れたJSON_文字列の項目を拾って読める()
+    {
+        static string Response(string inner) => JsonSerializer.Serialize(new { model = "gemma2:9b", response = inner, done = true });
+        var broken = Response("{\"prayer\": \"森の実り、川の恵み。渇きを癒したまえ。」} Praying that the forest and the river");
+        var brokenWithoutWord = Response("{\"prayer\": \"森の実りを。」} extra");
+
+        Assert.Equal("森の実り、川の恵み。渇きを癒したまえ。", PrayerWriter.ParseResponse(broken, ["森", "川"]));
+        Assert.Null(PrayerWriter.ParseResponse(brokenWithoutWord, ["森", "川"]));
+        Assert.Null(PrayerWriter.ParseResponse(Response("これはJSONではない"), ["森"]));
+    }
 }

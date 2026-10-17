@@ -74,7 +74,14 @@ public static class OracleHearer
         }
         if (noun is null && verb is null && answer.Destination == HeardDestination.None)
         {
-            return Reject("nothing_heard");
+            // 近い言葉が無くても、予言者はいちばん近い（知っている）言葉に聞き違え、必ず教えになる。
+            // 小さな LLM は選ばないので、知っている名詞から乱数で選ぶ。聞こえた言葉も謎の言葉も無ければ、聞こえなかったことにする
+            var known = rules.Nouns.Where(candidate => handSymbolIds.Contains(candidate.SymbolId)).ToList();
+            if (mysteries.Count == 0 || known.Count == 0)
+            {
+                return Reject("nothing_heard");
+            }
+            noun = known[random.Next(known.Count)];
         }
 
         var entries = new List<DialectEntry>();

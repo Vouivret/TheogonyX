@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace TheogonyX.Core;
 
@@ -47,6 +48,34 @@ public static class AiText
         {
             using var inner = JsonDocument.Parse(content);
             return inner.RootElement.ValueKind == JsonValueKind.Object ? read(inner.RootElement) : null;
+        }
+        catch (JsonException)
+        {
+            return RepairStrings(content, read);
+        }
+    }
+
+    // 小さな LLM は、文字列の終わりの引用符を「」や } に書き違えて JSON を崩すことがある（例: {"prayer": "…。」} 蛇足の文）。
+    // 崩れたときだけ、文字列の項目（"名前": "値"）を拾って作り直す。配列・数値・null は拾えないので、無い項目として読まれる。
+    private static T? RepairStrings<T>(string content, Func<JsonElement, T?> read) where T : class
+    {
+        if (!content.TrimStart().StartsWith('{'))
+        {
+            return null;
+        }
+        var fields = new Dictionary<string, string>();
+        foreach (Match match in Regex.Matches(content, "\"(\\w+)\"\\s*:\\s*\"((?:[^\"\\\\」}\\n]|\\\\.)*)[\"」}]"))
+        {
+            fields.TryAdd(match.Groups[1].Value, match.Groups[2].Value);
+        }
+        if (fields.Count == 0)
+        {
+            return null;
+        }
+        try
+        {
+            using var repaired = JsonDocument.Parse(JsonSerializer.Serialize(fields));
+            return read(repaired.RootElement);
         }
         catch (JsonException)
         {
