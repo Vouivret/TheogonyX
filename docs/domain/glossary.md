@@ -53,8 +53,29 @@
 | 段 | | 地域の格子の横の並び（6 段）。上から北の極・北の中緯度・北の低緯度・南の低緯度・南の中緯度・南の極 | Latitude band | 緯度帯 |
 | 大陸 | | 星を作るときに、大陸の種から広げた陸の地域の塊 | Continent | |
 | 星の視点・地域の視点・詳細の視点 | | カメラの 3 段の視点。星全体／数地域／1 地域ほどが画面に入る（[カメラの視点](camera-views.md)） | Planet / Region / Detail view | 大陸の視点・中拡大の視点・マクロ・メゾ・ミクロ |
+| 気候 | | 地域ごとの風・気温・湿りと雨・水資源・森の動き（[気候と天候](weather.md)） | Climate | |
+| 湿り | | 地域の空気が持つ水の量。風下へ運ばれ、雨になる | Humidity | |
+| 揺らぎ | | 年ごとの気温・雨の、平年からのずれ。大きいと名前の付いた天候になる | Anomaly | |
+| 雨陰 | | 山の風下の、雨が少ない側 | Rain shadow | |
+| 川 | | 水資源がいちばん低い隣の地域へ流れる道。タイルでは青い線で描く | River | |
+| 砂漠化 | | 雨と森が減り、地域が砂漠のタイルに塗られていくこと | Desertification | |
+| プレート・境目 | | 星を作るときに決める地殻の区切りと、その境。山と断層ができやすい | Plate / Plate boundary | |
+| 大雨・日照り・寒波・熱波 | | 揺らぎが大きい年に付く、名前の付いた天候 | Heavy rain / Drought / Cold wave / Heat wave | |
+| 嵐 | | 暖かい海の地域で生まれ、風下へ進んで大雨を降らせ、森林量を減らす天候 | Storm | |
+| 地震 | | プレートの境目で起き、建物を壊す出来事 | Earthquake | |
+| 木を切る・水を汲む | | 住人が暮らしと資材のために、地域の森林量・水資源を使うこと（[住人による森と水の利用](resource-use.md)） | Logging / Water drawing | |
+| 資材 | | 建物を建てるときに使う森林量 | Material | |
+| 人のまとまり | `Pop` | 地域の中で、信仰・職業・身分・文化が同じ人を、人数だけで持つかたまり。子・大人・老人の人数を持つ（[人の数](population.md)） | Pop | |
+| 人口 | | 地域・集落・星に住む人の数（まとまりの人数の合計） | Population | |
+| 集落 | | 人が住む場所。星の地図では人口で広がる記号、詳細の視点では街並みで見せる（[国と集落](polity.md)） | Settlement | |
+| 名のある住人 | `Resident` | 住人（名前を持ち、一人ずつ動く人）を、人のまとまりと区別して呼ぶ言い方。まとまりの人数のうちの何人かとして数える | Named resident | |
+| 街並み | | 詳細の視点で集落を家・道・畑・広場で描いた見た目。人口で家が増える（[地域の環境](regional-environment.md)） | Townscape | 街の拡大 |
+| 食料の生産・採集・農耕・牧畜・漁 | | 地域が食料を得る手段（[食料の生産](food-production.md)） | Food production / Gathering / Agriculture / Livestock / Fishing | |
+| 発明・発明の木・前提 | | 地域が知っている技と、その前提のつながり（[発明の木](invention-tree.md)） | Invention / Invention tree / Prerequisite | |
+| 時代の名前 | | 知っている発明から付く名札（石器・青銅器・鉄器・中世） | Era label | |
+| 失われた発明 | | 一度知られたが、伝える人がいなくなって失われた発明 | Lost invention | |
 | 予言者の誤解 | `OracleProphecy`・`OracleText` | 神託でドグマが生まれたとき、予言者が神の意図を誤解して語る文（見出し・意図・教義）。ローカルの LLM が作る表現で、ゲームの計算には関わらない（[AI による表現](ai-presentation.md)） | Prophet's misreading | AI 神託 |
-| 年表 | `History`・`HistoryEntry` | 星に起きた主な出来事（ドグマの誕生・住人の精神崩壊・名のある住人の死・星の崩壊・世界再創生）を年ごとに積んだもの。世界再創生をまたいで残る（[星の年表](history.md)） | Chronicle | 歴史ログ |
+| 年表 | `History`・`HistoryEntry` | 星に起きた主な出来事（ドグマの誕生・住人の精神崩壊・称号を持つ住人の死・星の崩壊・世界再創生）を年ごとに積んだもの。世界再創生をまたいで残る（[星の年表](history.md)） | Chronicle | 歴史ログ |
 | つがい | `Resident.PartnerId` | 同じ地域で組んだ 2 人の住人。子供をもうけ、死ぬまで続く | Partner | 夫婦、カップル |
 | 子供 | | 大人の年齢（16 歳）より若い住人。タスクを選ばず、つがいにならない | Child | |
 | 家名 | `ResidentName.LineagePrefix`・`LineageSuffix` | 住人の名前の 2 つ目の部分 | Lineage | 苗字 |
