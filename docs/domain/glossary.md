@@ -104,6 +104,14 @@
 | 神話の型 | | 地域に生まれる神話の筋の型 | Myth type | |
 | 服装・流行 | | 住人の服と、地域で広がって廃れる服の好み（[服装と流行](fashion.md)） | Clothing / Trend | |
 | パーツ・色の差し替え | | 服の絵を組み立てる部品と、同じ絵の色を替えること | Outfit part / Palette swap | |
+| 歴史の神話化 | `MythChronicle` | 100 年ごとの章に、ローカルの LLM が神話の見出しと本文を添えること（[AI による表現](ai-presentation.md)） | Mythologized history | |
+| 知らせ | | 出来事をプレイヤーに伝えること。止める知らせ・手紙・流れの段階がある（[出来事の知らせ](notifications.md)） | Notification | |
+| 止める知らせ | | 時間を止めて伝える、いちばん大きな知らせ | Pausing notification | |
+| 手紙 | | 溜まって後で読める知らせ | Letter | |
+| 流れ | | 画面を流れて消える、小さな知らせ | Feed | |
+| 地図の印 | | 出来事の起きた地域に出す印 | Map marker | |
+| 歴史の長さ | | 1 つの星の歴史の目安の長さ（およそ 1 万年。[歴史の長さと時間の速さ](time-scale.md)） | History length | |
+| 速さの倍率 | | 出来事の多さで、自動進行の速さを変える倍率 | Pace multiplier | |
 | 予言者の誤解 | `OracleProphecy`・`OracleText` | 神託でドグマが生まれたとき、予言者が神の意図を誤解して語る文（見出し・意図・教義）。ローカルの LLM が作る表現で、ゲームの計算には関わらない（[AI による表現](ai-presentation.md)） | Prophet's misreading | AI 神託 |
 | 年表 | `History`・`HistoryEntry` | 星に起きた主な出来事（ドグマの誕生・住人の精神崩壊・称号を持つ住人の死・星の崩壊・世界再創生）を年ごとに積んだもの。世界再創生をまたいで残る（[星の年表](history.md)） | Chronicle | 歴史ログ |
 | つがい | `Resident.PartnerId` | 同じ地域で組んだ 2 人の住人。子供をもうけ、死ぬまで続く | Partner | 夫婦、カップル |
