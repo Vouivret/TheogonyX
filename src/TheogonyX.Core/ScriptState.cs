@@ -17,7 +17,13 @@ public enum CarvingKind
 
     /// <summary>禁忌の札（禁忌を信じる人が多い地域）。</summary>
     Taboo,
+
+    /// <summary>神託の碑（神が書いた文。神託を下したとき、予言者のいる地域に刻む）。</summary>
+    Stele,
 }
+
+/// <summary>字が崩れた年に、碑が読み違えられた。<paramref name="Written"/> は崩れる前の読み、<paramref name="Read"/> は今の人の読み。</summary>
+public sealed record SteleMisreading(CarvedGlyph Stele, Dogma Written, Dogma Read);
 
 /// <summary>地形の目印を刻む場所（データ定義）。</summary>
 public sealed record ScriptLandmark(string SymbolId, int Column, int Row);
@@ -147,6 +153,60 @@ public sealed class ScriptState
 
         UpdateTabooPlates(year, residents);
         return decayedNow;
+    }
+
+    /// <summary>
+    /// 神託の碑を刻む（docs/domain/script-decipher.md の 7）。神が書いた文を、今の時代の形で、地域の左端の列に刻む。
+    /// 地域の碑が <see cref="ScriptRules.MaxStelesPerRegion"/> 個あれば、いちばん古い碑を消してから刻む。行は、空いている 1 行目から下へ。
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">地域の外。</exception>
+    public CarvedGlyph CarveStele(Sentence sentence, int region, int year)
+    {
+        ArgumentNullException.ThrowIfNull(sentence);
+        ArgumentOutOfRangeException.ThrowIfNegative(region);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(region, Regions.Count);
+        var steles = _carvings.Where(carving => carving.Kind == CarvingKind.Stele && carving.Region == region).ToList();
+        while (steles.Count >= Rules.MaxStelesPerRegion)
+        {
+            _carvings.Remove(steles[0]);
+            steles.RemoveAt(0);
+        }
+        var used = steles.Select(carving => carving.Row).ToHashSet();
+        var row = Enumerable.Range(1, Rules.MaxStelesPerRegion).First(candidate => !used.Contains(candidate));
+        var stele = new CarvedGlyph(CarvingKind.Stele, sentence, region, Regions.FirstColumn(region), row, year, Decayed);
+        _carvings.Add(stele);
+        return stele;
+    }
+
+    /// <summary>
+    /// 字が崩れた年に呼ぶ。崩れる前に刻まれた碑を、古い順に今の人が読み直す。人はどの記号も知っている（謎の語は無い）。
+    /// 崩れる前の読みと今の読みで教えが違う碑を返す（似た形の組の語を含む碑だけが違って読まれる）。
+    /// </summary>
+    public IReadOnlyList<SteleMisreading> RereadSteles()
+    {
+        Dogma? Teaching(Sentence sentence, bool decayed) => ReadAsPeople(sentence, decayed)?.Teaching;
+        var misreadings = new List<SteleMisreading>();
+        foreach (var stele in _carvings.Where(carving => carving.Kind == CarvingKind.Stele && !carving.Decayed))
+        {
+            if (Teaching(stele.Sentence, false) is { } written && Teaching(stele.Sentence, true) is { } read
+                && (written.TargetSymbolId, written.Type) != (read.TargetSymbolId, read.Type))
+            {
+                misreadings.Add(new SteleMisreading(stele, written, read));
+            }
+        }
+        return misreadings;
+    }
+
+    /// <summary>
+    /// 人（住人）が文を読む。住人はどの記号も知っているので、謎の語は無い。<paramref name="decayed"/> は読む人の時代（崩れた後か）。
+    /// 文が読めない形（語が 0 個・多すぎる・定義に無い語）なら null。
+    /// </summary>
+    public ScriptReading? ReadAsPeople(Sentence sentence, bool decayed)
+    {
+        ArgumentNullException.ThrowIfNull(sentence);
+        var words = Script.Radicals.Select(radical => radical.Id).ToHashSet();
+        var symbols = Script.Radicals.Where(radical => radical.Kind == RadicalKind.Meaning).Select(radical => radical.Key).ToList();
+        return ScriptReader.Read(Script, Rules, sentence, words, symbols, decayed).Reading;
     }
 
     /// <summary>刻まれた文か祈りの文を見た。その文の語の字を手帳に載せる（載っていれば何もしない）。</summary>

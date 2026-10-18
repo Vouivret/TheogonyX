@@ -135,19 +135,25 @@ public sealed class OracleView
         {
             lines.Add(string.Format(culture, Tr($"ORACLE_LINE_{teaching.Type.ToString().ToUpperInvariant()}"), Tr($"SYMBOL_{teaching.TargetSymbolId}")));
         }
-        var phrases = reading.Phrases.Select(phrase => !phrase.IsReadable ? Tr("ORACLE_READ_UNREADABLE")
-            : phrase.VerbRead ? Tr($"SYMBOL_{phrase.SymbolId}") + "・" + Tr($"NOTEBOOK_TYPE_{phrase.Type.ToString().ToUpperInvariant()}")
-            : string.Format(culture, Tr("ORACLE_READ_NOUN_ONLY"), Tr($"SYMBOL_{phrase.SymbolId}")));
-        lines.Add(string.Format(culture, Tr("ORACLE_READ"), string.Join(" ／ ", phrases)));
-        if (reading.DroppedVerbs > 0)
-        {
-            lines.Add(string.Format(culture, Tr("ORACLE_READ_DROPPED"), reading.DroppedVerbs));
-        }
+        lines.Add(PhrasesText(reading, "ORACLE_READ"));
         if (reading.Destination != TravelDirection.None)
         {
             lines.Add(Tr(reading.Destination == TravelDirection.East ? "ORACLE_DESTINATION_EAST" : "ORACLE_DESTINATION_WEST"));
         }
         return string.Join('\n', lines);
+    }
+
+    /// <summary>
+    /// 人が文をどう読んだかの 1 行（組ごとの読み。読み落とした語があれば数を添える）。<paramref name="formatKey"/> は「{0}」に組を入れる文言のキー。
+    /// </summary>
+    public static string PhrasesText(ScriptReading reading, string formatKey)
+    {
+        var culture = CultureInfo.CurrentCulture;
+        var phrases = reading.Phrases.Select(phrase => !phrase.IsReadable ? Tr("ORACLE_READ_UNREADABLE")
+            : phrase.VerbRead ? Tr($"SYMBOL_{phrase.SymbolId}") + "・" + Tr($"NOTEBOOK_TYPE_{phrase.Type.ToString().ToUpperInvariant()}")
+            : string.Format(culture, Tr("ORACLE_READ_NOUN_ONLY"), Tr($"SYMBOL_{phrase.SymbolId}")));
+        var text = string.Format(culture, Tr(formatKey), string.Join(" ／ ", phrases));
+        return reading.DroppedVerbs > 0 ? text + "\n" + string.Format(culture, Tr("ORACLE_READ_DROPPED"), reading.DroppedVerbs) : text;
     }
 
     // 予言者が祈った。まず定型の祈り（困りごとのひな形に知っている名詞を入れた文）を出し、LLM が使えれば、できた文に差し替える

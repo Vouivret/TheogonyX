@@ -25,6 +25,10 @@ public static class ChronicleText
                 culture, Tr("HISTORY_DOGMA_FORGOTTEN"), entry.Year,
                 string.Format(culture, Tr("DOGMA_ENTRY"), Tr($"SYMBOL_{entry.SymbolId}"), Tr($"DOGMA_TYPE_{entry.DogmaType.ToString()!.ToUpperInvariant()}"))),
             HistoryEventType.ScriptDecayed => string.Format(culture, Tr("HISTORY_SCRIPT_DECAYED"), entry.Year),
+            HistoryEventType.SteleMisread => string.Format(
+                culture, Tr("HISTORY_STELE_MISREAD"), entry.Year, entry.FromYear,
+                string.Format(culture, Tr("DOGMA_ENTRY"), Tr($"SYMBOL_{entry.SymbolId}"), Tr($"DOGMA_TYPE_{entry.DogmaType.ToString()!.ToUpperInvariant()}")),
+                string.Format(culture, Tr("DOGMA_ENTRY"), Tr($"SYMBOL_{entry.WrittenSymbolId}"), Tr($"DOGMA_TYPE_{entry.WrittenDogmaType.ToString()!.ToUpperInvariant()}"))),
             HistoryEventType.ResidentBrokeDown => string.Format(
                 culture, Tr(entry.Breakdown == BreakdownKind.Rampage ? "HISTORY_RAMPAGE" : "HISTORY_CATATONIA"), entry.Year, Who()),
             HistoryEventType.NotableDied => string.Format(culture, Tr("HISTORY_NOTABLE_DIED"), entry.Year, Who()),

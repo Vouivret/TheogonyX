@@ -6,7 +6,7 @@ public class ScriptTests
 {
     private const int Seed = 42;
 
-    internal static readonly ScriptRules Rules = new(GridSize: 4, MinStrokes: 3, MaxStrokes: 6, DecayYears: 300, TeachingIntensity: 0.7f);
+    internal static readonly ScriptRules Rules = new(GridSize: 4, MinStrokes: 3, MaxStrokes: 6, DecayYears: 300, TeachingIntensity: 0.7f, MaxStelesPerRegion: 3, MisreadShare: 0.3f, StyleJitter: 0.1f);
 
     internal static readonly string[] Symbols = ["SYM_TREE", "SYM_WATER", "SYM_BLOOD", "SYM_FIRE", "SYM_EARTH", "SYM_METAL"];
 

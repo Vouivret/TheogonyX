@@ -171,6 +171,10 @@ public sealed class DreamView
         {
             GD.Print(FormattableString.Invariant($"event=script_decayed year={year}"));
         }
+        if (update.SteleMisreadings > 0)
+        {
+            GD.Print(FormattableString.Invariant($"event=stele_misread year={year} count={update.SteleMisreadings}"));
+        }
         PrayerText = null;
         if (update.Prayer is { } prayer)
         {

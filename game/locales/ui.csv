@@ -191,6 +191,7 @@ PRAYER_UNREST,神よ、{0}は荒れ、{1}も騒いでいます,"O god, the {0} i
 PRAYER_RUIN,神よ、{0}は朽ち、{1}も崩れていきます,"O god, the {0} decays and the {1} crumbles."
 PRAYER_DAILY,神よ、{0}と{1}に感謝します,"Thank you, god, for the {0} and the {1}."
 HISTORY_SCRIPT_DECAYED,{0} 年　人の字が崩れた,Year {0}: The script of the people decayed
+HISTORY_STELE_MISREAD,{0} 年　{1} 年の碑が「{2}」と読まれた（神は「{3}」と書いた）,"Year {0}: The stele of year {1} was read as ""{2}"" (the god wrote ""{3}"")"
 RUBBING_TITLE,拓本,Rubbing
 RUBBING_HINT,刻まれた字（押すと拓本を取る）,A carved glyph (click to take a rubbing)
 RUBBING_INFO,{0}　{1} 年に刻まれた,{0}: carved in year {1}
@@ -201,6 +202,9 @@ RUBBING_KIND_WORKSHOP,工房の札,Workshop plate
 RUBBING_KIND_HOUSE,家の札,House plate
 RUBBING_KIND_SHRINE,祠の札,Shrine plate
 RUBBING_KIND_TABOO,禁忌の札,Taboo plate
+RUBBING_KIND_STELE,神託の碑,Oracle stele
+RUBBING_STELE_THEN,刻んだときの読み：{0},Read when carved: {0}
+RUBBING_STELE_NOW,今の人の読み：{0},Read today: {0}
 BUTTON_CLOSE,閉じる,Close
 BUTTON_COMPOSE,文を書く,Write
 BUTTON_NOTEBOOK,手帳,Notebook

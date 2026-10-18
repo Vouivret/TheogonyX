@@ -112,6 +112,39 @@ public sealed class TimeControl
         }
     }
 
+    /// <summary>
+    /// 碑の読み違い（docs/domain/script-decipher.md の 7）: 地域の住人のうち <paramref name="share"/> の割合（四捨五入。住人がいれば 1 人以上）が、
+    /// 教えを信じる。誰が信じるかは、星のシードと <paramref name="salt"/> で決める。信じた人がいれば、教えを一覧に加える（年表の行は呼ぶ側が残す）。
+    /// 住人か信仰の計算をしないなら何もしない。
+    /// </summary>
+    /// <returns>信じた人の数。</returns>
+    public int AdoptMisreading(Dogma dogma, int region, double share, int salt)
+    {
+        ArgumentNullException.ThrowIfNull(dogma);
+        if (_belief is null || Residents is null || _civilizationSetup is not { } setup)
+        {
+            return 0;
+        }
+        var people = Residents.People.Where(person => person.Region == region).ToList();
+        if (people.Count == 0)
+        {
+            return 0;
+        }
+        var count = Math.Max(1, (int)Math.Round(people.Count * share, MidpointRounding.AwayFromZero));
+        var random = new Random(unchecked((setup.Seed * 31) + salt));
+        var chosen = people.OrderBy(_ => random.Next()).Take(count).Select(person => person.Id).ToHashSet();
+        var belief = new Belief(dogma.TargetSymbolId, dogma.Type, dogma.Intensity);
+        var updated = Residents.People
+            .Select(person => chosen.Contains(person.Id) ? BeliefSimulator.Believe(person, belief, _belief.MaxBeliefs) : person)
+            .ToList();
+        Residents.Replace(updated, [.. Residents.Graves], Residents.NextResidentId);
+        if (!_dogmas.Any(existing => existing.TargetSymbolId == dogma.TargetSymbolId && existing.Type == dogma.Type))
+        {
+            _dogmas.Add(dogma);
+        }
+        return count;
+    }
+
     /// <summary>カオス度を <paramref name="amount"/> 上げる（上限を越えない）。崩壊の判定は次の年の計算で行う。</summary>
     public void AddChaos(float amount)
     {

@@ -122,13 +122,15 @@ public sealed class ProphetDreams
         var corrupted = InjectCorruption(world.ChaosLevel);
         var gained = Deck.GainFromBuildings(_timeControl.Civilization?.Buildings ?? []);
         var scriptDecayed = Script?.Update(world.Year, _timeControl.Civilization?.Buildings ?? [], _timeControl.Residents) ?? false;
+        var misread = 0;
         if (scriptDecayed)
         {
             _timeControl.History?.Add(new HistoryEntry(world.Year, HistoryEventType.ScriptDecayed));
+            misread = RereadSteles(world.Year);
         }
         if (world.IsDestroyed)
         {
-            return new ProphetUpdate(null, false, corrupted, gained, ScriptDecayed: scriptDecayed);
+            return new ProphetUpdate(null, false, corrupted, gained, ScriptDecayed: scriptDecayed, SteleMisreadings: misread);
         }
         if (Dialect is { } dialect)
         {
@@ -165,7 +167,7 @@ public sealed class ProphetDreams
                 prayerDialect.NextPrayerYear = world.Year + prayerDialect.Rules.DailyPrayerYears;
             }
         }
-        return new ProphetUpdate(newRequest, paused, corrupted, gained, prayer, scriptDecayed);
+        return new ProphetUpdate(newRequest, paused, corrupted, gained, prayer, scriptDecayed, misread);
     }
 
     // 祈りに入れる名詞を選ぶ。手札の記号の名詞だけ。汚染ルーンの記号の語を 1 つ混ぜ、まだ祈りに入れていない記号（新しい語）を必ず入れ、
@@ -310,7 +312,31 @@ public sealed class ProphetDreams
         }
         var hearing = new Hearing(reading.Teaching, null, null, reading.Destination, false, [], []);
         // 神託の記録には、神が書いた文を語の字の ID で残す（経典の元）
-        return new ScriptSpeakOutcome(null, Speak(hearing, sentence.ToString()), reading);
+        var result = Speak(hearing, sentence.ToString());
+        // 神が書いた文を、予言者のいる地域に碑として刻む
+        if (_timeControl.Prophet is { } prophet)
+        {
+            script.CarveStele(sentence, prophet.Region, _timeControl.World.Year);
+        }
+        return new ScriptSpeakOutcome(null, result, reading);
+    }
+
+    // 字が崩れた年: 崩れる前の碑を読み直し、読み違えた教えを、その地域の住人の一部が信じる。年表に残す
+    private int RereadSteles(int year)
+    {
+        var script = Script!;
+        var misreadings = script.RereadSteles();
+        foreach (var misreading in misreadings)
+        {
+            var stele = misreading.Stele;
+            _timeControl.AdoptMisreading(
+                misreading.Read, stele.Region, script.Rules.MisreadShare,
+                unchecked((stele.Year * 7919) + stele.Region));
+            _timeControl.History?.Add(new HistoryEntry(
+                year, HistoryEventType.SteleMisread, misreading.Read.TargetSymbolId, misreading.Read.Type, FromYear: stele.Year,
+                WrittenSymbolId: misreading.Written.TargetSymbolId, WrittenDogmaType: misreading.Written.Type));
+        }
+        return misreadings.Count;
     }
 
     // 神託を下した後の共通の処理: 汚染ルーンのカオス度・神威・歪み・依頼・自動進行の再開

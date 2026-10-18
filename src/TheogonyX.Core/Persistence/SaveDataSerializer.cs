@@ -38,6 +38,7 @@ public static class SaveDataSerializer
         [HistoryEventType.DogmaFormed] = "DOGMA_FORMED",
         [HistoryEventType.DogmaForgotten] = "DOGMA_FORGOTTEN",
         [HistoryEventType.ScriptDecayed] = "SCRIPT_DECAYED",
+        [HistoryEventType.SteleMisread] = "STELE_MISREAD",
         [HistoryEventType.ResidentBrokeDown] = "RESIDENT_BROKE_DOWN",
         [HistoryEventType.NotableDied] = "NOTABLE_DIED",
         [HistoryEventType.WorldDestroyed] = "WORLD_DESTROYED",
@@ -191,6 +192,7 @@ public static class SaveDataSerializer
                 chaosFrom = entry.ChaosFrom,
                 chaosTo = entry.ChaosTo,
                 myth = entry.Myth is null ? null : new { heading = entry.Myth.Heading, body = entry.Myth.Body },
+                written = entry.WrittenSymbolId is null ? null : new { symbolId = entry.WrittenSymbolId, dogmaType = entry.WrittenDogmaType?.ToString() },
             }),
             historyChapterStart = new { year = data.Chapter.Year, chaos = data.Chapter.ChaosLevel },
             deck = new
@@ -624,6 +626,8 @@ public static class SaveDataSerializer
         var chaosFromElement = Property(element, "chaosFrom", null);
         var chaosToElement = Property(element, "chaosTo", null);
         var mythElement = Property(element, "myth", null);
+        // 碑の読み違いで足した項目。ほかの行には無くてよい
+        var writtenElement = element.TryGetProperty("written", out var written) ? written : default;
         if (year < 0 || type.Value is null)
         {
             throw new InvalidSaveDataException("invalid_history");
@@ -631,15 +635,20 @@ public static class SaveDataSerializer
 
         string? symbolId = null;
         DogmaType? dogmaType = null;
-        if (type.Key is HistoryEventType.DogmaFormed or HistoryEventType.DogmaForgotten)
+        (string SymbolId, DogmaType Type) ReadTeaching(JsonElement symbol, JsonElement typeElement)
         {
-            symbolId = symbolElement.ValueKind == JsonValueKind.String ? symbolElement.GetString() : null;
-            var dogmaTypeName = dogmaTypeElement.ValueKind == JsonValueKind.String ? dogmaTypeElement.GetString() : null;
-            if (symbolId is null || !symbolIds.Contains(symbolId) || dogmaTypeName is null || !Enum.GetNames<DogmaType>().Contains(dogmaTypeName))
+            var id = symbol.ValueKind == JsonValueKind.String ? symbol.GetString() : null;
+            var typeName = typeElement.ValueKind == JsonValueKind.String ? typeElement.GetString() : null;
+            if (id is null || !symbolIds.Contains(id) || typeName is null || !Enum.GetNames<DogmaType>().Contains(typeName))
             {
                 throw new InvalidSaveDataException("invalid_history");
             }
-            dogmaType = Enum.Parse<DogmaType>(dogmaTypeName);
+            return (id, Enum.Parse<DogmaType>(typeName));
+        }
+        if (type.Key is HistoryEventType.DogmaFormed or HistoryEventType.DogmaForgotten or HistoryEventType.SteleMisread)
+        {
+            (symbolId, var teachingType) = ReadTeaching(symbolElement, dogmaTypeElement);
+            dogmaType = teachingType;
         }
         else if (symbolElement.ValueKind != JsonValueKind.Null || dogmaTypeElement.ValueKind != JsonValueKind.Null)
         {
@@ -721,12 +730,35 @@ public static class SaveDataSerializer
                 throw new InvalidSaveDataException("invalid_history");
             }
         }
+        else if (type.Key == HistoryEventType.SteleMisread)
+        {
+            // 碑の読み違いの項目。碑は読み直した年より前に刻まれ、崩れる前の読みを持つ
+            fromYear = ReadInt(element, "fromYear");
+            if (fromYear < 0 || fromYear >= year || chaosFromElement.ValueKind != JsonValueKind.Null
+                || chaosToElement.ValueKind != JsonValueKind.Null || mythElement.ValueKind != JsonValueKind.Null
+                || writtenElement.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidSaveDataException("invalid_history");
+            }
+        }
         else if (fromYearElement.ValueKind != JsonValueKind.Null || chaosFromElement.ValueKind != JsonValueKind.Null
             || chaosToElement.ValueKind != JsonValueKind.Null || mythElement.ValueKind != JsonValueKind.Null)
         {
             throw new InvalidSaveDataException("invalid_history");
         }
-        return new HistoryEntry(year, type.Key, symbolId, dogmaType, name, epithet, breakdown, oracle, fromYear, chaosFrom, chaosTo, myth);
+        string? writtenSymbolId = null;
+        DogmaType? writtenDogmaType = null;
+        if (type.Key == HistoryEventType.SteleMisread)
+        {
+            (writtenSymbolId, var writtenType) = ReadTeaching(Property(writtenElement, "symbolId", null), Property(writtenElement, "dogmaType", null));
+            writtenDogmaType = writtenType;
+        }
+        else if (writtenElement.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined))
+        {
+            throw new InvalidSaveDataException("invalid_history");
+        }
+        return new HistoryEntry(
+            year, type.Key, symbolId, dogmaType, name, epithet, breakdown, oracle, fromYear, chaosFrom, chaosTo, myth, writtenSymbolId, writtenDogmaType);
     }
 
     private static object WriteName(ResidentName name) => new

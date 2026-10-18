@@ -186,6 +186,9 @@
     "maxStrokes": 6,
     "decayYears": 300,
     "teachingIntensity": 0.7,
+    "maxStelesPerRegion": 3,
+    "misreadShare": 0.3,
+    "styleJitter": 0.1,
     "tabooPlateShare": 0.3,
     "landmarks": [
       { "symbolId": "SYM_WATER", "column": 19, "row": 8 },
