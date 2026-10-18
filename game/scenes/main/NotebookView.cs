@@ -98,7 +98,7 @@ public sealed class NotebookView
         {
             var row = new HBoxContainer();
             var view = new GlyphView { CustomMinimumSize = new Vector2(28, 28) };
-            view.Show(script.Script, new Glyph(id, null, null, GlyphArrangement.LeftRight), script.Decayed);
+            view.Show(script.Script, id, script.Decayed);
             var choice = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
             foreach (var candidate in Labels)
             {

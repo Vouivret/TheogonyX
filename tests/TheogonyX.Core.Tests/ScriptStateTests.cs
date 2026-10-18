@@ -32,8 +32,8 @@ public class ScriptStateTests
 
         Assert.Equal(
             [
-                new CarvedGlyph(CarvingKind.Landmark, state.Script.GlyphFor("SYM_WATER"), 5, 11, 3, 0, false),
-                new CarvedGlyph(CarvingKind.Landmark, state.Script.GlyphFor("SYM_TREE"), 1, 2, 0, 0, false),
+                new CarvedGlyph(CarvingKind.Landmark, state.Script.SentenceFor("SYM_WATER"), 5, 11, 3, 0, false),
+                new CarvedGlyph(CarvingKind.Landmark, state.Script.SentenceFor("SYM_TREE"), 1, 2, 0, 0, false),
             ],
             state.Carvings);
     }
@@ -55,10 +55,10 @@ public class ScriptStateTests
         state.Update(10, buildings, residents);
 
         var plates = state.Carvings.Where(carving => carving.BuildingId is not null).ToDictionary(carving => carving.BuildingId!.Value);
-        Assert.Equal(state.Script.GlyphFor("SYM_METAL", DogmaType.Worship), plates[1].Glyph);
-        Assert.Equal(state.Script.GlyphFor("SYM_EARTH"), plates[2].Glyph);
+        Assert.Equal(state.Script.SentenceFor("SYM_METAL", DogmaType.Worship), plates[1].Sentence);
+        Assert.Equal(state.Script.SentenceFor("SYM_EARTH"), plates[2].Sentence);
         Assert.False(plates.ContainsKey(4));
-        Assert.Equal(state.Script.GlyphFor("SYM_TREE", DogmaType.Taboo), plates[3].Glyph);
+        Assert.Equal(state.Script.SentenceFor("SYM_TREE", DogmaType.Taboo), plates[3].Sentence);
         Assert.Equal(CarvingKind.Shrine, plates[3].Kind);
         Assert.Equal(10, plates[3].Year);
     }
@@ -75,7 +75,7 @@ public class ScriptStateTests
         var rewritten = Assert.Single(state.Carvings, carving => carving.Kind == CarvingKind.Shrine);
         state.Update(30, shrine, new Residents([Person(1, 3)], [], 2));
 
-        Assert.Equal(state.Script.GlyphFor("SYM_WATER", DogmaType.Destruction), rewritten.Glyph);
+        Assert.Equal(state.Script.SentenceFor("SYM_WATER", DogmaType.Destruction), rewritten.Sentence);
         Assert.Equal(20, rewritten.Year);
         Assert.DoesNotContain(state.Carvings, carving => carving.Kind == CarvingKind.Shrine);
     }
@@ -93,7 +93,7 @@ public class ScriptStateTests
         state.Update(11, [], new Residents([.. People(1, 2, 10, 2, taboo)], [], 21));
 
         Assert.Equal(2, plate.Region);
-        Assert.Equal(state.Script.GlyphFor("SYM_TREE", DogmaType.Taboo), plate.Glyph);
+        Assert.Equal(state.Script.SentenceFor("SYM_TREE", DogmaType.Taboo), plate.Sentence);
         Assert.Equal(4, plate.Column);
         Assert.DoesNotContain(state.Carvings, carving => carving.Kind == CarvingKind.Taboo);
     }
@@ -122,18 +122,18 @@ public class ScriptStateTests
     public void Discover_刻まれた字を見る_部品が手帳に載り書き込みは一覧の意味だけ()
     {
         var state = Create();
-        var glyph = state.Script.GlyphFor("SYM_TREE", DogmaType.Worship);
+        var glyph = state.Script.SentenceFor("SYM_TREE", DogmaType.Worship);
 
         var added = state.Discover(glyph);
         var again = state.Discover(glyph);
-        state.Label(glyph.First, "SYM_WATER");
+        state.Label(glyph.Words[0], "SYM_WATER");
 
         Assert.Equal(2, added);
         Assert.Equal(0, again);
-        Assert.Equal("SYM_WATER", state.Notebook[glyph.First]);
-        Assert.Equal(NotebookLabels.Unknown, state.Notebook[glyph.Second!]);
+        Assert.Equal("SYM_WATER", state.Notebook[glyph.Words[0]]);
+        Assert.Equal(NotebookLabels.Unknown, state.Notebook[glyph.Words[1]]);
         Assert.Equal(state.Notebook.Keys.ToHashSet(), state.KnownRadicals);
-        Assert.Throws<ArgumentException>(() => state.Label(glyph.First, "SYM_UNKNOWN"));
+        Assert.Throws<ArgumentException>(() => state.Label(glyph.Words[0], "SYM_UNKNOWN"));
         Assert.Throws<ArgumentException>(() => state.Label("RAD_99", "SYM_TREE"));
     }
 
@@ -147,8 +147,8 @@ public class ScriptStateTests
         var state = Create();
         prophet.AttachScript(state);
         state.Update(400, [new Building(1, BuildingType.Workshop, 3, 6, 0, 900)], null);
-        state.Discover(state.Carvings[0].Glyph);
-        state.Label(state.Carvings[0].Glyph.First, "SYM_WATER");
+        state.Discover(state.Carvings[0].Sentence);
+        state.Label(state.Carvings[0].Sentence.Words[0], "SYM_WATER");
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
             [AutoPlaySpeed.X1] = 600.0,
@@ -169,7 +169,7 @@ public class ScriptStateTests
 
         SaveGame.Apply(data!, loadedTime, loadedProphet, clock);
 
-        Assert.Equal(state.Script.Arrangement, loaded.Script.Arrangement);
+        Assert.Equal(state.Script.WordOrder, loaded.Script.WordOrder);
         Assert.Equal(state.Script.SimilarPair, loaded.Script.SimilarPair);
         Assert.Equal(
             state.Script.Radicals.Select(radical => (radical.Id, radical.Key, string.Join(';', radical.Strokes), radical.DecayStroke)),

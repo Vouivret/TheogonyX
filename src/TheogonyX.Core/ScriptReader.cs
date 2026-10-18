@@ -1,124 +1,121 @@
 namespace TheogonyX.Core;
 
 /// <summary>
-/// 人が字を読む・書く（docs/domain/script-decipher.md の「人が神の字を読む」「祈りの字」）。乱数は使わない。
+/// 人が文を読む・書く（docs/domain/script-decipher.md の「7. 語の字と神託の碑」）。乱数は使わない。
 /// </summary>
 public static class ScriptReader
 {
     /// <summary>
-    /// 神が組んだ字の列を、人が読む。字ごとに、星の並び方の決まりで読み、決まりと違う並びの字は、部品の場所が入れ替わって読まれる。
-    /// 意味の場所に意味の部品が無い・働きの場所に働きの部品が無い・方角の場所に方角の部品が無い・予言者の知らない記号の字は、謎の字。
-    /// 崩れた後の時代は、似た形の組の部品は、組の決まった一方（ID の小さい方）として読まれる。
-    /// 教えは、読めた字のうち最初の働きの部品つきの字（記号 × 種別）。無ければ、最初の意味の部品だけの字の記号の崇拝。行き先は最初の方角。
-    /// 字が 0 個か上限を越える・定義に無い部品を含むときは、理由（<c>no_glyphs</c>・<c>too_many_glyphs</c>・<c>radical_not_found</c>）を返す。
+    /// 神が書いた文を、人が読む。方角の語は組の外で読み、最初の方角を行き先にする。残りの語を、星の語順で前から読む。
+    /// 名詞が先の星では、名詞のすぐ後の動詞がその名詞の組になる。動詞が先の星では、動詞のすぐ後の名詞がその動詞の組になる。
+    /// 動詞のつながらない名詞は崇拝と読み、名詞につながらない動詞は読み落とす。予言者の知らない記号の名詞は謎の語。
+    /// 崩れた後の時代は、似た形の組の語は、組の決まった一方（ID の小さい方）として読まれる。
+    /// 教えは、動詞で読めた組の最初のもの。無ければ、崇拝と読んだ組の最初のもの。
+    /// 語が 0 個か上限を越える・手帳に無い語を含むときは、理由（<c>no_glyphs</c>・<c>too_many_glyphs</c>・<c>glyph_not_found</c>）を返す。
     /// </summary>
-    /// <param name="knownRadicalIds">神が組める部品（手帳に載った部品）。</param>
+    /// <param name="knownRadicalIds">神が書ける語（手帳に載った語）。</param>
     /// <param name="handSymbolIds">予言者が知っている記号（手札の記号）。</param>
     public static ScriptReadOutcome Read(
-        PlanetScript script, ScriptRules rules, IReadOnlyList<Glyph> glyphs, IReadOnlySet<string> knownRadicalIds,
+        PlanetScript script, ScriptRules rules, Sentence sentence, IReadOnlySet<string> knownRadicalIds,
         IReadOnlyCollection<string> handSymbolIds, bool decayed)
     {
         ArgumentNullException.ThrowIfNull(script);
         ArgumentNullException.ThrowIfNull(rules);
-        ArgumentNullException.ThrowIfNull(glyphs);
+        ArgumentNullException.ThrowIfNull(sentence);
         ArgumentNullException.ThrowIfNull(knownRadicalIds);
         ArgumentNullException.ThrowIfNull(handSymbolIds);
-        if (glyphs.Count == 0)
+        if (sentence.Words.Count == 0)
         {
             return new ScriptReadOutcome(null, "no_glyphs");
         }
-        if (glyphs.Count > ScriptRules.MaxGlyphsPerOracle)
+        if (sentence.Words.Count > ScriptRules.MaxGlyphsPerOracle)
         {
             return new ScriptReadOutcome(null, "too_many_glyphs");
         }
-        var used = glyphs.SelectMany(glyph => new[] { glyph.First, glyph.Second, glyph.Direction }).OfType<string>();
-        if (used.Any(id => !knownRadicalIds.Contains(id) || script.Find(id) is null))
+        if (sentence.Words.Any(id => !knownRadicalIds.Contains(id) || script.Find(id) is null))
         {
-            return new ScriptReadOutcome(null, "radical_not_found");
+            return new ScriptReadOutcome(null, "glyph_not_found");
         }
 
-        var readings = glyphs.Select(glyph => ReadGlyph(script, glyph, handSymbolIds, decayed)).ToList();
-        var withType = readings.FirstOrDefault(reading => reading.IsReadable && reading.Type is not null);
-        var meaningOnly = readings.FirstOrDefault(reading => reading.IsReadable);
-        Dogma? teaching = withType is not null
-            ? new Dogma(withType.SymbolId!, withType.Type!.Value, rules.TeachingIntensity)
-            : meaningOnly is not null ? new Dogma(meaningOnly.SymbolId!, DogmaType.Worship, rules.TeachingIntensity) : null;
-        var destination = readings.FirstOrDefault(reading => reading.IsReadable && reading.Direction != TravelDirection.None)?.Direction
-            ?? TravelDirection.None;
-        return new ScriptReadOutcome(new ScriptReading(teaching, destination, readings), null);
-    }
-
-    /// <summary>字 1 つを読む。</summary>
-    public static GlyphReading ReadGlyph(PlanetScript script, Glyph glyph, IReadOnlyCollection<string> handSymbolIds, bool decayed)
-    {
-        ArgumentNullException.ThrowIfNull(script);
-        ArgumentNullException.ThrowIfNull(glyph);
-        ArgumentNullException.ThrowIfNull(handSymbolIds);
-
-        // 部品 1 つだけの字は並びを問わない。2 つの字は、並びが決まりと違えば場所が入れ替わって読まれる
-        var swapped = glyph.Second is not null && glyph.Arrangement != script.Arrangement;
-        var meaningSlot = swapped ? glyph.Second! : glyph.First;
-        var functionSlot = swapped ? glyph.First : glyph.Second;
-
-        var meaning = Resolve(script, meaningSlot, decayed);
-        if (meaning is not { Kind: RadicalKind.Meaning } || !handSymbolIds.Contains(meaning.Key))
+        var words = sentence.Words.Select(id => Resolve(script, id, decayed)).ToList();
+        var destination = words.FirstOrDefault(word => word.Kind == RadicalKind.Direction) is { } direction
+            ? Enum.Parse<TravelDirection>(direction.Key)
+            : TravelDirection.None;
+        var core = words.Where(word => word.Kind != RadicalKind.Direction).ToList();
+        var phrases = new List<PhraseReading>();
+        var dropped = 0;
+        PhraseReading Phrase(ScriptRadical noun, ScriptRadical? verb) => new(
+            handSymbolIds.Contains(noun.Key) ? noun.Key : null, verb is null ? DogmaType.Worship : Enum.Parse<DogmaType>(verb.Key), verb is not null);
+        for (var i = 0; i < core.Count; i++)
         {
-            return GlyphReading.Unreadable;
-        }
-        DogmaType? type = null;
-        if (functionSlot is not null)
-        {
-            var function = Resolve(script, functionSlot, decayed);
-            if (function is not { Kind: RadicalKind.Function })
+            var (word, next) = (core[i], i + 1 < core.Count ? core[i + 1] : null);
+            var (head, tail) = script.WordOrder == WordOrder.NounFirst
+                ? (RadicalKind.Meaning, RadicalKind.Function)
+                : (RadicalKind.Function, RadicalKind.Meaning);
+            if (word.Kind != head)
             {
-                return GlyphReading.Unreadable;
+                // 組の後ろにしか来ない語が、前の語につながらずに残った。名詞なら崇拝と読み、動詞なら読み落とす
+                if (word.Kind == RadicalKind.Meaning)
+                {
+                    phrases.Add(Phrase(word, null));
+                }
+                else
+                {
+                    dropped++;
+                }
+                continue;
             }
-            type = Enum.Parse<DogmaType>(function.Key);
-        }
-        var direction = TravelDirection.None;
-        if (glyph.Direction is not null)
-        {
-            var directionRadical = Resolve(script, glyph.Direction, decayed);
-            if (directionRadical is not { Kind: RadicalKind.Direction })
+            if (next?.Kind == tail)
             {
-                return GlyphReading.Unreadable;
+                phrases.Add(head == RadicalKind.Meaning ? Phrase(word, next) : Phrase(next, word));
+                i++;
             }
-            direction = Enum.Parse<TravelDirection>(directionRadical.Key);
+            else if (head == RadicalKind.Meaning)
+            {
+                phrases.Add(Phrase(word, null));
+            }
+            else
+            {
+                dropped++;
+            }
         }
-        return new GlyphReading(meaning.Key, type, direction);
+
+        var chosen = phrases.FirstOrDefault(phrase => phrase.IsReadable && phrase.VerbRead) ?? phrases.FirstOrDefault(phrase => phrase.IsReadable);
+        var teaching = chosen is null ? null : new Dogma(chosen.SymbolId!, chosen.Type, rules.TeachingIntensity);
+        return new ScriptReadOutcome(new ScriptReading(teaching, destination, phrases, dropped), null);
     }
 
     /// <summary>
-    /// 祈りの字の列。依頼の祈りは、1 字目が「困りごとの記号＋崇拝」、続いて選んだ記号の意味の部品だけの字（困りごとの記号は重ねない）。
-    /// 日々の祈りは、選んだ記号の意味の部品だけの字。字の無い記号は飛ばす。
+    /// 祈りの文。依頼の祈りは、初めに「困りごとの記号＋崇めよ」を星の語順で、続いて選んだ記号の名詞（困りごとの記号は重ねない）。
+    /// 日々の祈りは、選んだ記号の名詞を並べる。字の無い記号は飛ばす。
     /// </summary>
-    public static IReadOnlyList<Glyph> PrayerGlyphs(PlanetScript script, ProphetRequestRule? request, IReadOnlyList<string> symbolIds)
+    public static Sentence PrayerSentence(PlanetScript script, ProphetRequestRule? request, IReadOnlyList<string> symbolIds)
     {
         ArgumentNullException.ThrowIfNull(script);
         ArgumentNullException.ThrowIfNull(symbolIds);
-        var glyphs = new List<Glyph>();
+        var words = new List<string>();
         if (request is not null && script.Find(RadicalKind.Meaning, request.SymbolId) is not null)
         {
-            glyphs.Add(script.GlyphFor(request.SymbolId, DogmaType.Worship));
+            words.AddRange(script.SentenceFor(request.SymbolId, DogmaType.Worship).Words);
         }
         foreach (var symbolId in symbolIds.Distinct())
         {
-            if (symbolId != request?.SymbolId && script.Find(RadicalKind.Meaning, symbolId) is not null)
+            if (symbolId != request?.SymbolId && script.Find(RadicalKind.Meaning, symbolId) is { } noun)
             {
-                glyphs.Add(script.GlyphFor(symbolId));
+                words.Add(noun.Id);
             }
         }
-        return glyphs;
+        return new Sentence(words);
     }
 
     // 崩れた後は、似た形の組のどちらも、ID の小さい方として読まれる
-    private static ScriptRadical? Resolve(PlanetScript script, string radicalId, bool decayed)
+    private static ScriptRadical Resolve(PlanetScript script, string radicalId, bool decayed)
     {
         var (a, b) = script.SimilarPair;
         if (decayed && (radicalId == a || radicalId == b))
         {
             radicalId = string.CompareOrdinal(a, b) < 0 ? a : b;
         }
-        return script.Find(radicalId);
+        return script.Find(radicalId)!;
     }
 }

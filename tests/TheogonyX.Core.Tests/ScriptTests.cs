@@ -18,11 +18,11 @@ public class ScriptTests
 
     private static string Id(PlanetScript script, RadicalKind kind, string key) => script.Find(kind, key)!.Id;
 
-    private static GlyphArrangement Other(GlyphArrangement arrangement) =>
-        arrangement == GlyphArrangement.LeftRight ? GlyphArrangement.TopBottom : GlyphArrangement.LeftRight;
+    private static PlanetScript CreateWith(WordOrder order) =>
+        Enumerable.Range(0, 100).Select(seed => Create(seed)).First(script => script.WordOrder == order);
 
-    private static ScriptReading Read(PlanetScript script, IReadOnlyCollection<string>? hand = null, bool decayed = false, params Glyph[] glyphs) =>
-        ScriptReader.Read(script, Rules, glyphs, AllRadicals(script), hand ?? AllHand, decayed).Reading!;
+    private static ScriptReading Read(PlanetScript script, IReadOnlyCollection<string>? hand = null, bool decayed = false, params string[] words) =>
+        ScriptReader.Read(script, Rules, new Sentence(words), AllRadicals(script), hand ?? AllHand, decayed).Reading!;
 
     private static string Shape(IEnumerable<Stroke> strokes) => string.Join(';', strokes.Order());
 
@@ -34,7 +34,7 @@ public class ScriptTests
         var second = Create();
         var other = Create(seed: 7);
 
-        Assert.Equal(first.Arrangement, second.Arrangement);
+        Assert.Equal(first.WordOrder, second.WordOrder);
         Assert.Equal(first.SimilarPair, second.SimilarPair);
         Assert.Equal(
             first.Radicals.Select(radical => (radical.Id, radical.Kind, radical.Key, Shape(radical.Strokes), radical.DecayStroke)),
@@ -46,7 +46,7 @@ public class ScriptTests
 
     [Fact]
     [Trait("TS", "TS-script-decipher-002")]
-    public void Create_多くのシード_部品は11個で形が重ならず似た組だけが1本違いで崩れると同じ形になる()
+    public void Create_多くのシード_語は11個で形が重ならず似た組だけが1本違いで崩れると同じ形になる()
     {
         for (var seed = 0; seed < 50; seed++)
         {
@@ -67,65 +67,87 @@ public class ScriptTests
         }
     }
 
-    [Fact]
+    [Theory]
     [Trait("TS", "TS-script-decipher-003")]
-    public void Read_決まりどおりの木と崇拝の字_木の崇拝になる()
+    [InlineData(WordOrder.NounFirst)]
+    [InlineData(WordOrder.VerbFirst)]
+    public void Read_星の語順の木と触れるなの文_木の禁忌になる(WordOrder order)
     {
-        var script = Create();
+        var script = CreateWith(order);
 
-        var reading = Read(script, glyphs: script.GlyphFor("SYM_TREE", DogmaType.Worship));
+        var reading = Read(script, words: [.. script.SentenceFor("SYM_TREE", DogmaType.Taboo).Words]);
 
-        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f), reading.Teaching);
+        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Taboo, 0.7f), reading.Teaching);
+        Assert.Equal(new PhraseReading("SYM_TREE", DogmaType.Taboo, true), Assert.Single(reading.Phrases));
+        Assert.Equal(0, reading.DroppedVerbs);
         Assert.Equal(TravelDirection.None, reading.Destination);
     }
 
-    [Fact]
+    [Theory]
     [Trait("TS", "TS-script-decipher-004")]
-    public void Read_並びが決まりと違う_部品の場所が入れ替わって読まれ意味の場所に働きの部品があれば謎の字()
+    [InlineData(WordOrder.NounFirst)]
+    [InlineData(WordOrder.VerbFirst)]
+    public void Read_語順が逆の文_動詞は読み落とされ名詞だけが崇拝と読まれる(WordOrder order)
     {
-        var script = Create();
-        var (tree, worship) = (Id(script, RadicalKind.Meaning, "SYM_TREE"), Id(script, RadicalKind.Function, nameof(DogmaType.Worship)));
+        var script = CreateWith(order);
+        var (tree, taboo) = (Id(script, RadicalKind.Meaning, "SYM_TREE"), Id(script, RadicalKind.Function, nameof(DogmaType.Taboo)));
+        string[] reversed = order == WordOrder.NounFirst ? [taboo, tree] : [tree, taboo];
 
-        var wrong = Read(script, glyphs: new Glyph(tree, worship, null, Other(script.Arrangement)));
-        var swappedBack = Read(script, glyphs: new Glyph(worship, tree, null, Other(script.Arrangement)));
-        var meaningOnly = Read(script, glyphs: new Glyph(tree, null, null, Other(script.Arrangement)));
+        var reading = Read(script, words: reversed);
 
-        Assert.Null(wrong.Teaching);
-        Assert.False(wrong.Glyphs[0].IsReadable);
-        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f), swappedBack.Teaching);
-        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f), meaningOnly.Teaching);
+        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f), reading.Teaching);
+        Assert.Equal(new PhraseReading("SYM_TREE", DogmaType.Worship, false), Assert.Single(reading.Phrases));
+        Assert.Equal(1, reading.DroppedVerbs);
     }
 
     [Fact]
     [Trait("TS", "TS-script-decipher-004")]
-    public void Read_予言者の知らない記号_謎の字になり教えは後の読める字から作る()
+    public void Read_方角の語が文の頭や組の間にある_行き先になり組はつながったまま()
+    {
+        var script = CreateWith(WordOrder.NounFirst);
+        var (tree, taboo) = (Id(script, RadicalKind.Meaning, "SYM_TREE"), Id(script, RadicalKind.Function, nameof(DogmaType.Taboo)));
+        var east = Id(script, RadicalKind.Direction, nameof(TravelDirection.East));
+
+        var head = Read(script, words: [east, tree, taboo]);
+        var middle = Read(script, words: [tree, east, taboo]);
+
+        Assert.Equal(TravelDirection.East, head.Destination);
+        Assert.Equal(TravelDirection.East, middle.Destination);
+        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Taboo, 0.7f), head.Teaching);
+        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Taboo, 0.7f), middle.Teaching);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-004")]
+    public void Read_予言者の知らない記号_謎の語になり教えは後の読める組から作る()
     {
         var script = Create();
 
         var reading = Read(
-            script, hand: ["SYM_WATER"], glyphs: [script.GlyphFor("SYM_TREE", DogmaType.Destruction), script.GlyphFor("SYM_WATER")]);
+            script, hand: ["SYM_WATER"], words: [.. script.SentenceFor("SYM_TREE", DogmaType.Destruction).Words, Id(script, RadicalKind.Meaning, "SYM_WATER")]);
 
-        Assert.False(reading.Glyphs[0].IsReadable);
+        Assert.False(reading.Phrases[0].IsReadable);
         Assert.Equal(new Dogma("SYM_WATER", DogmaType.Worship, 0.7f), reading.Teaching);
     }
 
     [Fact]
     [Trait("TS", "TS-script-decipher-004")]
-    public void Read_意味だけの字と働きつきの字と方角_教えは働きつきの字で行き先は方角()
+    public void Read_名詞だけの語と動詞つきの組と方角_教えは動詞つきの組で行き先は方角()
     {
         var script = Create();
 
         var reading = Read(
             script,
-            glyphs: [script.GlyphFor("SYM_FIRE"), script.GlyphFor("SYM_WATER", DogmaType.Taboo), script.GlyphFor("SYM_EARTH", direction: TravelDirection.East)]);
+            words: [Id(script, RadicalKind.Meaning, "SYM_FIRE"), .. script.SentenceFor("SYM_WATER", DogmaType.Taboo, TravelDirection.East).Words]);
 
         Assert.Equal(new Dogma("SYM_WATER", DogmaType.Taboo, 0.7f), reading.Teaching);
         Assert.Equal(TravelDirection.East, reading.Destination);
+        Assert.Equal(2, reading.Phrases.Count);
     }
 
     [Fact]
     [Trait("TS", "TS-script-decipher-005")]
-    public void Read_崩れた後の似た形の組_どちらの部品で書いてもIDの小さい方として読まれる()
+    public void Read_崩れた後の似た形の組_どちらの語で書いてもIDの小さい方として読まれる()
     {
         var script = Create();
         var (a, b) = script.SimilarPair;
@@ -134,8 +156,8 @@ public class ScriptTests
         var smallerSymbol = script.Find(smaller)!.Key;
         var largerSymbol = script.Find(larger)!.Key;
 
-        var before = Read(script, glyphs: new Glyph(larger, null, null, script.Arrangement));
-        var after = Read(script, decayed: true, glyphs: new Glyph(larger, null, null, script.Arrangement));
+        var before = Read(script, words: larger);
+        var after = Read(script, decayed: true, words: larger);
 
         Assert.Equal(largerSymbol, before.Teaching!.TargetSymbolId);
         Assert.Equal(smallerSymbol, after.Teaching!.TargetSymbolId);
@@ -143,30 +165,33 @@ public class ScriptTests
 
     [Fact]
     [Trait("TS", "TS-script-decipher-006")]
-    public void Read_字が無い多すぎる手帳に無い部品_理由つきで拒む()
+    public void Read_語が無い多すぎる手帳に無い語_理由つきで拒む()
     {
         var script = Create();
-        var glyph = script.GlyphFor("SYM_TREE", DogmaType.Worship);
-        var known = new HashSet<string> { glyph.First };
+        var tree = Id(script, RadicalKind.Meaning, "SYM_TREE");
+        var known = new HashSet<string> { tree };
+        Sentence Of(params string[] words) => new(words);
 
-        Assert.Equal("no_glyphs", ScriptReader.Read(script, Rules, [], AllRadicals(script), AllHand, false).RejectedReason);
-        Assert.Equal("too_many_glyphs", ScriptReader.Read(script, Rules, [glyph, glyph, glyph, glyph], AllRadicals(script), AllHand, false).RejectedReason);
-        Assert.Equal("radical_not_found", ScriptReader.Read(script, Rules, [glyph], known, AllHand, false).RejectedReason);
-        Assert.Equal("radical_not_found", ScriptReader.Read(script, Rules, [new Glyph("RAD_99", null, null, script.Arrangement)], AllRadicals(script), AllHand, false).RejectedReason);
+        Assert.Equal("no_glyphs", ScriptReader.Read(script, Rules, Of(), AllRadicals(script), AllHand, false).RejectedReason);
+        Assert.Equal("too_many_glyphs", ScriptReader.Read(script, Rules, Of(tree, tree, tree, tree, tree), AllRadicals(script), AllHand, false).RejectedReason);
+        Assert.Null(ScriptReader.Read(script, Rules, Of(tree, tree, tree, tree), AllRadicals(script), AllHand, false).RejectedReason);
+        Assert.Equal("glyph_not_found", ScriptReader.Read(script, Rules, script.SentenceFor("SYM_TREE", DogmaType.Worship), known, AllHand, false).RejectedReason);
+        Assert.Equal("glyph_not_found", ScriptReader.Read(script, Rules, Of("RAD_99"), AllRadicals(script), AllHand, false).RejectedReason);
     }
 
     [Fact]
     [Trait("TS", "TS-script-decipher-007")]
-    public void PrayerGlyphs_渇きの依頼_1字目が水と崇拝で後は選んだ記号の意味だけの字()
+    public void PrayerSentence_渇きの依頼_初めに水と崇めよで後は選んだ記号の名詞()
     {
         var script = Create();
         var thirst = TestRules.ProphetDreams.Requests.First(request => request.Id == "THIRST");
+        string Noun(string symbolId) => Id(script, RadicalKind.Meaning, symbolId);
 
-        var glyphs = ScriptReader.PrayerGlyphs(script, thirst, ["SYM_TREE", "SYM_WATER", "SYM_FIRE"]);
-        var daily = ScriptReader.PrayerGlyphs(script, null, ["SYM_TREE"]);
+        var prayer = ScriptReader.PrayerSentence(script, thirst, ["SYM_TREE", "SYM_WATER", "SYM_FIRE"]);
+        var daily = ScriptReader.PrayerSentence(script, null, ["SYM_TREE"]);
 
-        Assert.Equal([script.GlyphFor("SYM_WATER", DogmaType.Worship), script.GlyphFor("SYM_TREE"), script.GlyphFor("SYM_FIRE")], glyphs);
-        Assert.Equal([script.GlyphFor("SYM_TREE")], daily);
+        Assert.Equal(new Sentence([.. script.SentenceFor("SYM_WATER", DogmaType.Worship).Words, Noun("SYM_TREE"), Noun("SYM_FIRE")]), prayer);
+        Assert.Equal(new Sentence([Noun("SYM_TREE")]), daily);
     }
 
     [Fact]
@@ -175,13 +200,13 @@ public class ScriptTests
     {
         var script = Create();
 
-        var restored = PlanetScript.Restore(Rules, script.Radicals, script.Arrangement, script.SimilarPair);
+        var restored = PlanetScript.Restore(Rules, script.Radicals, script.WordOrder, script.SimilarPair);
 
         Assert.Equal(script.Radicals, restored.Radicals);
-        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, script.Radicals, script.Arrangement, (script.SimilarPair.A, script.SimilarPair.A)));
+        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, script.Radicals, script.WordOrder, (script.SimilarPair.A, script.SimilarPair.A)));
         Assert.Throws<ArgumentException>(() => PlanetScript.Restore(
-            Rules, [.. script.Radicals.Where(radical => radical.Kind != RadicalKind.Direction)], script.Arrangement, script.SimilarPair));
+            Rules, [.. script.Radicals.Where(radical => radical.Kind != RadicalKind.Direction)], script.WordOrder, script.SimilarPair));
         var outside = script.Radicals[0] with { Strokes = [new Stroke(0, 0, 9, 9), .. script.Radicals[0].Strokes] };
-        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, [outside, .. script.Radicals.Skip(1)], script.Arrangement, script.SimilarPair));
+        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, [outside, .. script.Radicals.Skip(1)], script.WordOrder, script.SimilarPair));
     }
 }

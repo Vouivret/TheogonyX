@@ -86,16 +86,16 @@ public sealed class OracleView
     }
 
     /// <summary>
-    /// 神が組んだ字の列で神託を下す（docs/domain/script-decipher.md の「書く」）。人の読みと、掟の 1 行・行き先を吹き出しに出す。
+    /// 神が書いた文で神託を下す（docs/domain/script-decipher.md の「7. 語の字と神託の碑」）。人の読みと、掟の 1 行・行き先を吹き出しに出す。
     /// </summary>
     /// <returns>下せたか（下せなければ理由をログに出す）。</returns>
-    public bool SpeakScript(IReadOnlyList<Glyph> glyphs)
+    public bool SpeakScript(Sentence sentence)
     {
         var year = _timeControl.World.Year;
-        var outcome = _prophet.SpeakScript(glyphs);
+        var outcome = _prophet.SpeakScript(sentence);
         if (outcome.Result is not { } result || outcome.Reading is not { } reading)
         {
-            GD.PushWarning(FormattableString.Invariant($"event=oracle_script_rejected year={year} reason={outcome.RejectedReason} count={glyphs.Count}"));
+            GD.PushWarning(FormattableString.Invariant($"event=oracle_script_rejected year={year} reason={outcome.RejectedReason} count={sentence.Words.Count}"));
             return false;
         }
         if (result.Dogma is { } dogma)
@@ -105,7 +105,7 @@ public sealed class OracleView
         }
         else
         {
-            GD.Print(FormattableString.Invariant($"event=oracle_unreadable year={year} count={glyphs.Count}"));
+            GD.Print(FormattableString.Invariant($"event=oracle_unreadable year={year} count={sentence.Words.Count}"));
         }
         if (result.AnsweredRequest is { } request)
         {
@@ -126,7 +126,7 @@ public sealed class OracleView
         return true;
     }
 
-    // 吹き出しの文: 掟の 1 行、人が字をどう読んだか（字ごと）、行き先
+    // 吹き出しの文: 掟の 1 行、人が文をどう読んだか（組ごと・読み落とした語の数）、行き先
     private static string ReadingText(ScriptReading reading)
     {
         var culture = CultureInfo.CurrentCulture;
@@ -135,12 +135,14 @@ public sealed class OracleView
         {
             lines.Add(string.Format(culture, Tr($"ORACLE_LINE_{teaching.Type.ToString().ToUpperInvariant()}"), Tr($"SYMBOL_{teaching.TargetSymbolId}")));
         }
-        var glyphs = reading.Glyphs.Select(glyph => glyph.IsReadable
-            ? Tr($"SYMBOL_{glyph.SymbolId}")
-                + (glyph.Type is { } type ? "・" + Tr($"NOTEBOOK_TYPE_{type.ToString().ToUpperInvariant()}") : string.Empty)
-                + (glyph.Direction != TravelDirection.None ? "・" + Tr($"DIRECTION_{glyph.Direction.ToString().ToUpperInvariant()}") : string.Empty)
-            : Tr("ORACLE_READ_UNREADABLE"));
-        lines.Add(string.Format(culture, Tr("ORACLE_READ"), string.Join(" ／ ", glyphs)));
+        var phrases = reading.Phrases.Select(phrase => !phrase.IsReadable ? Tr("ORACLE_READ_UNREADABLE")
+            : phrase.VerbRead ? Tr($"SYMBOL_{phrase.SymbolId}") + "・" + Tr($"NOTEBOOK_TYPE_{phrase.Type.ToString().ToUpperInvariant()}")
+            : string.Format(culture, Tr("ORACLE_READ_NOUN_ONLY"), Tr($"SYMBOL_{phrase.SymbolId}")));
+        lines.Add(string.Format(culture, Tr("ORACLE_READ"), string.Join(" ／ ", phrases)));
+        if (reading.DroppedVerbs > 0)
+        {
+            lines.Add(string.Format(culture, Tr("ORACLE_READ_DROPPED"), reading.DroppedVerbs));
+        }
         if (reading.Destination != TravelDirection.None)
         {
             lines.Add(Tr(reading.Destination == TravelDirection.East ? "ORACLE_DESTINATION_EAST" : "ORACLE_DESTINATION_WEST"));
@@ -211,7 +213,7 @@ public sealed class OracleView
 
     private double _prayerHideInSeconds;
 
-    // 祈りの字（人の字）を並べ、その部品を手帳に載せる。日々の祈りは、吹き出しと同じ秒数だけ出す
+    // 祈りの文（人の字）を出し、その字を手帳に載せる。日々の祈りは、吹き出しと同じ秒数だけ出す
     private void ShowPrayerGlyphs(Prayer prayer)
     {
         if (_prophet.Script is not { } script || _prophet.Dialect is not { } dialect)
@@ -219,21 +221,17 @@ public sealed class OracleView
             return;
         }
         var symbols = prayer.NounIds.Select(id => dialect.Rules.FindNoun(id)?.SymbolId).OfType<string>().ToList();
-        var glyphs = ScriptReader.PrayerGlyphs(script.Script, prayer.Request, symbols);
+        var sentence = ScriptReader.PrayerSentence(script.Script, prayer.Request, symbols);
         foreach (var child in _prayerGlyphs.GetChildren())
         {
             _prayerGlyphs.RemoveChild(child);
             child.QueueFree();
         }
-        var added = 0;
-        foreach (var glyph in glyphs)
-        {
-            var view = new GlyphView { CustomMinimumSize = new Vector2(32, 32), MouseFilter = Control.MouseFilterEnum.Ignore };
-            view.Show(script.Script, glyph, script.Decayed);
-            _prayerGlyphs.AddChild(view);
-            added += script.Discover(glyph);
-        }
-        _prayerPanel.Visible = glyphs.Count > 0;
+        var view = new GlyphView { CustomMinimumSize = new Vector2(32 * sentence.Words.Count, 32), MouseFilter = Control.MouseFilterEnum.Ignore };
+        view.Show(script.Script, sentence, script.Decayed);
+        _prayerGlyphs.AddChild(view);
+        var added = script.Discover(sentence);
+        _prayerPanel.Visible = sentence.Words.Count > 0;
         _prayerHideInSeconds = prayer.Request is null ? _rules.BubbleSeconds : 0;
         if (added > 0)
         {

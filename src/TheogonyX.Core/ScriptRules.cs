@@ -11,8 +11,8 @@ namespace TheogonyX.Core;
 /// <param name="MaxAttempts">部品の形を作り直す回数の上限（越えたら定義が悪い）。</param>
 public sealed record ScriptRules(int GridSize, int MinStrokes, int MaxStrokes, int DecayYears, float TeachingIntensity, int MaxAttempts = 1000)
 {
-    /// <summary>神託 1 回に組める字の数の上限。</summary>
-    public const int MaxGlyphsPerOracle = 3;
+    /// <summary>神託 1 回の文に並べられる語の数の上限。</summary>
+    public const int MaxGlyphsPerOracle = 4;
 
     /// <exception cref="ArgumentException">範囲外の値。</exception>
     public void Validate()

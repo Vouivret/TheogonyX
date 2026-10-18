@@ -3,10 +3,10 @@ namespace TheogonyX.Core;
 /// <summary>刻まれた字の種類（docs/domain/script-decipher.md の「世界に刻まれた字」）。</summary>
 public enum CarvingKind
 {
-    /// <summary>地形の目印（湖の岸の「水」など）。意味の部品だけの字。星を作るときに刻む。</summary>
+    /// <summary>地形の目印（湖の岸の「水」など）。名詞 1 語。星を作るときに刻む。</summary>
     Landmark,
 
-    /// <summary>工房の札（金＋崇拝）。</summary>
+    /// <summary>工房の札（金＋崇めよ）。</summary>
     Workshop,
 
     /// <summary>家の札（土）。</summary>
@@ -23,12 +23,12 @@ public enum CarvingKind
 public sealed record ScriptLandmark(string SymbolId, int Column, int Row);
 
 /// <summary>
-/// 世界に刻まれた字 1 つ。<paramref name="Decayed"/> は刻んだ時代の形（崩れる前に刻んだ字は、崩れた後も前の形のまま）。
+/// 世界に刻まれた文 1 つ。<paramref name="Decayed"/> は刻んだ時代の形（崩れる前に刻んだ字は、崩れた後も前の形のまま）。
 /// <paramref name="BuildingId"/> は建物の札のとき、その建物の ID（建物が無くなると札も消える）。
 /// </summary>
-public sealed record CarvedGlyph(CarvingKind Kind, Glyph Glyph, int Region, int Column, int Row, int Year, bool Decayed, int? BuildingId = null);
+public sealed record CarvedGlyph(CarvingKind Kind, Sentence Sentence, int Region, int Column, int Row, int Year, bool Decayed, int? BuildingId = null);
 
-/// <summary>手帳に神が書き込める意味（部品ごとに 1 つ選ぶ）。<see cref="Unknown"/> は「分からない」。</summary>
+/// <summary>手帳に神が書き込める意味（語の字ごとに 1 つ選ぶ）。<see cref="Unknown"/> は「分からない」。</summary>
 public static class NotebookLabels
 {
     public const string Unknown = "UNKNOWN";
@@ -36,7 +36,7 @@ public static class NotebookLabels
 
 /// <summary>セーブに残す、星の字の状態。</summary>
 public sealed record ScriptSave(
-    IReadOnlyList<ScriptRadical> Radicals, GlyphArrangement Arrangement, (string A, string B) SimilarPair, bool Decayed,
+    IReadOnlyList<ScriptRadical> Radicals, WordOrder WordOrder, (string A, string B) SimilarPair, bool Decayed,
     IReadOnlyList<CarvedGlyph> Carvings, IReadOnlyDictionary<string, string> Notebook);
 
 /// <summary>
@@ -47,7 +47,7 @@ public sealed class ScriptState
 {
     private readonly List<CarvedGlyph> _carvings = [];
 
-    // 手帳: 載った部品の ID → 神の書き込み（意味の一覧のどれか。初めは「分からない」）
+    // 手帳: 載った語の字の ID → 神の書き込み（意味の一覧のどれか。初めは「分からない」）
     private readonly Dictionary<string, string> _notebook = [];
 
     /// <param name="regions">地域と列の対応（禁忌の札を刻む列を決める）。</param>
@@ -82,10 +82,10 @@ public sealed class ScriptState
     /// <summary>世界に刻まれた字（刻んだ順）。</summary>
     public IReadOnlyList<CarvedGlyph> Carvings => _carvings;
 
-    /// <summary>手帳に載った部品と、神の書き込み。</summary>
+    /// <summary>手帳に載った語の字と、神の書き込み。</summary>
     public IReadOnlyDictionary<string, string> Notebook => _notebook;
 
-    /// <summary>神が組める部品（手帳に載った部品）。</summary>
+    /// <summary>神が書ける語（手帳に載った語の字）。</summary>
     public IReadOnlySet<string> KnownRadicals => _notebook.Keys.ToHashSet();
 
     /// <summary>
@@ -111,11 +111,11 @@ public sealed class ScriptState
             .GroupBy(building => building.Region).Select(group => group.Min(building => building.Id)).ToHashSet();
         foreach (var building in buildings.OrderBy(building => building.Id))
         {
-            var glyph = building.Type switch
+            var sentence = building.Type switch
             {
-                BuildingType.Workshop => Script.GlyphFor("SYM_METAL", DogmaType.Worship),
-                BuildingType.Shrine => MostBelieved(residents, building.Region) is { } teaching ? Script.GlyphFor(teaching.SymbolId, teaching.Type) : null,
-                _ when building.Type.IsHouse() && platedHouses.Contains(building.Id) => Script.GlyphFor("SYM_EARTH"),
+                BuildingType.Workshop => Script.SentenceFor("SYM_METAL", DogmaType.Worship),
+                BuildingType.Shrine => MostBelieved(residents, building.Region) is { } teaching ? Script.SentenceFor(teaching.SymbolId, teaching.Type) : null,
+                _ when building.Type.IsHouse() && platedHouses.Contains(building.Id) => Script.SentenceFor("SYM_EARTH"),
                 _ => null,
             };
             var kind = building.Type switch
@@ -125,7 +125,7 @@ public sealed class ScriptState
                 _ => CarvingKind.House,
             };
             var index = _carvings.FindIndex(carving => carving.BuildingId == building.Id);
-            if (glyph is null)
+            if (sentence is null)
             {
                 // 信者のいない祠は、札を刻まない（刻んであれば消す）
                 if (index >= 0)
@@ -134,7 +134,7 @@ public sealed class ScriptState
                 }
                 continue;
             }
-            if (index >= 0 && _carvings[index].Glyph == glyph)
+            if (index >= 0 && _carvings[index].Sentence == sentence)
             {
                 continue;
             }
@@ -142,20 +142,20 @@ public sealed class ScriptState
             {
                 _carvings.RemoveAt(index);
             }
-            _carvings.Add(new CarvedGlyph(kind, glyph, building.Region, building.Column, building.Row, year, Decayed, building.Id));
+            _carvings.Add(new CarvedGlyph(kind, sentence, building.Region, building.Column, building.Row, year, Decayed, building.Id));
         }
 
         UpdateTabooPlates(year, residents);
         return decayedNow;
     }
 
-    /// <summary>刻まれた字か祈りの字を見た。その字の部品を手帳に載せる（載っていれば何もしない）。</summary>
-    /// <returns>新しく載った部品の数。</returns>
-    public int Discover(Glyph glyph)
+    /// <summary>刻まれた文か祈りの文を見た。その文の語の字を手帳に載せる（載っていれば何もしない）。</summary>
+    /// <returns>新しく載った語の字の数。</returns>
+    public int Discover(Sentence sentence)
     {
-        ArgumentNullException.ThrowIfNull(glyph);
+        ArgumentNullException.ThrowIfNull(sentence);
         var added = 0;
-        foreach (var id in new[] { glyph.First, glyph.Second, glyph.Direction }.OfType<string>())
+        foreach (var id in sentence.Words)
         {
             if (Script.Find(id) is not null && _notebook.TryAdd(id, NotebookLabels.Unknown))
             {
@@ -165,34 +165,32 @@ public sealed class ScriptState
         return added;
     }
 
-    /// <summary>手帳の部品に、神の推理を書き込む。</summary>
+    /// <summary>手帳の語の字に、神の推理を書き込む。</summary>
     /// <param name="label">意味の一覧（記号の ID・種別の名前・方角の名前）か <see cref="NotebookLabels.Unknown"/>。</param>
-    /// <exception cref="ArgumentException">手帳に載っていない部品・一覧に無い意味。</exception>
+    /// <exception cref="ArgumentException">手帳に載っていない語の字・一覧に無い意味。</exception>
     public void Label(string radicalId, string label)
     {
         if (!_notebook.ContainsKey(radicalId) || !IsLabel(label))
         {
-            throw new ArgumentException($"手帳に無い部品か、一覧に無い意味: radicalId={radicalId} label={label}");
+            throw new ArgumentException($"手帳に無い語の字か、一覧に無い意味: radicalId={radicalId} label={label}");
         }
         _notebook[radicalId] = label;
     }
 
-    /// <summary>手帳に書き込める意味か（字の部品が表す意味のどれか、または「分からない」）。</summary>
+    /// <summary>手帳に書き込める意味か（語の字が表す意味のどれか、または「分からない」）。</summary>
     public bool IsLabel(string label) => label == NotebookLabels.Unknown || Script.Radicals.Any(radical => radical.Key == label);
 
     public ScriptSave Capture() =>
-        new(Script.Radicals, Script.Arrangement, Script.SimilarPair, Decayed, [.. _carvings], new Dictionary<string, string>(_notebook));
+        new(Script.Radicals, Script.WordOrder, Script.SimilarPair, Decayed, [.. _carvings], new Dictionary<string, string>(_notebook));
 
     /// <summary>セーブから読み込んだ状態に置き換える。検証を済ませてから置き換える。</summary>
     /// <exception cref="ArgumentException">定義に合わない値。</exception>
     public void Restore(ScriptSave save)
     {
         ArgumentNullException.ThrowIfNull(save);
-        var script = PlanetScript.Restore(Rules, save.Radicals, save.Arrangement, save.SimilarPair);
-        bool IsRadical(string? id) => id is null || script.Find(id) is not null;
-        var valid = save.Carvings.All(carving => script.Find(carving.Glyph.First) is not null && IsRadical(carving.Glyph.Second)
-                && IsRadical(carving.Glyph.Direction) && carving.Region >= 0 && carving.Region < Regions.Count && carving.Year >= 0
-                && Enum.IsDefined(carving.Kind) && Enum.IsDefined(carving.Glyph.Arrangement))
+        var script = PlanetScript.Restore(Rules, save.Radicals, save.WordOrder, save.SimilarPair);
+        var valid = save.Carvings.All(carving => carving.Sentence.Words.Count > 0 && carving.Sentence.Words.All(id => script.Find(id) is not null)
+                && carving.Region >= 0 && carving.Region < Regions.Count && carving.Year >= 0 && Enum.IsDefined(carving.Kind))
             && save.Notebook.All(pair => script.Find(pair.Key) is not null
                 && (pair.Value == NotebookLabels.Unknown || script.Radicals.Any(radical => radical.Key == pair.Value)));
         if (!valid)
@@ -224,7 +222,7 @@ public sealed class ScriptState
             if (Script.Find(RadicalKind.Meaning, landmark.SymbolId) is not null)
             {
                 _carvings.Add(new CarvedGlyph(
-                    CarvingKind.Landmark, Script.GlyphFor(landmark.SymbolId), Regions.RegionOf(landmark.Column), landmark.Column, landmark.Row, 0, Decayed));
+                    CarvingKind.Landmark, Script.SentenceFor(landmark.SymbolId), Regions.RegionOf(landmark.Column), landmark.Column, landmark.Row, 0, Decayed));
             }
         }
     }
@@ -245,15 +243,15 @@ public sealed class ScriptState
                     .Select(entry => entry.Symbol)
                     .FirstOrDefault();
             var index = _carvings.FindIndex(carving => carving.Kind == CarvingKind.Taboo && carving.Region == region);
-            var glyph = top is null || Script.Find(RadicalKind.Meaning, top) is null ? null : Script.GlyphFor(top, DogmaType.Taboo);
-            if (index >= 0 && (glyph is null || _carvings[index].Glyph != glyph))
+            var sentence = top is null || Script.Find(RadicalKind.Meaning, top) is null ? null : Script.SentenceFor(top, DogmaType.Taboo);
+            if (index >= 0 && (sentence is null || _carvings[index].Sentence != sentence))
             {
                 _carvings.RemoveAt(index);
                 index = -1;
             }
-            if (glyph is not null && index < 0)
+            if (sentence is not null && index < 0)
             {
-                _carvings.Add(new CarvedGlyph(CarvingKind.Taboo, glyph, region, Regions.FirstColumn(region), 0, year, Decayed));
+                _carvings.Add(new CarvedGlyph(CarvingKind.Taboo, sentence, region, Regions.FirstColumn(region), 0, year, Decayed));
             }
         }
     }

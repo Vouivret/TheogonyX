@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 17;
+    public const int SaveVersion = 18;
 
     // 壊れたセーブで巨大な配列を作らないための上限（信仰の定義の上限より十分大きい）
     private const int MaxSavedBeliefs = 16;
@@ -208,7 +208,7 @@ public static class SaveDataSerializer
                 ? null
                 : new
                 {
-                    arrangement = data.Script.Arrangement.ToString(),
+                    wordOrder = data.Script.WordOrder.ToString(),
                     similarPair = new[] { data.Script.SimilarPair.A, data.Script.SimilarPair.B },
                     decayed = data.Script.Decayed,
                     radicals = data.Script.Radicals.Select(radical => new
@@ -222,13 +222,7 @@ public static class SaveDataSerializer
                     carvings = data.Script.Carvings.Select(carving => new
                     {
                         kind = carving.Kind.ToString(),
-                        glyph = new
-                        {
-                            first = carving.Glyph.First,
-                            second = carving.Glyph.Second,
-                            direction = carving.Glyph.Direction,
-                            arrangement = carving.Glyph.Arrangement.ToString(),
-                        },
+                        sentence = carving.Sentence.Words,
                         region = carving.Region,
                         column = carving.Column,
                         row = carving.Row,
@@ -485,7 +479,6 @@ public static class SaveDataSerializer
         }
         var carvings = Items(element, "carvings").Select(item =>
         {
-            var glyph = Property(item, "glyph", JsonValueKind.Object);
             var buildingElement = Property(item, "buildingId", null);
             int? buildingId = buildingElement.ValueKind switch
             {
@@ -495,7 +488,8 @@ public static class SaveDataSerializer
             };
             return new CarvedGlyph(
                 ReadEnum<CarvingKind>(item, "kind"),
-                new Glyph(ReadString(glyph, "first"), ReadOptionalString(glyph, "second"), ReadOptionalString(glyph, "direction"), ReadEnum<GlyphArrangement>(glyph, "arrangement")),
+                new Sentence([.. Property(item, "sentence", JsonValueKind.Array).EnumerateArray()
+                    .Select(word => word.ValueKind == JsonValueKind.String ? word.GetString()! : throw new InvalidSaveDataException("invalid_script"))]),
                 ReadInt(item, "region"), ReadInt(item, "column"), ReadInt(item, "row"),
                 ReadYearUpTo(Property(item, "year", JsonValueKind.Number), currentYear), ReadBool(item, "decayed"), buildingId);
         }).ToList();
@@ -506,7 +500,7 @@ public static class SaveDataSerializer
                 ? property.Value.GetString()!
                 : throw new InvalidSaveDataException("invalid_script");
         }
-        return new ScriptSave(radicals, ReadEnum<GlyphArrangement>(element, "arrangement"), (pair[0], pair[1]), ReadBool(element, "decayed"), carvings, notebook);
+        return new ScriptSave(radicals, ReadEnum<WordOrder>(element, "wordOrder"), (pair[0], pair[1]), ReadBool(element, "decayed"), carvings, notebook);
     }
 
     // 版 16 で足した項目。無い（または null）なら、方言の状態は星を作るときのものから始める。

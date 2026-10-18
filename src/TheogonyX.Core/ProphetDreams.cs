@@ -289,29 +289,28 @@ public sealed class ProphetDreams
     }
 
     /// <summary>
-    /// 神が組んだ字の列で神託を下す（docs/domain/script-decipher.md の「書く」）。人（予言者）が星の決まりで字を読み、
-    /// 読めた字から教えと行き先を作って <see cref="Speak"/> と同じく下す。読めた字が無くても神威は使う（神は語った）。
-    /// 語りかけられない（<see cref="SpeakRejection"/>）・字が組めていない（<see cref="ScriptReader.Read"/> の理由）ときは、何も変えずに理由を返す。
+    /// 神が書いた文で神託を下す（docs/domain/script-decipher.md の「7. 語の字と神託の碑」）。人（予言者）が星の語順で文を読み、
+    /// 読めた組から教えと行き先を作って <see cref="Speak"/> と同じく下す。読めた組が無くても神威は使う（神は語った）。
+    /// 語りかけられない（<see cref="SpeakRejection"/>）・文が書けていない（<see cref="ScriptReader.Read"/> の理由）ときは、何も変えずに理由を返す。
     /// </summary>
     /// <exception cref="InvalidOperationException">星の字の状態か方言の状態が無い。</exception>
-    public ScriptSpeakOutcome SpeakScript(IReadOnlyList<Glyph> glyphs)
+    public ScriptSpeakOutcome SpeakScript(Sentence sentence)
     {
-        ArgumentNullException.ThrowIfNull(glyphs);
+        ArgumentNullException.ThrowIfNull(sentence);
         var script = Script ?? throw new InvalidOperationException("星の字の状態が無い");
         if (SpeakRejection() is { } rejected)
         {
             return new ScriptSpeakOutcome(rejected, null, null);
         }
         var hand = Deck.Hand.Select(_oracleRules.SymbolOf).ToHashSet();
-        var outcome = ScriptReader.Read(script.Script, script.Rules, glyphs, script.KnownRadicals, hand, script.Decayed);
+        var outcome = ScriptReader.Read(script.Script, script.Rules, sentence, script.KnownRadicals, hand, script.Decayed);
         if (outcome.Reading is not { } reading)
         {
             return new ScriptSpeakOutcome(outcome.RejectedReason, null, null);
         }
         var hearing = new Hearing(reading.Teaching, null, null, reading.Destination, false, [], []);
-        // 神託の記録には、神が組んだ字を部品の ID で残す（経典の元）
-        var text = string.Join(' ', glyphs.Select(glyph => $"{glyph.First}/{glyph.Second ?? "-"}/{glyph.Direction ?? "-"}/{glyph.Arrangement}"));
-        return new ScriptSpeakOutcome(null, Speak(hearing, text), reading);
+        // 神託の記録には、神が書いた文を語の字の ID で残す（経典の元）
+        return new ScriptSpeakOutcome(null, Speak(hearing, sentence.ToString()), reading);
     }
 
     // 神託を下した後の共通の処理: 汚染ルーンのカオス度・神威・歪み・依頼・自動進行の再開

@@ -37,7 +37,7 @@ public sealed class CarvingView
         _marks = new Node2D { Name = "Carvings", ZIndex = 10 };
         terrain.GetParent().AddChild(_marks);
 
-        _rubbing = new GlyphView { Name = "Rubbing", CustomMinimumSize = new Vector2(96, 96) };
+        _rubbing = new GlyphView { Name = "Rubbing", CustomMinimumSize = new Vector2(64, 64), SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
         _info = new Label { Name = "RubbingInfo", AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(160, 0) };
         _found = new Label { Name = "RubbingFound", AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(160, 0) };
         var close = new Button { Name = "RubbingClose", Text = "BUTTON_CLOSE" };
@@ -86,7 +86,7 @@ public sealed class CarvingView
     {
         var script = _prophet.Script;
         var carvings = script?.Carvings ?? [];
-        var signature = string.Join('|', carvings.Select(carving => $"{carving.Kind}{carving.Column},{carving.Row},{carving.Year},{carving.Glyph}"));
+        var signature = string.Join('|', carvings.Select(carving => $"{carving.Kind}{carving.Column},{carving.Row},{carving.Year},{carving.Sentence}"));
         if (signature == _shown)
         {
             return;
@@ -106,24 +106,25 @@ public sealed class CarvingView
         {
             var mark = new GlyphView
             {
-                Size = new Vector2(MarkSize, MarkSize),
+                Size = new Vector2(MarkSize * carving.Sentence.Words.Count, MarkSize),
                 Position = _terrainOrigin + new Vector2(carving.Column * WorldScreen.TileSize + 2, carving.Row * WorldScreen.TileSize - MarkSize),
                 MouseFilter = Control.MouseFilterEnum.Ignore,
             };
-            mark.Show(script.Script, carving.Glyph, carving.Decayed);
+            mark.Show(script.Script, carving.Sentence, carving.Decayed);
             _hits.Add((new Rect2(mark.Position, mark.Size), carving));
             _marks.AddChild(mark);
         }
     }
 
-    // 拓本の欄に字を大きく出し、部品を手帳に載せる
+    // 拓本の欄に文を大きく出し、その字を手帳に載せる
     private void Open(CarvedGlyph carving)
     {
         var script = _prophet.Script!;
-        _rubbing.Show(script.Script, carving.Glyph, carving.Decayed);
+        _rubbing.CustomMinimumSize = new Vector2(64 * carving.Sentence.Words.Count, 64);
+        _rubbing.Show(script.Script, carving.Sentence, carving.Decayed);
         _info.Text = string.Format(
             CultureInfo.CurrentCulture, Tr("RUBBING_INFO"), Tr($"RUBBING_KIND_{carving.Kind.ToString().ToUpperInvariant()}"), carving.Year);
-        var added = script.Discover(carving.Glyph);
+        var added = script.Discover(carving.Sentence);
         _found.Text = added > 0 ? string.Format(CultureInfo.CurrentCulture, Tr("RUBBING_FOUND"), added) : Tr("RUBBING_KNOWN");
         _panel.Visible = true;
         if (added > 0)

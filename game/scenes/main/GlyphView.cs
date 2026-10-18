@@ -5,17 +5,16 @@ using TheogonyX.Core;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// 字 1 つを線で描く（docs/domain/script-decipher.md の「字のしくみ」）。部品の線は格子点を結ぶ線で、字の並びに従って、
-/// 左右（または上下）に半分ずつ部品を置き、方角の部品を下に小さく置く。部品 1 つだけの字は枠いっぱいに描く。
-/// 崩れた後の時代の字は、崩れた形で描く。アセットは使わない。
+/// 文を線で描く（docs/domain/script-decipher.md の「7. 語の字と神託の碑」）。枠を語の数で左右に等分し、語の字を 1 つずつ置く。
+/// 語の字の線は格子点を結ぶ線。崩れた後の時代の字は、崩れた形で描く。アセットは使わない。
 /// </summary>
 public partial class GlyphView : Control
 {
     private PlanetScript? _script;
-    private Glyph? _glyph;
+    private Sentence? _sentence;
     private bool _decayed;
 
-    // 格子の区切りの数（格子点の数 − 1）。どの部品も同じ格子なので、全部の部品の線のいちばん大きい座標から求める
+    // 格子の区切りの数（格子点の数 − 1）。どの語の字も同じ格子なので、全部の線のいちばん大きい座標から求める
     private int _cells = 1;
 
     /// <summary>線の色。</summary>
@@ -27,16 +26,19 @@ public partial class GlyphView : Control
     /// <summary>縁の色（透明なら描かない）。選んでいる字を目立たせるのに使う。</summary>
     public Color Outline { get; set; } = Colors.Transparent;
 
-    /// <summary>描く字を替える。</summary>
-    public void Show(PlanetScript script, Glyph glyph, bool decayed)
+    /// <summary>描く文を替える。</summary>
+    public void Show(PlanetScript script, Sentence sentence, bool decayed)
     {
         _script = script;
-        _glyph = glyph;
+        _sentence = sentence;
         _decayed = decayed;
         _cells = Mathf.Max(1, script.Radicals.SelectMany(radical => radical.Strokes)
             .Select(stroke => Mathf.Max(Mathf.Max(stroke.X1, stroke.X2), Mathf.Max(stroke.Y1, stroke.Y2))).DefaultIfEmpty(1).Max());
         QueueRedraw();
     }
+
+    /// <summary>語の字 1 つを描く。</summary>
+    public void Show(PlanetScript script, string radicalId, bool decayed) => Show(script, new Sentence([radicalId]), decayed);
 
     public override void _Draw()
     {
@@ -48,45 +50,29 @@ public partial class GlyphView : Control
         {
             DrawRect(new Rect2(Vector2.Zero, Size), Outline, false, 1f);
         }
-        if (_script is null || _glyph is null)
+        if (_script is null || _sentence is null || _sentence.Words.Count == 0)
         {
             return;
         }
-        var width = Mathf.Max(1f, Size.X / 16f);
-        var main = new Rect2(Vector2.Zero, Size);
-        if (_glyph.Direction is not null)
+        var cell = new Vector2(Size.X / _sentence.Words.Count, Size.Y);
+        var width = Mathf.Max(1f, Mathf.Min(cell.X, cell.Y) / 16f);
+        for (var i = 0; i < _sentence.Words.Count; i++)
         {
-            // 方角の部品は、字の下の 4 分の 1 に小さく置く
-            var strip = Size.Y * 0.25f;
-            main = new Rect2(Vector2.Zero, new Vector2(Size.X, Size.Y - strip));
-            DrawRadical(_glyph.Direction, new Rect2(new Vector2(Size.X * 0.3f, Size.Y - strip), new Vector2(Size.X * 0.4f, strip)), width);
+            DrawWord(_sentence.Words[i], new Rect2(new Vector2(cell.X * i, 0), cell), width);
         }
-        if (_glyph.Second is null)
-        {
-            DrawRadical(_glyph.First, main, width);
-            return;
-        }
-        var (first, second) = _glyph.Arrangement == GlyphArrangement.LeftRight
-            ? (new Rect2(main.Position, new Vector2(main.Size.X / 2, main.Size.Y)),
-                new Rect2(main.Position + new Vector2(main.Size.X / 2, 0), new Vector2(main.Size.X / 2, main.Size.Y)))
-            : (new Rect2(main.Position, new Vector2(main.Size.X, main.Size.Y / 2)),
-                new Rect2(main.Position + new Vector2(0, main.Size.Y / 2), new Vector2(main.Size.X, main.Size.Y / 2)));
-        DrawRadical(_glyph.First, first, width);
-        DrawRadical(_glyph.Second, second, width);
     }
 
-    // 部品の線を、枠の中に 1 割の余白を取って描く
-    private void DrawRadical(string radicalId, Rect2 box, float width)
+    // 語の字の線を、枠の中の正方形に 1 割の余白を取って描く
+    private void DrawWord(string radicalId, Rect2 box, float width)
     {
         var radical = _script!.Find(radicalId);
         if (radical is null)
         {
             return;
         }
-        // 細長い枠では部品が潰れて見分けにくいので、縦横の比を 1.5 倍までにして真ん中に置く
-        var size = new Vector2(Mathf.Min(box.Size.X, box.Size.Y * 1.5f), Mathf.Min(box.Size.Y, box.Size.X * 1.5f));
-        box = new Rect2(box.Position + (box.Size - size) / 2, size);
-        var inner = box.Grow(-Mathf.Min(box.Size.X, box.Size.Y) * 0.1f);
+        var side = Mathf.Min(box.Size.X, box.Size.Y);
+        box = new Rect2(box.Position + (box.Size - new Vector2(side, side)) / 2, new Vector2(side, side));
+        var inner = box.Grow(-side * 0.1f);
         Vector2 Point(int x, int y) => inner.Position + new Vector2(inner.Size.X * x / _cells, inner.Size.Y * y / _cells);
         foreach (var stroke in radical.ShapeIn(_decayed))
         {

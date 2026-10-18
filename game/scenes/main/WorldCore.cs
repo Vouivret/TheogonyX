@@ -163,16 +163,16 @@ public partial class WorldCore : Node2D
         _oracle.Spoken += Save;
         _oracle.StateChanged += _screen.Refresh;
         _screen.TimeAdvanced += _oracle.HidePrayerGlyphsIfAnswered;
-        // 字の神託: 入力欄の代わりに「字を組む」ボタンを出し、手帳の部品で字を組んで下す
+        // 字の神託: 入力欄の代わりに「字を組む」ボタンを出し、手帳の字で文を書いて下す
         _notebook = new NotebookView(this, prophet);
         _composer = new ScriptComposerView(this, prophet);
         _dreams.ScriptMode = prophet.Script is not null;
         _dreams.ComposeRequested += _composer.Toggle;
         var oracle = _oracle;
         var composer = _composer;
-        _composer.Submitted += glyphs =>
+        _composer.Submitted += sentence =>
         {
-            if (oracle.SpeakScript(glyphs))
+            if (oracle.SpeakScript(sentence))
             {
                 composer.Reset();
             }
@@ -273,7 +273,7 @@ public partial class WorldCore : Node2D
     {
         try
         {
-            var probe = PlanetScript.Restore(rules, save.Radicals, save.Arrangement, save.SimilarPair);
+            var probe = PlanetScript.Restore(rules, save.Radicals, save.WordOrder, save.SimilarPair);
             new ScriptState(rules, probe, regions, [], 0.3f).Restore(save);
             return true;
         }

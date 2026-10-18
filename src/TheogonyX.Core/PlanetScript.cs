@@ -1,14 +1,15 @@
 namespace TheogonyX.Core;
 
-/// <summary>字の並び方の決まり: 意味の部品を左に置き働きの部品を右に置くか、意味を上・働きを下に置くか。</summary>
-public enum GlyphArrangement
+/// <summary>語順の決まり: 名詞が先（水 崇めよ）か、動詞が先（崇めよ 水）か。</summary>
+public enum WordOrder
 {
-    LeftRight,
-    TopBottom,
+    NounFirst,
+    VerbFirst,
 }
 
 /// <summary>
-/// 星の字（docs/domain/script-decipher.md の「字のしくみ」）。部品の形・並び方の決まり・似た形の組・崩れの線を、星のシードから作る。
+/// 星の字（docs/domain/script-decipher.md の「字のしくみ」と「7. 語の字と神託の碑」）。語の字の形・語順の決まり・似た形の組・崩れの線を、
+/// 星のシードから作る。語の字は <see cref="ScriptRadical"/> で表す（名詞は <see cref="RadicalKind.Meaning"/>、動詞は <see cref="RadicalKind.Function"/>）。
 /// 作った後は変えない。セーブには形そのものを残し、読み込みでシードから作り直さない。
 /// </summary>
 public sealed class PlanetScript
@@ -19,20 +20,20 @@ public sealed class PlanetScript
     private static readonly string[] FunctionKeys = [nameof(DogmaType.Worship), nameof(DogmaType.Taboo), nameof(DogmaType.Destruction)];
     private static readonly string[] DirectionKeys = [nameof(TravelDirection.East), nameof(TravelDirection.West)];
 
-    private PlanetScript(IReadOnlyList<ScriptRadical> radicals, GlyphArrangement arrangement, (string A, string B) similarPair)
+    private PlanetScript(IReadOnlyList<ScriptRadical> radicals, WordOrder wordOrder, (string A, string B) similarPair)
     {
         Radicals = radicals;
-        Arrangement = arrangement;
+        WordOrder = wordOrder;
         SimilarPair = similarPair;
     }
 
-    /// <summary>部品（作った順。順番に意味は無い）。</summary>
+    /// <summary>語の字（作った順。順番に意味は無い）。</summary>
     public IReadOnlyList<ScriptRadical> Radicals { get; }
 
-    /// <summary>人の字の並び方の決まり（意味の部品が、左右なら左、上下なら上）。</summary>
-    public GlyphArrangement Arrangement { get; }
+    /// <summary>人の文の語順の決まり。</summary>
+    public WordOrder WordOrder { get; }
 
-    /// <summary>似た形の組（意味の部品 2 つ。線が 1 本だけ違い、崩れると同じ形になる）。</summary>
+    /// <summary>似た形の組（名詞 2 つ。線が 1 本だけ違い、崩れると同じ形になる）。</summary>
     public (string A, string B) SimilarPair { get; }
 
     public ScriptRadical? Find(string radicalId) => Radicals.FirstOrDefault(radical => radical.Id == radicalId);
@@ -40,13 +41,20 @@ public sealed class PlanetScript
     /// <summary>種類と意味（記号の ID・種別の名前・方角の名前）の部品。無ければ null。</summary>
     public ScriptRadical? Find(RadicalKind kind, string key) => Radicals.FirstOrDefault(radical => radical.Kind == kind && radical.Key == key);
 
-    /// <summary>人が書く、正しい並びの字。</summary>
-    public Glyph GlyphFor(string symbolId, DogmaType? type = null, TravelDirection direction = TravelDirection.None)
+    /// <summary>人が書く、星の語順の文（名詞、または名詞と動詞の組。方角の語は最後に置く）。</summary>
+    public Sentence SentenceFor(string symbolId, DogmaType? type = null, TravelDirection direction = TravelDirection.None)
     {
-        var meaning = Find(RadicalKind.Meaning, symbolId) ?? throw new ArgumentException($"字の無い記号: symbolId={symbolId}", nameof(symbolId));
-        var function = type is { } dogmaType ? Find(RadicalKind.Function, dogmaType.ToString())!.Id : null;
-        var directionId = direction == TravelDirection.None ? null : Find(RadicalKind.Direction, direction.ToString())!.Id;
-        return new Glyph(meaning.Id, function, directionId, Arrangement);
+        var noun = Find(RadicalKind.Meaning, symbolId) ?? throw new ArgumentException($"字の無い記号: symbolId={symbolId}", nameof(symbolId));
+        var words = new List<string> { noun.Id };
+        if (type is { } dogmaType)
+        {
+            words.Insert(WordOrder == WordOrder.NounFirst ? 1 : 0, Find(RadicalKind.Function, dogmaType.ToString())!.Id);
+        }
+        if (direction != TravelDirection.None)
+        {
+            words.Add(Find(RadicalKind.Direction, direction.ToString())!.Id);
+        }
+        return new Sentence(words);
     }
 
     /// <summary>星のシードから字を作る。同じ入力なら同じ字になる。</summary>
@@ -113,13 +121,13 @@ public sealed class PlanetScript
         var radicals = specs
             .Select((spec, i) => new ScriptRadical($"RAD_{numbers[i]:00}", spec.Kind, spec.Key, shapes[i].Strokes, shapes[i].Decay))
             .ToList();
-        var arrangement = random.Next(2) == 0 ? GlyphArrangement.LeftRight : GlyphArrangement.TopBottom;
-        return new PlanetScript(radicals, arrangement, (radicals[pairIndex].Id, radicals[pairOther].Id));
+        var wordOrder = random.Next(2) == 0 ? WordOrder.NounFirst : WordOrder.VerbFirst;
+        return new PlanetScript(radicals, wordOrder, (radicals[pairIndex].Id, radicals[pairOther].Id));
     }
 
     /// <summary>セーブから読み込んだ字に置き換える（シードから作り直さない）。</summary>
-    /// <exception cref="ArgumentException">ID が重なる・部品の種類が足りない・似た形の組が意味の部品でない・線が格子の外。</exception>
-    public static PlanetScript Restore(ScriptRules rules, IReadOnlyList<ScriptRadical> radicals, GlyphArrangement arrangement, (string A, string B) similarPair)
+    /// <exception cref="ArgumentException">ID が重なる・語の種類が足りない・似た形の組が名詞でない・線が格子の外。</exception>
+    public static PlanetScript Restore(ScriptRules rules, IReadOnlyList<ScriptRadical> radicals, WordOrder wordOrder, (string A, string B) similarPair)
     {
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(radicals);
@@ -132,12 +140,12 @@ public sealed class PlanetScript
             && similarPair.A != similarPair.B
             && radicals.Any(radical => radical.Id == similarPair.A && radical.Kind == RadicalKind.Meaning)
             && radicals.Any(radical => radical.Id == similarPair.B && radical.Kind == RadicalKind.Meaning)
-            && Enum.IsDefined(arrangement);
+            && Enum.IsDefined(wordOrder);
         if (!valid)
         {
             throw new ArgumentException("字の定義が正しくない", nameof(radicals));
         }
-        return new PlanetScript([.. radicals], arrangement, similarPair);
+        return new PlanetScript([.. radicals], wordOrder, similarPair);
     }
 
     private static void ThrowIfTooMany(int attempt, ScriptRules rules)
