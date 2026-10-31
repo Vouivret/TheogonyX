@@ -18,8 +18,8 @@
 | ドグマの種別 | `DogmaType` | 禁忌（`Taboo`）・崇拝（`Worship`）・破壊（`Destruction`） | Dogma type | |
 | 時代跳躍 | `SimulateTimeSkip` | 50〜300年を一度に進めること | Time skip | |
 | 世界の状態 | `WorldState` | 年・森林量・水資源・気温・カオス度など星の状態 | World state | |
-| カオス度 | `ChaosLevel` | 星の混迷・破滅の度合い | Chaos level | |
-| 調和度 | `HarmonyLevel` | 星の秩序・穏やかさの度合い | Harmony level | |
+| カオス度 | `ChaosLevel` | 地域の不穏（恐れ・暴力・無秩序）の度合い。星全体の値は地域の平均（[カオス度と調和度](unrest-cohesion.md)） | Chaos level | |
+| 調和度 | `HarmonyLevel` | 地域の結束（信頼・まとまり）の度合い。星全体の値は地域の平均 | Harmony level | |
 | 衝撃度 | `Impact` | 夢ノードのペアが予言者に与える印象の強さ。ドグマにするペアの選択と強度に使う | Impact | 感情強度 |
 | 地層 | | 滅びた文明が遺跡として蓄積したもの | Strata | |
 | 水場 | `TileType.Water` | 地表の湖のタイル。水資源が多いほど広がり、氷河・焦土の列では凍る・蒸発する（[星の表示](planet-display.md)） | Water | 水タイル、湖（タイル種別として） |
@@ -112,6 +112,26 @@
 | 地図の印 | | 出来事の起きた地域に出す印 | Map marker | |
 | 歴史の長さ | | 1 つの星の歴史の目安の長さ（およそ 1 万年。[歴史の長さと時間の速さ](time-scale.md)） | History length | |
 | 速さの倍率 | | 出来事の多さで、自動進行の速さを変える倍率 | Pace multiplier | |
+| 好感度 | | 同じ地域の名のある住人 2 人が持つ、仲のよさ（0〜100）。つがいの組み方と信仰のうつりやすさに効く（[人の欲求と健康](agent-needs.md)） | Affinity | |
+| 見合い | | 独り身のまま年を重ねた住人が、低い好感度の区切りでつがいになること | Arranged match | |
+| 結束 | | 地域の人のまとまりの強さ（アサビーヤ）。調和度で表す | Cohesion | |
+| 人口の圧力 | | 養える数に対して人が多すぎることで生まれる不穏 | Population pressure | |
+| 貴族の家 | | 家長・紋章・家訓・封土を持つ血筋のまとまり（[貴族と家](nobility.md)）。建物の「家」と分けるため、用語では「貴族の家」と呼ぶ | Noble house | |
+| 家臣・忠誠・請求権 | | 家どうしの主従、主への従いの強さ、位を継ぐ権利 | Vassal / Loyalty / Claim | |
+| 恨み・謀略・革命 | | 家どうしの遺恨、家が企む策、身分の秩序を倒すこと | Feud / Scheme / Revolution | |
+| 身分 | | 人のまとまりを分ける軸の 1 つ（貴族・平民など） | Estate | |
+| 国・首都・属州 | | 集落を束ねる政体、その中心の集落、従う地域（[国と集落](polity.md)） | Country / Capital / Province | |
+| 無主地・影響・国境 | | どの国にも属さない土地、国が土地に及ぼす力、国どうしの境 | Unclaimed land / Influence / Border | |
+| 開拓団 | | 集落から出て、新しい集落を興す人々 | Pioneers | |
+| 境界の印 | | 国境に建つ石や砦など | Boundary marker | |
+| 世俗化・無信仰 | | 豊かさと知で信仰が薄れること、どの宗教も信じないこと（[信仰と世俗化](secularization.md)） | Secularization / Unbelief | |
+| 主義 | | 人が唱える、神を前提にしない信条 | Ideology | |
+| 神の眠り | | 信仰が薄れて神が眠り、神託も奇跡も届かない時期 | Divine slumber | |
+| 奴隷制・不自由民・捕虜 | | 人を縛って働かせる仕組みと、その人々（[奴隷制と奴隷解放](slavery.md)） | Slavery / Unfree / Captive | |
+| 奴隷解放・廃止 | | 一人ずつ自由にすること、仕組みそのものをやめること | Emancipation / Abolition | |
+| 職業・技師・司祭・学者・無職 | `ResidentRole` | 名のある住人の仕事（[住人の職業](resident-roles.md)） | Role / Artisan / Priest / Scholar / None | |
+| 技能・熟練度・達人 | | 一人ひとりの上手さと、その段階（[住人の技能](resident-skills.md)） | Skill / Skill level / Master | |
+| 学問・分野・異端審問 | | 地域の知の蓄え、その偏りの名札、学者を裁くこと（[学問](academics.md)） | Academics / Academic field / Inquisition | |
 | 予言者の誤解 | `OracleProphecy`・`OracleText` | 神託でドグマが生まれたとき、予言者が神の意図を誤解して語る文（見出し・意図・教義）。ローカルの LLM が作る表現で、ゲームの計算には関わらない（[AI による表現](ai-presentation.md)） | Prophet's misreading | AI 神託 |
 | 年表 | `History`・`HistoryEntry` | 星に起きた主な出来事（ドグマの誕生・住人の精神崩壊・称号を持つ住人の死・星の崩壊・世界再創生）を年ごとに積んだもの。世界再創生をまたいで残る（[星の年表](history.md)） | Chronicle | 歴史ログ |
 | つがい | `Resident.PartnerId` | 同じ地域で組んだ 2 人の住人。子供をもうけ、死ぬまで続く | Partner | 夫婦、カップル |
