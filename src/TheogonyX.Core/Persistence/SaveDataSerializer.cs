@@ -9,7 +9,10 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 18;
+    public const int SaveVersion = 19;
+
+    // 版 19 は住人の好感度を足しただけなので、版 18 のセーブは好感度が空として読む
+    private const int OldestReadableVersion = 18;
 
     // 壊れたセーブで巨大な配列を作らないための上限（信仰の定義の上限より十分大きい）
     private const int MaxSavedBeliefs = 16;
@@ -177,6 +180,10 @@ public static class SaveDataSerializer
                     epithet = WriteEpithet(grave.Epithet),
                 }),
                 nextResidentId = data.Residents.NextResidentId,
+                affinities = data.Residents.Affinities
+                    .OrderBy(pair => pair.Key.Low)
+                    .ThenBy(pair => pair.Key.High)
+                    .Select(pair => new { first = pair.Key.Low, second = pair.Key.High, value = pair.Value }),
             },
             history = data.History.Select(entry => new
             {
@@ -318,7 +325,7 @@ public static class SaveDataSerializer
         {
             throw new InvalidSaveDataException("invalid_field");
         }
-        if (ReadInt(root, "saveVersion") != SaveVersion)
+        if (ReadInt(root, "saveVersion") is < OldestReadableVersion or > SaveVersion)
         {
             throw new InvalidSaveDataException("unsupported_save_version");
         }
@@ -870,7 +877,38 @@ public static class SaveDataSerializer
                 id, region, deathYear, ReadName(Property(item, "name", JsonValueKind.Object), rules),
                 ReadEpithet(Property(item, "epithet", null), symbolIds)));
         }
-        return new Residents(people.OrderBy(person => person.Id), graves, nextResidentId);
+        return new Residents(people.OrderBy(person => person.Id), graves, nextResidentId, ReadAffinities(element, people, rules.Affinity));
+    }
+
+    // 版 19 で足した項目。無ければ好感度なし。2 人は同じ地域に生きている別の住人で、同じ組は 1 つだけ
+    private static Dictionary<ResidentPair, int> ReadAffinities(JsonElement residents, List<Resident> people, AffinityRules rules)
+    {
+        var affinities = new Dictionary<ResidentPair, int>();
+        if (!residents.TryGetProperty("affinities", out var element))
+        {
+            return affinities;
+        }
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            throw new InvalidSaveDataException("invalid_field");
+        }
+        var regionOf = people.ToDictionary(person => person.Id, person => person.Region);
+        foreach (var item in element.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidSaveDataException("invalid_field");
+            }
+            var first = ReadInt(item, "first");
+            var second = ReadInt(item, "second");
+            var value = ReadInt(item, "value");
+            if (first == second || !regionOf.TryGetValue(first, out var firstRegion) || !regionOf.TryGetValue(second, out var secondRegion)
+                || firstRegion != secondRegion || value < 1 || value > rules.Max || !affinities.TryAdd(ResidentPair.Of(first, second), value))
+            {
+                throw new InvalidSaveDataException("invalid_residents");
+            }
+        }
+        return affinities;
     }
 
     // 版 16 で足した項目。無ければ信仰なし

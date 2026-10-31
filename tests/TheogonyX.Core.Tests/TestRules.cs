@@ -166,6 +166,12 @@ internal static class TestRules
         // docs/domain/strata.md の「M4 で作る範囲と値」の仮の値
         strata: new StrataRules(lifespanMin: 200, lifespanMax: 400, ruinBurialYears: 150, maxDepth: 3));
 
+    // docs/domain/agent-needs.md の「好感度（小さな星で作る）」の仮の値（rules.json と同じ）。
+    public static readonly AffinityRules Affinity = new(
+        Max: 100, NeighborGain: 3, NeighborCap: 30, GatherGain: 20, PrayGain: 10, SameBeliefGain: 3, ConflictLoss: 10, RampageLoss: 30, DecayPerYear: 1,
+        PairAtOrAbove: 50, LateAge: 30, LatePairAtOrAbove: 25, GriefAtOrAbove: 50, GriefSanityLoss: 20,
+        GatherTransmitAtZero: 0.5, GatherTransmitAtMax: 1.5, FriendAtOrAbove: 25);
+
     // docs/domain/agent-needs.md の「M5 で作る最初の範囲と値」の値の表と、名前のパーツ（陸の人の 6 × 6）。
     public static readonly NeedsRules Needs = new(
         ImmigrantAge: 20,
@@ -209,7 +215,8 @@ internal static class TestRules
         FertileUntilAge: 45,
         BirthProbability: 0.2,
         NamePrefixes: ["NAME_PREFIX_ART", "NAME_PREFIX_VAL", "NAME_PREFIX_ILIO", "NAME_PREFIX_EL", "NAME_PREFIX_SELE", "NAME_PREFIX_OR"],
-        NameSuffixes: ["NAME_SUFFIX_ORIUS", "NAME_SUFFIX_US", "NAME_SUFFIX_PHIA", "NAME_SUFFIX_GIS", "NAME_SUFFIX_MION", "NAME_SUFFIX_A"]);
+        NameSuffixes: ["NAME_SUFFIX_ORIUS", "NAME_SUFFIX_US", "NAME_SUFFIX_PHIA", "NAME_SUFFIX_GIS", "NAME_SUFFIX_MION", "NAME_SUFFIX_A"],
+        Affinity: Affinity);
 
     // docs/domain/time-control.md の「100年跳躍ボタン」。
     public const int JumpYears = 100;

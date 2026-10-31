@@ -15,7 +15,7 @@ public enum ResidentEventType
 public sealed record ResidentEvent(ResidentEventType Type, int Year, Resident Resident, Resident? Partner = null);
 
 /// <summary>
-/// 住人の欲求・体力・SAN 値・精神崩壊・死・称号・タスクと、住人が建てる家、子供とつがいを 1 年ぶん計算する（docs/domain/agent-needs.md）。
+/// 住人の欲求・体力・SAN 値・精神崩壊・死・称号・タスクと、住人が建てる家、好感度、子供とつがいを 1 年ぶん計算する（docs/domain/agent-needs.md）。
 /// </summary>
 public static class ResidentSimulator
 {
@@ -53,6 +53,8 @@ public static class ResidentSimulator
         var people = residents.People.ToList();
         var graves = residents.Graves.ToList();
         var nextId = residents.NextResidentId;
+        var affinities = residents.Affinities.ToDictionary();
+        var affinity = rules.Affinity;
 
         var randoms = new Random?[regionCount];
         Random Rng(int region) =>
@@ -108,7 +110,8 @@ public static class ResidentSimulator
         }
         // パートナーを亡くした住人は独身に戻り、その年のうちは組み直さない
         var widowed = new HashSet<int>();
-        foreach (var dead in people.Where(person => person.Health <= 0).ToList())
+        var died = people.Where(person => person.Health <= 0).ToList();
+        foreach (var dead in died)
         {
             MentalTransitions.Next(MentalTransitions.StateOf(dead), MentalTrigger.HealthZero);
             people.Remove(dead);
@@ -128,6 +131,22 @@ public static class ResidentSimulator
             if (deaths[person.Region] > 0)
             {
                 people[i] = person with { Sanity = Math.Max(0, person.Sanity - deaths[person.Region] * rules.SanityLossPerDeath) };
+            }
+        }
+        // 好感度の高い相手を亡くした住人は、悲しみで SAN 値が下がる（相手 1 人ごと）。死んだ人の組は消す
+        var diedIds = died.Select(dead => dead.Id).ToHashSet();
+        foreach (var (pair, value) in affinities.Where(pair => diedIds.Contains(pair.Key.Low) || diedIds.Contains(pair.Key.High))
+            .OrderBy(pair => pair.Key.Low).ThenBy(pair => pair.Key.High).ToList())
+        {
+            affinities.Remove(pair);
+            if (value < affinity.GriefAtOrAbove)
+            {
+                continue;
+            }
+            foreach (var id in new[] { pair.Low, pair.High }.Where(id => !diedIds.Contains(id)))
+            {
+                var index = people.FindIndex(person => person.Id == id);
+                people[index] = people[index] with { Sanity = Math.Max(0, people[index].Sanity - affinity.GriefSanityLoss) };
             }
         }
 
@@ -220,6 +239,29 @@ public static class ResidentSimulator
             };
         }
 
+        // 6b. 好感度を動かす（地域ごとに、2 人の組を ID の小さい順に見る。乱数は使わない）
+        for (var region = 0; region < regionCount; region++)
+        {
+            var locals = people.Where(person => person.Region == region).OrderBy(person => person.Id).ToList();
+            for (var a = 0; a < locals.Count; a++)
+            {
+                for (var b = a + 1; b < locals.Count; b++)
+                {
+                    var pair = ResidentPair.Of(locals[a].Id, locals[b].Id);
+                    var current = affinities.GetValueOrDefault(pair);
+                    var value = Math.Clamp(current + AffinityChange(locals[a], locals[b], current, year, affinity), 0, affinity.Max);
+                    if (value > 0)
+                    {
+                        affinities[pair] = value;
+                    }
+                    else
+                    {
+                        affinities.Remove(pair);
+                    }
+                }
+            }
+        }
+
         // 7. 屋根を探す住人がいる地域に、家を 1 軒建てる（地域の番号の順。空いた枠が無ければ建たない）。
         //    建てたのは、屋根を探す住人のうち ID のいちばん小さい人とし、建てた数が届いたら「街を包む者」の称号を得る
         //    TODO(AI_UNSURE): 建てた人の決め方と軒数（rules.json の builderHouses）は AI が仮に置いた。人間が決め直す
@@ -271,7 +313,8 @@ public static class ResidentSimulator
             }
         }
 
-        // 9. つがいを組む（地域ごとに、独身で正常な大人を ID の小さい順に 2 人ずつ）
+        // 9. つがいを組む（地域ごとに、独身で正常な大人どうしのうち、好感度が区切りに届く 2 人を、高い順に組む。
+        //    同じ好感度なら ID の小さい組が先。2 人とも見合いの年齢以上なら、低い区切りで組める）
         for (var region = 0; region < regionCount; region++)
         {
             var singles = people
@@ -279,9 +322,29 @@ public static class ResidentSimulator
                     && !widowed.Contains(person.Id))
                 .OrderBy(person => person.Id)
                 .ToList();
-            for (var k = 0; k + 1 < singles.Count; k += 2)
+            var candidates = new List<(Resident First, Resident Second, int Value)>();
+            for (var a = 0; a < singles.Count; a++)
             {
-                var (first, second) = (singles[k], singles[k + 1]);
+                for (var b = a + 1; b < singles.Count; b++)
+                {
+                    var value = affinities.GetValueOrDefault(ResidentPair.Of(singles[a].Id, singles[b].Id));
+                    var late = singles[a].AgeIn(year) >= affinity.LateAge && singles[b].AgeIn(year) >= affinity.LateAge;
+                    if (value >= (late ? affinity.LatePairAtOrAbove : affinity.PairAtOrAbove))
+                    {
+                        candidates.Add((singles[a], singles[b], value));
+                    }
+                }
+            }
+            var paired = new HashSet<int>();
+            foreach (var (first, second, _) in candidates.OrderByDescending(candidate => candidate.Value)
+                .ThenBy(candidate => candidate.First.Id).ThenBy(candidate => candidate.Second.Id))
+            {
+                if (paired.Contains(first.Id) || paired.Contains(second.Id))
+                {
+                    continue;
+                }
+                paired.Add(first.Id);
+                paired.Add(second.Id);
                 var firstIndex = people.FindIndex(person => person.Id == first.Id);
                 var secondIndex = people.FindIndex(person => person.Id == second.Id);
                 people[firstIndex] = first with { PartnerId = second.Id };
@@ -294,6 +357,7 @@ public static class ResidentSimulator
         graves.RemoveAll(grave => grave.DeathYear + rules.GraveYears <= year);
 
         residents.Replace(people, graves, nextId);
+        residents.ReplaceAffinities(affinities);
         return events;
     }
 
@@ -339,6 +403,35 @@ public static class ResidentSimulator
     private static string Prefix(Random random, NeedsRules rules) => rules.NamePrefixes[random.Next(rules.NamePrefixes.Count)];
 
     private static string Suffix(Random random, NeedsRules rules) => rules.NameSuffixes[random.Next(rules.NameSuffixes.Count)];
+
+    // 1 年の好感度の変わり方（docs/domain/agent-needs.md の「好感度」）。信仰は年の初めのもの（この計算の中では変わらない）。
+    // 暮らしで上がるのは、薄れを引いた後の好感度から顔見知りの上限まで（暮らしだけの 2 人は上限でちょうど止まる）
+    private static int AffinityChange(Resident first, Resident second, int current, int year, AffinityRules rules)
+    {
+        var change = Math.Clamp(rules.NeighborCap - (current - rules.DecayPerYear), 0, rules.NeighborGain) - rules.DecayPerYear;
+        var calm = first.Breakdown is null && second.Breakdown is null;
+        if (calm && first.Task == ResidentTask.Gather && second.Task == ResidentTask.Gather)
+        {
+            change += rules.GatherGain;
+        }
+        if (calm && first.Task == ResidentTask.Pray && second.Task == ResidentTask.Pray)
+        {
+            change += rules.PrayGain;
+        }
+        if (first.Beliefs.Any(belief => second.Beliefs.Any(other => other.IsSameTeaching(belief))))
+        {
+            change += rules.SameBeliefGain;
+        }
+        if (first.Beliefs.Any(belief => second.Beliefs.Any(other => other.SymbolId == belief.SymbolId && other.Type != belief.Type)))
+        {
+            change -= rules.ConflictLoss;
+        }
+        if (RampagedIn(first, year) || RampagedIn(second, year))
+        {
+            change -= rules.RampageLoss;
+        }
+        return change;
+    }
 
     private static bool RampagedIn(Resident person, int year) => person.Breakdown == BreakdownKind.Rampage && person.BreakdownYear == year;
 

@@ -20,10 +20,15 @@
 | TS-agent-needs-009 | AC-agent-needs-017, 018 | 名前の決定性とパーツの範囲、証人・長老・血を恐れぬ者の称号と、最初の称号を残すこと | 受け入れ条件のとおり | 名前を作る、1 年進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-010 | AC-agent-needs-019, 020 | 世界再創生をはさんだ決定性、崩壊した年に計算しないこと、世界再創生で消えて ID が続くこと | 受け入れ条件のとおり | 2 回計算する、世界再創生する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-012 | AC-agent-needs-022, 023 | 屋根を探す住人が家を建てること（1 年に 1 軒、住居が足りれば建たない）と、技術の段階による家の種類 | 受け入れ条件のとおり | 1 年ずつ進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
-| TS-agent-needs-013 | AC-agent-needs-024, 025 | つがいの組み方（ID の小さい順、子供と崩壊中は組まない）と、パートナーの死で独身に戻り次の年に組み直すこと | 受け入れ条件のとおり | 1 年ずつ進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
+| TS-agent-needs-013 | AC-agent-needs-024, 025 | つがいの組み方（好感度の高い順、区切りに届かなければ組まない、子供と崩壊中は組まない）と、パートナーの死で独身に戻り次の年に組み直すこと | 受け入れ条件のとおり | 1 年ずつ進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-014 | AC-agent-needs-026, 027, 028 | 子供の生まれ方（決定性・上限・年齢・崩壊・その年の家を数えない）、子供の初期値と家名、子供は何もしないこと | 受け入れ条件のとおり | 1 年進める、名前を作る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-015 | AC-agent-needs-029 | 称号「街を包む者」（家を建てた人と数、先にある称号を残すこと、建たなかった年を数えないこと） | 受け入れ条件のとおり | 1 年進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-016 | AC-agent-needs-030 | 狂乱の人数が多くても、カオス度が上がらないこと | 受け入れ条件のとおり | 1 年進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
+| TS-agent-needs-017 | AC-agent-needs-031, 032, 033, 038 | 好感度の上がり下がり（暮らしと顔見知りの上限・広場・同じ教え・矛盾する教え・狂乱・薄れ、0 の組を消すこと） | 受け入れ条件のとおり | 1 年進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
+| TS-agent-needs-018 | AC-agent-needs-034 | 見合いの年齢で低い区切りで組み、若い 2 人は区切りに届かず組まないこと | 受け入れ条件のとおり | 1 年進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
+| TS-agent-needs-019 | AC-agent-needs-035 | 好感度の高い相手の死による悲しみと、死んだ人の組が消えること | 受け入れ条件のとおり | 1 年進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
+| TS-agent-needs-020 | AC-agent-needs-036 | 広場でのうつりやすさの好感度による倍率 | 受け入れ条件のとおり | 倍率を求める・1 年ぶん広げる | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
+| TS-agent-needs-021 | AC-agent-needs-037 | 好感度の保存と読み込み（版 18 を空で読む・定義に合わないものを拒む・続きの決定性） | 受け入れ条件のとおり | 読む・書き出して読み戻す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-agent-needs-011 | AC-agent-needs-021 | 住人の見た目・1 日の暮らし・情報の欄・墓と記録 | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順

@@ -27,6 +27,7 @@ public sealed class ResidentView
     private const int IconSize = 12; // 欲求の印の大きさ（px）
     private const float ChildScale = 0.7f;
     private const float CoupleGap = 3f; // 並んで寝るつがいの、建物のそばの点からのずれ（px）
+    private const float FriendGap = 10f; // 親しい人の近くを歩くときの、その人の足元からの広がり（px）
 
     // 精神崩壊中の住人は、絵に色を掛けて見分ける（狂乱は赤く、自閉・絶望は灰色に）
     private static readonly Color RampageTint = new(1f, 0.45f, 0.45f);
@@ -272,14 +273,24 @@ public sealed class ResidentView
         var partner = person.PartnerId is { } partnerId && _walkers.TryGetValue(partnerId, out var other)
             ? string.Format(culture, Tr("RESIDENT_INFO_PARTNER"), ResidentText.NameOf(other.Resident.Name, other.Resident.Epithet))
             : Tr("RESIDENT_INFO_SINGLE");
-        _infoLabel.Text = string.Join('\n',
+        // 好感度の数は出さず、いちばん親しい人の名前だけを出す（docs/domain/agent-needs.md の「好感度」）
+        var friend = FriendOf(person) is { } friendId && friendId != person.PartnerId && _walkers.TryGetValue(friendId, out var close)
+            ? string.Format(culture, Tr("RESIDENT_INFO_FRIEND"), ResidentText.NameOf(close.Resident.Name, close.Resident.Epithet))
+            : null;
+        _infoLabel.Text = string.Join('\n', new[]
+        {
             ResidentText.NameOf(person.Name, person.Epithet),
             partner,
+            friend,
             string.Format(culture, Tr("RESIDENT_INFO_LOWER_NEEDS"), person.Hunger, person.Shelter),
             string.Format(culture, Tr("RESIDENT_INFO_UPPER_NEEDS"), person.Social, person.Esteem, person.Actualization),
-            string.Format(culture, Tr("RESIDENT_INFO_BODY"), person.Health, person.Sanity));
+            string.Format(culture, Tr("RESIDENT_INFO_BODY"), person.Health, person.Sanity),
+        }.OfType<string>());
         _infoPanel.Visible = true;
     }
+
+    // いちばん親しい人の ID（好感度が「親しい人」の区切りに届く相手がいなければ null）
+    private int? FriendOf(Resident person) => _timeControl.Residents?.ClosestOf(person.Id, _needs.Affinity.FriendAtOrAbove);
 
     // 地域の中の点（足元）。列は地域の幅、行は地表の高さの中から、ハッシュで選ぶ
     private Vector2 RandomPointIn(int region, uint index, uint step)
@@ -397,6 +408,11 @@ public sealed class ResidentView
             if (Resident.Task == ResidentTask.Gather)
             {
                 return view.CenterOf(Resident.Region) + new Vector2((CrowdHash.Next01(view._seed, id, _step) - 0.5f) * 16f, (CrowdHash.Next01(view._seed, id, _step + 1) - 0.5f) * 16f);
+            }
+            // 親しい人がいれば、その人の近くを歩く（見た目だけ）
+            if (view.FriendOf(Resident) is { } friendId && view._walkers.TryGetValue(friendId, out var friend) && friend.Resident.Region == Resident.Region)
+            {
+                return friend.Node.Position + new Vector2((CrowdHash.Next01(view._seed, id, _step) - 0.5f) * FriendGap, (CrowdHash.Next01(view._seed, id, _step + 1) - 0.5f) * FriendGap);
             }
             return view.RandomPointIn(Resident.Region, id, _step + 1);
         }

@@ -66,6 +66,13 @@ public class ResidentsTests
     private static Residents With(params Resident[] people) =>
         new(people, [], people.Length == 0 ? 0 : people.Max(person => person.Id) + 1);
 
+    private static Residents With(Resident[] people, params (int First, int Second, int Value)[] affinities) =>
+        new(people, [], people.Max(person => person.Id) + 1,
+            affinities.Select(affinity => KeyValuePair.Create(ResidentPair.Of(affinity.First, affinity.Second), affinity.Value)));
+
+    private static Dictionary<(int, int), int> AffinitiesOf(Residents residents) =>
+        residents.Affinities.ToDictionary(pair => (pair.Key.Low, pair.Key.High), pair => pair.Value);
+
     private static Resident Find(Residents residents, int id) => residents.People.Single(person => person.Id == id);
 
     [Fact]
@@ -258,25 +265,29 @@ public class ResidentsTests
 
     [Fact]
     [Trait("TS", "TS-agent-needs-013")]
-    public void AdvanceYear_独身の大人5人と子供と崩壊中の大人_IDの小さい順に2組ができ子供と崩壊中は組まない()
+    public void AdvanceYear_独身の大人5人と子供と崩壊中の大人_好感度の高い順に2組ができ子供と崩壊中は組まない()
     {
+        // 好感度は、その年の薄れ（−1）の後に、2-6 が 69、0-5 が 59、0-2 が 54、5-8 が 46（区切り 50 に届かない）。
+        // どれも顔見知りの上限 30 より上なので、暮らしでは上がらない
         var residents = With(
-        [
-            Person(0, RegionA), Person(2, RegionA), Person(3, RegionA, age: 15), Person(5, RegionA), Person(6, RegionA), Person(8, RegionA),
-            Person(9, RegionA, sanity: 0, breakdown: BreakdownKind.Catatonia, breakdownYear: Year - 1),
-        ]);
+            [
+                Person(0, RegionA, age: 20), Person(2, RegionA, age: 20), Person(3, RegionA, age: 15), Person(5, RegionA, age: 20),
+                Person(6, RegionA, age: 20), Person(8, RegionA, age: 20),
+                Person(9, RegionA, age: 20, sanity: 0, breakdown: BreakdownKind.Catatonia, breakdownYear: Year - 1),
+            ],
+            (0, 5, 60), (0, 2, 55), (2, 6, 70), (5, 8, 47), (3, 8, 90), (8, 9, 90));
 
         var events = Advance(residents, CivilizationWith(House(0, RegionA), House(1, RegionA, row: 2)), WorldBefore());
 
-        Assert.Equal(2, Find(residents, 0).PartnerId);
-        Assert.Equal(0, Find(residents, 2).PartnerId);
-        Assert.Equal(6, Find(residents, 5).PartnerId);
-        Assert.Equal(5, Find(residents, 6).PartnerId);
+        Assert.Equal(6, Find(residents, 2).PartnerId);
+        Assert.Equal(2, Find(residents, 6).PartnerId);
+        Assert.Equal(5, Find(residents, 0).PartnerId);
+        Assert.Equal(0, Find(residents, 5).PartnerId);
         Assert.Null(Find(residents, 8).PartnerId);
         Assert.Null(Find(residents, 3).PartnerId);
         Assert.Null(Find(residents, 9).PartnerId);
         Assert.Equal(
-            [(0, 2), (5, 6)],
+            [(2, 6), (0, 5)],
             events.Where(residentEvent => residentEvent.Type == ResidentEventType.Paired).Select(residentEvent => (residentEvent.Resident.Id, residentEvent.Partner!.Id)));
     }
 
@@ -284,7 +295,7 @@ public class ResidentsTests
     [Trait("TS", "TS-agent-needs-013")]
     public void AdvanceYear_パートナーが死ぬ_残った人は独身に戻りその年は組まず次の年に組む()
     {
-        var residents = With(Person(0, RegionA, age: 100, health: 2, partnerId: 1), Person(1, RegionA, partnerId: 0), Person(2, RegionA));
+        var residents = With([Person(0, RegionA, age: 100, health: 2, partnerId: 1), Person(1, RegionA, age: 20, partnerId: 0), Person(2, RegionA, age: 20)], (1, 2, 60));
         var civilization = CivilizationWith(House(0, RegionA));
         var world = WorldBefore();
 
@@ -729,5 +740,125 @@ public class ResidentsTests
         time.StartAutoPlay();
         time.AdvanceOneYear();
         Assert.Equal(4, time.Residents.People.Min(person => person.Id));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-017")]
+    public void AdvanceYear_2人とも広場に集まる_好感度が大きく上がりほかの組は暮らしの分だけ上がる()
+    {
+        var residents = With(
+            [Person(0, RegionA, age: 20, social: 1), Person(1, RegionA, age: 20, social: 1), Person(2, RegionA, age: 20)],
+            (0, 2, 1));
+
+        Advance(residents, CivilizationWith(House(0, RegionA)), WorldBefore());
+
+        Assert.Equal(ResidentTask.Gather, Find(residents, 0).Task);
+        Assert.Equal(ResidentTask.Idle, Find(residents, 2).Task);
+        // 0-1 は +20 +3 −1、ほかは +3 −1
+        Assert.Equal(new Dictionary<(int, int), int> { [(0, 1)] = 22, [(0, 2)] = 3, [(1, 2)] = 2 }, AffinitiesOf(residents));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-017")]
+    public void AdvanceYear_同じ教えと矛盾する教え_同じなら上がり矛盾すれば下がる()
+    {
+        Resident Believer(int id, DogmaType type) =>
+            Person(id, RegionA, age: 20) with { Beliefs = new BeliefSet([new Belief("SYM_TREE", type, 0.7)]) };
+        var residents = With([Believer(0, DogmaType.Worship), Believer(1, DogmaType.Worship), Believer(2, DogmaType.Destruction)], (0, 2, 30));
+
+        Advance(residents, CivilizationWith(House(0, RegionA)), WorldBefore());
+
+        // 0-1 は +3（同じ教え）+3（暮らし）−1、0-2 は 30 −1 の後に暮らしで上限まで +1、矛盾で −10、1-2 は 0 から −8 で 0 になり持たない
+        Assert.Equal(new Dictionary<(int, int), int> { [(0, 1)] = 5, [(0, 2)] = 20 }, AffinitiesOf(residents));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-017")]
+    public void AdvanceYear_狂乱した住人_同じ地域の人との好感度が大きく下がる()
+    {
+        // カオス度 50 で SAN 値が 5 減り、空腹が低いので 5 戻る。0 の住人は SAN 値 0 のまま狂乱する
+        var residents = With([Person(0, RegionA, age: 20, sanity: 0), Person(1, RegionA, age: 20)], (0, 1, 50));
+
+        Advance(residents, CivilizationWith(House(0, RegionA)), WorldBefore(chaos: 50f), rules: TestRules.Needs with { RampageProbability = 1.0 });
+
+        Assert.Equal(BreakdownKind.Rampage, Find(residents, 0).Breakdown);
+        Assert.Equal(19, residents.AffinityOf(0, 1)); // 50 −30 −1（顔見知りの上限より上なので、暮らしでは上がらない）
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-017")]
+    public void AdvanceYear_暮らすだけの2人_顔見知りの上限で止まる()
+    {
+        // 何もしない 2 人の組。薄れ −1 の後、暮らしで上限 30 まで上がる: 28・29・30 はどれも 30、0 は −1 +3 で 2
+        var residents = With(
+            [Person(0, RegionA, age: 20), Person(1, RegionA, age: 20), Person(2, RegionA, age: 20), Person(3, RegionB, age: 20), Person(4, RegionB, age: 20)],
+            (0, 1, 28), (0, 2, 29), (3, 4, 30));
+
+        Advance(residents, CivilizationWith(House(0, RegionA), House(1, RegionB)), WorldBefore());
+
+        Assert.Equal(30, residents.AffinityOf(0, 1));
+        Assert.Equal(30, residents.AffinityOf(0, 2));
+        Assert.Equal(30, residents.AffinityOf(3, 4));
+        Assert.Equal(2, residents.AffinityOf(1, 2));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-018")]
+    public void AdvanceYear_見合いの年齢_2人とも30歳以上なら低い区切りで組む()
+    {
+        // 暮らしと薄れの後に、0-1（30 歳どうし）は 23 +3 −1 で 25、2-3（20 歳どうし）は上限より上なので 47 −1 で 46
+        var residents = With(
+            [Person(0, RegionA), Person(1, RegionA), Person(2, RegionA, age: 20), Person(3, RegionA, age: 20)],
+            (0, 1, 23), (2, 3, 47));
+
+        Advance(residents, CivilizationWith(House(0, RegionA)), WorldBefore());
+
+        Assert.Equal(1, Find(residents, 0).PartnerId);
+        Assert.Null(Find(residents, 2).PartnerId);
+        Assert.Null(Find(residents, 3).PartnerId);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-019")]
+    public void AdvanceYear_好感度の高い相手が死ぬ_悲しみでSAN値が下がり死んだ人の組は消える()
+    {
+        // 死者 1 人で地域の全員が 10 下がる。好感度 50 の 1 は、さらに悲しみで 20 下がる。49 の 2 は下がらない
+        var residents = With(
+            [Person(0, RegionA, age: 100, health: 2), Person(1, RegionA, age: 20), Person(2, RegionA, age: 20)],
+            (0, 1, 50), (0, 2, 49));
+
+        Advance(residents, CivilizationWith(House(0, RegionA)), WorldBefore());
+
+        Assert.Equal(70, Find(residents, 1).Sanity);
+        Assert.Equal(90, Find(residents, 2).Sanity);
+        Assert.DoesNotContain(residents.Affinities.Keys, pair => pair.Contains(0));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-020")]
+    public void GatherTransmitFactor_好感度0と半分と上限_倍率は直線で変わる()
+    {
+        Assert.Equal(0.5, TestRules.Affinity.GatherTransmitFactor(0), 9);
+        Assert.Equal(1.0, TestRules.Affinity.GatherTransmitFactor(50), 9);
+        Assert.Equal(1.5, TestRules.Affinity.GatherTransmitFactor(100), 9);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-020")]
+    public void Spread_広場で好感度の違う2組_好感度の高い組にだけうつる()
+    {
+        // 好感度 0 の倍率を 0、上限の倍率を 1 にすると、うつる確率は好感度 0 で 0、100 で 1 になる
+        var affinity = TestRules.Affinity with { GatherTransmitAtZero = 0, GatherTransmitAtMax = 1 };
+        var belief = new BeliefRules(MaxBeliefs: 3, SeedRegions: 1, GatherTransmit: 1f, PartnerTransmit: 0f, Dampen: 1f, InheritDampen: 1f);
+        var teaching = new Belief("SYM_TREE", DogmaType.Worship, 1.0);
+        Resident Gatherer(int id, int region) => Person(id, region) with { Task = ResidentTask.Gather };
+        var residents = With(
+            [Gatherer(0, RegionA) with { Beliefs = new BeliefSet([teaching]) }, Gatherer(1, RegionA), Gatherer(2, RegionB) with { Beliefs = new BeliefSet([teaching]) }, Gatherer(3, RegionB)],
+            (0, 1, 100));
+
+        BeliefSimulator.Spread(residents, Year, Seed, belief, affinity);
+
+        Assert.Equal([teaching], Find(residents, 1).Beliefs);
+        Assert.Empty(Find(residents, 3).Beliefs);
     }
 }

@@ -253,7 +253,7 @@ public sealed class TimeControl
                             residents, civilization, World, _dogmas, setup.Needs, setup.Rules, setup.Terrain, setup.Seed, belief));
                         if (belief is not null)
                         {
-                            BeliefSimulator.Spread(residents, World.Year, setup.Seed, belief);
+                            BeliefSimulator.Spread(residents, World.Year, setup.Seed, belief, setup.Needs.Affinity);
                             ForgetDogmas(residents, forgotten);
                         }
                         if (_journey is not null && Prophet is not null)

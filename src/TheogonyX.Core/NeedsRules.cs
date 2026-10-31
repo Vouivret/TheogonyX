@@ -33,6 +33,7 @@ namespace TheogonyX.Core;
 /// <param name="BirthProbability">条件を満たすつがい 1 組から、1 年に子供が生まれる確率。</param>
 /// <param name="NamePrefixes">名・家名の接頭辞の ID。</param>
 /// <param name="NameSuffixes">名・家名の接尾辞の ID。</param>
+/// <param name="Affinity">住人どうしの好感度と、それで組むつがいの定義。</param>
 public sealed record NeedsRules(
     int ImmigrantAge,
     int ImmigrateBelowAdults,
@@ -75,12 +76,18 @@ public sealed record NeedsRules(
     int FertileUntilAge,
     double BirthProbability,
     IReadOnlyList<string> NamePrefixes,
-    IReadOnlyList<string> NameSuffixes)
+    IReadOnlyList<string> NameSuffixes,
+    AffinityRules Affinity)
 {
     /// <summary>値が範囲の中にあることを確かめる。</summary>
     /// <exception cref="ArgumentException">範囲の外の値がある。</exception>
     public void Validate()
     {
+        if (Affinity is null)
+        {
+            throw new ArgumentException("好感度の定義が無い");
+        }
+        Affinity.Validate();
         double[] needs =
         [
             HungerFamine, HungerNormal, HungerCatatonia, ShelterEnough, ShelterLacking, SocialPerYear, EsteemPerYear, ActualizationPerYear,

@@ -505,4 +505,62 @@ public class SaveDataTests
         Assert.Null(data);
         Assert.Equal(expectedReason, reason);
     }
+
+    // 版 19: 住人 3・4（同じ地域 3）の好感度を足したセーブ。版 18 のセーブ（ValidSave）は好感度が空として読む
+    private static string WithAffinities(string affinities) =>
+        ValidSave
+            .Replace("\"saveVersion\": 18", "\"saveVersion\": 19", StringComparison.Ordinal)
+            .Replace("\"nextResidentId\": 5", "\"nextResidentId\": 5, \"affinities\": [" + affinities + "]", StringComparison.Ordinal);
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-021")]
+    public void TryParse_版18と版19の好感度_版18は空で版19は読める()
+    {
+        Assert.True(SaveDataSerializer.TryParse(ValidSave, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var old, out var oldReason), oldReason);
+        Assert.Empty(old!.Residents.Affinities);
+
+        var text = WithAffinities("{ \"first\": 3, \"second\": 4, \"value\": 60 }");
+        Assert.True(SaveDataSerializer.TryParse(text, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var data, out var reason), reason);
+        Assert.Equal(60, data!.Residents.AffinityOf(4, 3));
+    }
+
+    [Theory]
+    [Trait("TS", "TS-agent-needs-021")]
+    [InlineData("{ \"first\": 3, \"second\": 4, \"value\": 0 }")] // 0 の組は持たない
+    [InlineData("{ \"first\": 3, \"second\": 4, \"value\": 101 }")] // 上限の外
+    [InlineData("{ \"first\": 3, \"second\": 3, \"value\": 10 }")] // 自分どうし
+    [InlineData("{ \"first\": 3, \"second\": 2, \"value\": 10 }")] // 墓の ID（生きていない）
+    [InlineData("{ \"first\": 3, \"second\": 4, \"value\": 10 }, { \"first\": 4, \"second\": 3, \"value\": 20 }")] // 同じ組が 2 つ
+    public void TryParse_定義に合わない好感度_読まない(string affinities)
+    {
+        var ok = SaveDataSerializer.TryParse(WithAffinities(affinities), TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var data, out var reason);
+
+        Assert.False(ok);
+        Assert.Null(data);
+        Assert.Equal("invalid_residents", reason);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-agent-needs-021")]
+    public void RoundTrip_好感度のある星_読み戻すと同じ好感度で続けた結果も同じ()
+    {
+        static Game Start()
+        {
+            // 森が多すぎると家が建たず、住人が広場に集まらない（好感度が育たない）
+            var game = CreateGame();
+            game.Time.World.ForestAmount = 50f;
+            game.Time.Jump();
+            return game;
+        }
+        var reference = Start();
+        var loaded = RoundTrip(Start());
+        Assert.NotEmpty(reference.Time.Residents!.Affinities);
+        Assert.Equal(reference.Time.Residents.Affinities, loaded.Time.Residents!.Affinities);
+
+        reference.Time.Jump();
+        loaded.Time.Jump();
+
+        Assert.Equal(reference.Time.Residents.Affinities, loaded.Time.Residents.Affinities);
+        Assert.Equal(reference.Time.Residents.People, loaded.Time.Residents.People);
+    }
 }

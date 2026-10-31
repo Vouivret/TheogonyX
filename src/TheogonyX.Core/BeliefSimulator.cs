@@ -63,8 +63,9 @@ public static class BeliefSimulator
     /// <summary>
     /// 1 年ぶん、人から人へ広げる。その年に広場に集まった（<see cref="ResidentTask.Gather"/>）同じ地域の住人どうしと、つがいの相手に、
     /// 年の初めの信仰を元にうつす。うつる確率は、うつす人の強さ × うつりやすさ。うつった強さは、うつす人の強さ × <see cref="BeliefRules.Dampen"/>。
+    /// <paramref name="affinity"/> があれば、広場でのうつりやすさに 2 人の好感度による倍率を掛ける（docs/domain/agent-needs.md の「好感度」）。
     /// </summary>
-    public static void Spread(Residents residents, int year, int seed, BeliefRules rules)
+    public static void Spread(Residents residents, int year, int seed, BeliefRules rules, AffinityRules? affinity = null)
     {
         ArgumentNullException.ThrowIfNull(residents);
         ArgumentNullException.ThrowIfNull(rules);
@@ -103,7 +104,8 @@ public static class BeliefSimulator
             {
                 foreach (var source in gatherers.Where(other => other.Id != target.Id))
                 {
-                    Transmit(random, target.Id, source.Id, rules.GatherTransmit);
+                    var factor = affinity?.GatherTransmitFactor(residents.AffinityOf(target.Id, source.Id)) ?? 1.0;
+                    Transmit(random, target.Id, source.Id, rules.GatherTransmit * factor);
                 }
             }
             foreach (var person in people.Where(person => person.Region == region && person.PartnerId is { } partnerId && person.Id < partnerId).OrderBy(person => person.Id))

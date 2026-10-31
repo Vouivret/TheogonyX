@@ -122,6 +122,7 @@ RESIDENT_INFO_LOWER_NEEDS,空腹 {0:F2}　住居 {1:F2},Hunger {0:F2}  Shelter {
 RESIDENT_INFO_UPPER_NEEDS,交流 {0:F2}　承認 {1:F2}　自己実現 {2:F2},Social {0:F2}  Esteem {1:F2}  Actualization {2:F2}
 RESIDENT_INFO_PARTNER,パートナー: {0},Partner: {0}
 RESIDENT_INFO_SINGLE,独り身,Single
+RESIDENT_INFO_FRIEND,親しい人: {0},Close to: {0}
 RESIDENT_INFO_BODY,体力 {0:F0}　SAN 値 {1:F0},Health {0:F0}  Sanity {1:F0}
 WORD_NOUN_TREE,木,tree
 WORD_NOUN_FOREST,森,forest
