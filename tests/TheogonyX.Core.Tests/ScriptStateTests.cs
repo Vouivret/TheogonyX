@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using TheogonyX.Core;
 using TheogonyX.Core.Persistence;
 
@@ -32,8 +33,8 @@ public class ScriptStateTests
 
         Assert.Equal(
             [
-                new CarvedGlyph(CarvingKind.Landmark, state.Script.SentenceFor("SYM_WATER"), 5, 11, 3, 0, false),
-                new CarvedGlyph(CarvingKind.Landmark, state.Script.SentenceFor("SYM_TREE"), 1, 2, 0, 0, false),
+                new CarvedGlyph(CarvingKind.Landmark, state.Script.SentenceFor("SYM_WATER"), 5, 11, 3, 0, 0),
+                new CarvedGlyph(CarvingKind.Landmark, state.Script.SentenceFor("SYM_TREE"), 1, 2, 0, 0, 0),
             ],
             state.Carvings);
     }
@@ -111,10 +112,26 @@ public class ScriptStateTests
         Assert.False(before);
         Assert.True(decayed);
         Assert.False(again);
-        Assert.True(state.Decayed);
-        Assert.False(state.Carvings.Single(carving => carving.BuildingId == 1).Decayed);
+        Assert.Equal(1, state.Stage);
+        Assert.Equal(0, state.Carvings.Single(carving => carving.BuildingId == 1).Stage);
         Assert.DoesNotContain(state.Carvings, carving => carving.BuildingId == 2);
-        Assert.All(state.Carvings.Where(carving => carving.Kind == CarvingKind.Landmark), carving => Assert.False(carving.Decayed));
+        Assert.All(state.Carvings.Where(carving => carving.Kind == CarvingKind.Landmark), carving => Assert.Equal(0, carving.Stage));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-012")]
+    public void Update_崩れの年を順に越える_回が進み跳躍で2回分を越えてもまとめて進む()
+    {
+        var state = Create();
+
+        Assert.True(state.Update(300, [], null));
+        Assert.Equal(1, state.Stage);
+        Assert.False(state.Update(599, [], null));
+        Assert.Equal(1, state.Stage);
+        Assert.True(state.Update(950, [], null));
+        Assert.Equal(3, state.Stage);
+        Assert.False(state.Update(5000, [], null));
+        Assert.Equal(3, state.Stage);
     }
 
     [Fact]
@@ -170,13 +187,62 @@ public class ScriptStateTests
         SaveGame.Apply(data!, loadedTime, loadedProphet, clock);
 
         Assert.Equal(state.Script.WordOrder, loaded.Script.WordOrder);
-        Assert.Equal(state.Script.SimilarPair, loaded.Script.SimilarPair);
+        Assert.Equal(state.Script.SimilarPairs, loaded.Script.SimilarPairs);
         Assert.Equal(
-            state.Script.Radicals.Select(radical => (radical.Id, radical.Key, string.Join(';', radical.Strokes), radical.DecayStroke)),
-            loaded.Script.Radicals.Select(radical => (radical.Id, radical.Key, string.Join(';', radical.Strokes), radical.DecayStroke)));
-        Assert.True(loaded.Decayed);
+            state.Script.Radicals.Select(radical => (radical.Id, radical.Key, string.Join(';', radical.Strokes), radical.DecayStroke, radical.DecayStage)),
+            loaded.Script.Radicals.Select(radical => (radical.Id, radical.Key, string.Join(';', radical.Strokes), radical.DecayStroke, radical.DecayStage)));
+        Assert.Equal(1, loaded.Stage);
         Assert.Equal(state.Carvings, loaded.Carvings);
         Assert.Equal(state.Notebook, loaded.Notebook);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-024")]
+    public void TryParse_版19のセーブ_崩れは1回分の形で読み込める()
+    {
+        var time = new TimeControl(
+            TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
+        var prophet = new ProphetDreams(time, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
+        var state = Create();
+        prophet.AttachScript(state);
+        state.Update(400, [], null);
+        var firstPair = state.Script.SimilarPairs[0];
+        var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
+        {
+            [AutoPlaySpeed.X1] = 600.0,
+            [AutoPlaySpeed.X2] = 300.0,
+            [AutoPlaySpeed.X3] = 200.0,
+        });
+        time.World.Year = 400;
+
+        // 版 20 のセーブを、版 19 の形に戻す
+        var root = JsonNode.Parse(SaveDataSerializer.Write(SaveGame.Capture(time, prophet, Seed, clock)))!.AsObject();
+        root["saveVersion"] = 19;
+        var script = root["script"]!.AsObject();
+        script.Remove("similarPairs");
+        script["similarPair"] = new JsonArray(firstPair.A, firstPair.B);
+        script.Remove("stage");
+        script["decayed"] = true;
+        foreach (var radical in script["radicals"]!.AsArray())
+        {
+            radical!.AsObject().Remove("decayStage");
+        }
+        foreach (var carving in script["carvings"]!.AsArray())
+        {
+            carving!.AsObject().Remove("stage");
+            carving.AsObject()["decayed"] = false;
+        }
+
+        Assert.True(
+            SaveDataSerializer.TryParse(root.ToJsonString(), TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var data, out var reason),
+            reason);
+        var loaded = Create();
+        loaded.Restore(data!.Script!);
+
+        Assert.Equal(1, loaded.Stage);
+        Assert.Equal([firstPair], loaded.Script.SimilarPairs);
+        Assert.All(loaded.Script.Radicals, radical => Assert.Equal(1, radical.DecayStage));
+        Assert.All(loaded.Carvings, carving => Assert.Equal(0, carving.Stage));
     }
 
     [Fact]

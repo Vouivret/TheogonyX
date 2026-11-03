@@ -123,7 +123,7 @@ public sealed class CarvingView
                 Position = _terrainOrigin + new Vector2(carving.Column * WorldScreen.TileSize + 2, carving.Row * WorldScreen.TileSize - MarkSize),
                 MouseFilter = Control.MouseFilterEnum.Ignore,
             };
-            mark.Show(script.Script, carving.Sentence, carving.Decayed, Mason(script, carving));
+            mark.Show(script.Script, carving.Sentence, carving.Stage, Mason(script, carving));
             _hits.Add((new Rect2(mark.Position, mark.Size), carving));
             _marks.AddChild(mark);
         }
@@ -134,7 +134,7 @@ public sealed class CarvingView
     {
         var script = _prophet.Script!;
         _rubbing.CustomMinimumSize = new Vector2(64 * carving.Sentence.Words.Count, 64);
-        _rubbing.Show(script.Script, carving.Sentence, carving.Decayed, Mason(script, carving));
+        _rubbing.Show(script.Script, carving.Sentence, carving.Stage, Mason(script, carving));
         _info.Text = string.Format(
             CultureInfo.CurrentCulture, Tr("RUBBING_INFO"), Tr($"RUBBING_KIND_{carving.Kind.ToString().ToUpperInvariant()}"), carving.Year);
         _readings.Text = carving.Kind == CarvingKind.Stele ? SteleReadings(script, carving) : string.Empty;
@@ -156,8 +156,8 @@ public sealed class CarvingView
     // 碑の読み: 刻んだ時代の人の読みと、今の時代の人の読み。読みが同じなら 1 行にまとめる
     private static string SteleReadings(ScriptState script, CarvedGlyph stele)
     {
-        var then = script.ReadAsPeople(stele.Sentence, stele.Decayed);
-        var now = script.ReadAsPeople(stele.Sentence, script.Decayed);
+        var then = script.ReadAsPeople(stele.Sentence, stele.Stage);
+        var now = script.ReadAsPeople(stele.Sentence, script.Stage);
         if (then is null || now is null)
         {
             return string.Empty;

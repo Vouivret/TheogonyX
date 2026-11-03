@@ -121,12 +121,13 @@ public sealed class ProphetDreams
         _faithYear = world.Year;
         var corrupted = InjectCorruption(world.ChaosLevel);
         var gained = Deck.GainFromBuildings(_timeControl.Civilization?.Buildings ?? []);
+        var stageBefore = Script?.Stage ?? 0;
         var scriptDecayed = Script?.Update(world.Year, _timeControl.Civilization?.Buildings ?? [], _timeControl.Residents) ?? false;
         var misread = 0;
         if (scriptDecayed)
         {
             _timeControl.History?.Add(new HistoryEntry(world.Year, HistoryEventType.ScriptDecayed));
-            misread = RereadSteles(world.Year);
+            misread = RereadSteles(world.Year, stageBefore);
         }
         if (world.IsDestroyed)
         {
@@ -305,7 +306,7 @@ public sealed class ProphetDreams
             return new ScriptSpeakOutcome(rejected, null, null);
         }
         var hand = Deck.Hand.Select(_oracleRules.SymbolOf).ToHashSet();
-        var outcome = ScriptReader.Read(script.Script, script.Rules, sentence, script.KnownRadicals, hand, script.Decayed);
+        var outcome = ScriptReader.Read(script.Script, script.Rules, sentence, script.KnownRadicals, hand, script.Stage);
         if (outcome.Reading is not { } reading)
         {
             return new ScriptSpeakOutcome(outcome.RejectedReason, null, null);
@@ -322,10 +323,10 @@ public sealed class ProphetDreams
     }
 
     // 字が崩れた年: 崩れる前の碑を読み直し、読み違えた教えを、その地域の住人の一部が信じる。年表に残す
-    private int RereadSteles(int year)
+    private int RereadSteles(int year, int fromStage)
     {
         var script = Script!;
-        var misreadings = script.RereadSteles();
+        var misreadings = script.RereadSteles(fromStage);
         foreach (var misreading in misreadings)
         {
             var stele = misreading.Stele;

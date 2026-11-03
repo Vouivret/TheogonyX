@@ -184,7 +184,7 @@
     "gridSize": 4,
     "minStrokes": 3,
     "maxStrokes": 6,
-    "decayYears": 300,
+    "decayYears": [300, 600, 900],
     "teachingIntensity": 0.7,
     "maxStelesPerRegion": 3,
     "misreadShare": 0.3,

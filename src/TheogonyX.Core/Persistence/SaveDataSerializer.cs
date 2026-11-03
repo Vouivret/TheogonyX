@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 19;
+    public const int SaveVersion = 20;
 
     // 版 19 は住人の好感度を足しただけなので、版 18 のセーブは好感度が空として読む
     private const int OldestReadableVersion = 18;
@@ -218,8 +218,8 @@ public static class SaveDataSerializer
                 : new
                 {
                     wordOrder = data.Script.WordOrder.ToString(),
-                    similarPair = new[] { data.Script.SimilarPair.A, data.Script.SimilarPair.B },
-                    decayed = data.Script.Decayed,
+                    similarPairs = data.Script.SimilarPairs.Select(pair => new[] { pair.A, pair.B }),
+                    stage = data.Script.Stage,
                     radicals = data.Script.Radicals.Select(radical => new
                     {
                         id = radical.Id,
@@ -227,6 +227,7 @@ public static class SaveDataSerializer
                         key = radical.Key,
                         strokes = radical.Strokes.Select(WriteStroke),
                         decay = WriteStroke(radical.DecayStroke),
+                        decayStage = radical.DecayStage,
                     }),
                     carvings = data.Script.Carvings.Select(carving => new
                     {
@@ -236,7 +237,7 @@ public static class SaveDataSerializer
                         column = carving.Column,
                         row = carving.Row,
                         year = carving.Year,
-                        decayed = carving.Decayed,
+                        stage = carving.Stage,
                         buildingId = carving.BuildingId,
                     }),
                     notebook = data.Script.Notebook,
@@ -439,7 +440,8 @@ public static class SaveDataSerializer
     private static int[] WriteStroke(Stroke stroke) => [stroke.X1, stroke.Y1, stroke.X2, stroke.Y2];
 
     // 版 17 で足した項目。無い（または null）なら、星の字は星を作るときのものから始める。
-    // 部品が字の定義に合うかは、読み込んだ後に ScriptState.Restore が確かめる（ここでは形だけ）
+    // 部品が字の定義に合うかは、読み込んだ後に ScriptState.Restore が確かめる（ここでは形だけ）。
+    // 版 19 までは崩れが 1 回だけ: decayed（真なら 1 回目の後）・similarPair（1 組）を読み、語はどれも 1 回目に崩れる
     private static ScriptSave? ReadScript(JsonElement root, int currentYear)
     {
         if (!root.TryGetProperty("script", out var element) || element.ValueKind == JsonValueKind.Null)
@@ -475,17 +477,23 @@ public static class SaveDataSerializer
             return values.Count == 4 ? Stroke.Of(values[0], values[1], values[2], values[3]) : throw new InvalidSaveDataException("invalid_script");
         }
 
+        (string A, string B) ReadPair(JsonElement item)
+        {
+            var words = item.ValueKind == JsonValueKind.Array
+                ? item.EnumerateArray().Select(word => word.ValueKind == JsonValueKind.String ? word.GetString()! : throw new InvalidSaveDataException("invalid_script")).ToList()
+                : [];
+            return words.Count == 2 ? (words[0], words[1]) : throw new InvalidSaveDataException("invalid_script");
+        }
+        int ReadStage(JsonElement parent) => parent.TryGetProperty("stage", out _) ? ReadInt(parent, "stage") : ReadBool(parent, "decayed") ? 1 : 0;
+
         var radicals = Items(element, "radicals").Select(item => new ScriptRadical(
             ReadString(item, "id"), ReadEnum<RadicalKind>(item, "kind"), ReadString(item, "key"),
-            [.. Property(item, "strokes", JsonValueKind.Array).EnumerateArray().Select(ReadStroke)], ReadStroke(Property(item, "decay", null))))
+            [.. Property(item, "strokes", JsonValueKind.Array).EnumerateArray().Select(ReadStroke)], ReadStroke(Property(item, "decay", null)),
+            item.TryGetProperty("decayStage", out _) ? ReadInt(item, "decayStage") : 1))
             .ToList();
-        var pair = Property(element, "similarPair", JsonValueKind.Array).EnumerateArray()
-            .Select(item => item.ValueKind == JsonValueKind.String ? item.GetString()! : throw new InvalidSaveDataException("invalid_script"))
-            .ToList();
-        if (pair.Count != 2)
-        {
-            throw new InvalidSaveDataException("invalid_script");
-        }
+        List<(string A, string B)> pairs = element.TryGetProperty("similarPairs", out _)
+            ? [.. Property(element, "similarPairs", JsonValueKind.Array).EnumerateArray().Select(ReadPair)]
+            : [ReadPair(Property(element, "similarPair", null))];
         var carvings = Items(element, "carvings").Select(item =>
         {
             var buildingElement = Property(item, "buildingId", null);
@@ -500,7 +508,7 @@ public static class SaveDataSerializer
                 new Sentence([.. Property(item, "sentence", JsonValueKind.Array).EnumerateArray()
                     .Select(word => word.ValueKind == JsonValueKind.String ? word.GetString()! : throw new InvalidSaveDataException("invalid_script"))]),
                 ReadInt(item, "region"), ReadInt(item, "column"), ReadInt(item, "row"),
-                ReadYearUpTo(Property(item, "year", JsonValueKind.Number), currentYear), ReadBool(item, "decayed"), buildingId);
+                ReadYearUpTo(Property(item, "year", JsonValueKind.Number), currentYear), ReadStage(item), buildingId);
         }).ToList();
         var notebook = new Dictionary<string, string>();
         foreach (var property in Property(element, "notebook", JsonValueKind.Object).EnumerateObject())
@@ -509,7 +517,7 @@ public static class SaveDataSerializer
                 ? property.Value.GetString()!
                 : throw new InvalidSaveDataException("invalid_script");
         }
-        return new ScriptSave(radicals, ReadEnum<WordOrder>(element, "wordOrder"), (pair[0], pair[1]), ReadBool(element, "decayed"), carvings, notebook);
+        return new ScriptSave(radicals, ReadEnum<WordOrder>(element, "wordOrder"), pairs, ReadStage(element), carvings, notebook);
     }
 
     // 版 16 で足した項目。無い（または null）なら、方言の状態は星を作るときのものから始める。

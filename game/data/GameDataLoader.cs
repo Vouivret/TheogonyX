@@ -483,7 +483,7 @@ public static class GameDataLoader
     private sealed record ScriptSection(JsonElement? Script);
 
     private sealed record ScriptFile(
-        int GridSize, int MinStrokes, int MaxStrokes, int DecayYears, float TeachingIntensity, int MaxStelesPerRegion, float MisreadShare,
+        int GridSize, int MinStrokes, int MaxStrokes, int[] DecayYears, float TeachingIntensity, int MaxStelesPerRegion, float MisreadShare,
         float StyleJitter, float TabooPlateShare, IReadOnlyList<ScriptLandmark> Landmarks);
 
     private sealed record DialectSection(JsonElement? Dialect, string? DialectVessel);

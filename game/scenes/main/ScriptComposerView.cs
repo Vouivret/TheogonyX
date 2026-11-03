@@ -105,7 +105,7 @@ public sealed class ScriptComposerView
         RebuildPalette(script);
         for (var i = 0; i < _slots.Length; i++)
         {
-            _slots[i].Show(script.Script, new Sentence(i < _words.Count ? [_words[i]] : []), script.Decayed);
+            _slots[i].Show(script.Script, new Sentence(i < _words.Count ? [_words[i]] : []), script.Stage);
             _slots[i].Outline = i <= _words.Count ? new Color(0.87f, 0.93f, 0.84f, 0.3f) : Colors.Transparent;
         }
         _speakButton.Disabled = _words.Count == 0 || _prophet.SpeakRejection() is not null;
@@ -118,7 +118,7 @@ public sealed class ScriptComposerView
     // 手帳に載った字を並べる。字の下に、神の書き込み（意味の推理）を小さく出す
     private void RebuildPalette(ScriptState script)
     {
-        var signature = string.Join(',', script.Notebook.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => $"{pair.Key}={pair.Value}")) + script.Decayed;
+        var signature = string.Join(',', script.Notebook.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => $"{pair.Key}={pair.Value}")) + script.Stage;
         if (signature == _paletteShown)
         {
             return;
@@ -133,7 +133,7 @@ public sealed class ScriptComposerView
         {
             var cell = new VBoxContainer();
             var view = new GlyphView { CustomMinimumSize = new Vector2(32, 32), MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = NotebookView.LabelText(label) };
-            view.Show(script.Script, id, script.Decayed);
+            view.Show(script.Script, id, script.Stage);
             var radicalId = id;
             view.GuiInput += input =>
             {

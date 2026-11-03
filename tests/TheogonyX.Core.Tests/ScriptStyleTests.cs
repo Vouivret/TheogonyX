@@ -13,11 +13,16 @@ public class ScriptStyleTests
         for (var seed = 0; seed < 20; seed++)
         {
             var script = Create(seed);
-            var restored = PlanetScript.Restore(ScriptTests.Rules, script.Radicals, script.WordOrder, script.SimilarPair);
+            var restored = PlanetScript.Restore(ScriptTests.Rules, script.Radicals, script.WordOrder, script.SimilarPairs);
 
-            Assert.Equal(ScriptStyle.Of(script, false), ScriptStyle.Of(restored, false));
-            Assert.Equal(ScriptStyle.Of(script, true), ScriptStyle.Of(restored, true));
-            Assert.NotEqual(ScriptStyle.Of(script, false).Cap, ScriptStyle.Of(script, true).Cap);
+            for (var stage = 0; stage <= 3; stage++)
+            {
+                Assert.Equal(ScriptStyle.Of(script, stage), ScriptStyle.Of(restored, stage));
+            }
+            for (var stage = 1; stage <= 3; stage++)
+            {
+                Assert.NotEqual(ScriptStyle.Of(script, stage - 1).Cap, ScriptStyle.Of(script, stage).Cap);
+            }
         }
     }
 
@@ -25,7 +30,7 @@ public class ScriptStyleTests
     [Trait("TS", "TS-script-decipher-022")]
     public void Of_20通りの星_書きぶりは星ごとに違う()
     {
-        var styles = Enumerable.Range(0, 20).Select(seed => ScriptStyle.Of(Create(seed), false)).ToList();
+        var styles = Enumerable.Range(0, 20).Select(seed => ScriptStyle.Of(Create(seed), 0)).ToList();
 
         Assert.True(styles.Distinct().Count() > 10);
     }

@@ -9,15 +9,16 @@ public static class ScriptReader
     /// 神が書いた文を、人が読む。方角の語は組の外で読み、最初の方角を行き先にする。残りの語を、星の語順で前から読む。
     /// 名詞が先の星では、名詞のすぐ後の動詞がその名詞の組になる。動詞が先の星では、動詞のすぐ後の名詞がその動詞の組になる。
     /// 動詞のつながらない名詞は崇拝と読み、名詞につながらない動詞は読み落とす。予言者の知らない記号の名詞は謎の語。
-    /// 崩れた後の時代は、似た形の組の語は、組の決まった一方（ID の小さい方）として読まれる。
+    /// その時代までに混ざった似た形の組の語は、組の決まった一方（ID の小さい方）として読まれる。
     /// 教えは、動詞で読めた組の最初のもの。無ければ、崇拝と読んだ組の最初のもの。
     /// 語が 0 個か上限を越える・手帳に無い語を含むときは、理由（<c>no_glyphs</c>・<c>too_many_glyphs</c>・<c>glyph_not_found</c>）を返す。
     /// </summary>
     /// <param name="knownRadicalIds">神が書ける語（手帳に載った語）。</param>
     /// <param name="handSymbolIds">予言者が知っている記号（手札の記号）。</param>
+    /// <param name="stage">読む人の時代（崩れの回数）。</param>
     public static ScriptReadOutcome Read(
         PlanetScript script, ScriptRules rules, Sentence sentence, IReadOnlySet<string> knownRadicalIds,
-        IReadOnlyCollection<string> handSymbolIds, bool decayed)
+        IReadOnlyCollection<string> handSymbolIds, int stage)
     {
         ArgumentNullException.ThrowIfNull(script);
         ArgumentNullException.ThrowIfNull(rules);
@@ -37,7 +38,7 @@ public static class ScriptReader
             return new ScriptReadOutcome(null, "glyph_not_found");
         }
 
-        var words = sentence.Words.Select(id => Resolve(script, id, decayed)).ToList();
+        var words = sentence.Words.Select(id => Resolve(script, id, stage)).ToList();
         var destination = words.FirstOrDefault(word => word.Kind == RadicalKind.Direction) is { } direction
             ? Enum.Parse<TravelDirection>(direction.Key)
             : TravelDirection.None;
@@ -108,13 +109,15 @@ public static class ScriptReader
         return new Sentence(words);
     }
 
-    // 崩れた後は、似た形の組のどちらも、ID の小さい方として読まれる
-    private static ScriptRadical Resolve(PlanetScript script, string radicalId, bool decayed)
+    // その時代までに混ざった似た形の組のどちらも、ID の小さい方として読まれる
+    private static ScriptRadical Resolve(PlanetScript script, string radicalId, int stage)
     {
-        var (a, b) = script.SimilarPair;
-        if (decayed && (radicalId == a || radicalId == b))
+        foreach (var (a, b) in script.SimilarPairs.Take(stage))
         {
-            radicalId = string.CompareOrdinal(a, b) < 0 ? a : b;
+            if (radicalId == a || radicalId == b)
+            {
+                return script.Find(string.CompareOrdinal(a, b) < 0 ? a : b)!;
+            }
         }
         return script.Find(radicalId)!;
     }

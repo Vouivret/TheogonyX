@@ -29,10 +29,10 @@ public class SteleTests
         return time;
     }
 
-    // 似た形の組の、ID の大きい方（崩れると小さい方に読まれる）と小さい方の記号
-    private static (string Larger, string Smaller) Twins(PlanetScript script)
+    // 似た形の名詞の組（1 回目か 2 回目に混ざる）の、ID の大きい方（混ざると小さい方に読まれる）と小さい方の記号
+    private static (string Larger, string Smaller) Twins(PlanetScript script, int pair = 0)
     {
-        var (a, b) = script.SimilarPair;
+        var (a, b) = script.SimilarPairs[pair];
         var (smaller, larger) = string.CompareOrdinal(a, b) < 0 ? (a, b) : (b, a);
         return (script.Find(larger)!.Key, script.Find(smaller)!.Key);
     }
@@ -57,7 +57,7 @@ public class SteleTests
         Assert.Equal([20, 30, 40], steles.Select(stele => stele.Year));
         Assert.Equal([1, 2, 3], steles.Select(stele => stele.Row).Order());
         Assert.All(steles, stele => Assert.Equal(TestRules.Civilization.Regions.FirstColumn(2), stele.Column));
-        Assert.All(steles, stele => Assert.False(stele.Decayed));
+        Assert.All(steles, stele => Assert.Equal(0, stele.Stage));
         Assert.Throws<ArgumentOutOfRangeException>(() => state.CarveStele(sentence, TestRules.Civilization.Regions.Count, 50));
     }
 
@@ -91,17 +91,59 @@ public class SteleTests
     {
         var state = CreateScript();
         var (larger, smaller) = Twins(state.Script);
-        var other = ScriptTests.Symbols.First(symbol => symbol != larger && symbol != smaller);
+        var other = Twins(state.Script, 1).Larger; // 2 回目まで混ざらない
         state.CarveStele(state.Script.SentenceFor(larger, DogmaType.Taboo), 2, 10);
         state.CarveStele(state.Script.SentenceFor(other, DogmaType.Taboo), 2, 20);
         state.Update(300, [], null); // 崩れる
         state.CarveStele(state.Script.SentenceFor(larger, DogmaType.Taboo), 3, 300); // 崩れた後に刻んだ碑は読み直さない
 
-        var misreading = Assert.Single(state.RereadSteles());
+        var misreading = Assert.Single(state.RereadSteles(0));
 
         Assert.Equal(10, misreading.Stele.Year);
         Assert.Equal((larger, DogmaType.Taboo), (misreading.Written.TargetSymbolId, misreading.Written.Type));
         Assert.Equal((smaller, DogmaType.Taboo), (misreading.Read.TargetSymbolId, misreading.Read.Type));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-020")]
+    public void RereadSteles_2回目の崩れ_前の時代の碑も2回目の組で読み違えられ1回目の組は重ねて読み違えない()
+    {
+        var state = CreateScript();
+        var (first, second) = (Twins(state.Script, 0), Twins(state.Script, 1));
+        state.CarveStele(state.Script.SentenceFor(first.Larger, DogmaType.Taboo), 2, 10);
+        state.CarveStele(state.Script.SentenceFor(second.Larger, DogmaType.Taboo), 2, 20);
+        state.Update(300, [], null);
+        Assert.Equal(10, Assert.Single(state.RereadSteles(0)).Stele.Year);
+        state.CarveStele(state.Script.SentenceFor(second.Larger, DogmaType.Taboo), 3, 400);
+        state.Update(600, [], null);
+
+        var misreadings = state.RereadSteles(1);
+
+        Assert.Equal([20, 400], misreadings.Select(misreading => misreading.Stele.Year));
+        Assert.All(misreadings, misreading =>
+        {
+            Assert.Equal(second.Larger, misreading.Written.TargetSymbolId);
+            Assert.Equal(second.Smaller, misreading.Read.TargetSymbolId);
+        });
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-023")]
+    public void RereadSteles_動詞が混ざる3回目_碑が別の種別に読まれる()
+    {
+        var state = CreateScript();
+        var (a, b) = state.Script.SimilarPairs[2];
+        var (smaller, larger) = string.CompareOrdinal(a, b) < 0 ? (a, b) : (b, a);
+        var (readType, writtenType) = (Enum.Parse<DogmaType>(state.Script.Find(smaller)!.Key), Enum.Parse<DogmaType>(state.Script.Find(larger)!.Key));
+        var symbol = Twins(state.Script, 1).Smaller; // 混ざっても読みの変わらない名詞
+        state.Update(600, [], null);
+        state.CarveStele(state.Script.SentenceFor(symbol, writtenType), 2, 700);
+        state.Update(900, [], null);
+
+        var misreading = Assert.Single(state.RereadSteles(2));
+
+        Assert.Equal((symbol, writtenType), (misreading.Written.TargetSymbolId, misreading.Written.Type));
+        Assert.Equal((symbol, readType), (misreading.Read.TargetSymbolId, misreading.Read.Type));
     }
 
     [Fact]

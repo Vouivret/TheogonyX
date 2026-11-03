@@ -29,10 +29,10 @@ public sealed record SteleMisreading(CarvedGlyph Stele, Dogma Written, Dogma Rea
 public sealed record ScriptLandmark(string SymbolId, int Column, int Row);
 
 /// <summary>
-/// 世界に刻まれた文 1 つ。<paramref name="Decayed"/> は刻んだ時代の形（崩れる前に刻んだ字は、崩れた後も前の形のまま）。
+/// 世界に刻まれた文 1 つ。<paramref name="Stage"/> は刻んだ時代（崩れの回数）。字は刻んだ時代の形のまま残る。
 /// <paramref name="BuildingId"/> は建物の札のとき、その建物の ID（建物が無くなると札も消える）。
 /// </summary>
-public sealed record CarvedGlyph(CarvingKind Kind, Sentence Sentence, int Region, int Column, int Row, int Year, bool Decayed, int? BuildingId = null);
+public sealed record CarvedGlyph(CarvingKind Kind, Sentence Sentence, int Region, int Column, int Row, int Year, int Stage, int? BuildingId = null);
 
 /// <summary>手帳に神が書き込める意味（語の字ごとに 1 つ選ぶ）。<see cref="Unknown"/> は「分からない」。</summary>
 public static class NotebookLabels
@@ -42,7 +42,7 @@ public static class NotebookLabels
 
 /// <summary>セーブに残す、星の字の状態。</summary>
 public sealed record ScriptSave(
-    IReadOnlyList<ScriptRadical> Radicals, WordOrder WordOrder, (string A, string B) SimilarPair, bool Decayed,
+    IReadOnlyList<ScriptRadical> Radicals, WordOrder WordOrder, IReadOnlyList<(string A, string B)> SimilarPairs, int Stage,
     IReadOnlyList<CarvedGlyph> Carvings, IReadOnlyDictionary<string, string> Notebook);
 
 /// <summary>
@@ -82,8 +82,8 @@ public sealed class ScriptState
     /// <summary>禁忌の札を刻む、地域の住人のうちの信者の割合（これ以上）。</summary>
     public float TabooPlateShare { get; }
 
-    /// <summary>字が崩れた後の時代か。</summary>
-    public bool Decayed { get; private set; }
+    /// <summary>今の時代（字が崩れた回数）。</summary>
+    public int Stage { get; private set; }
 
     /// <summary>世界に刻まれた字（刻んだ順）。</summary>
     public IReadOnlyList<CarvedGlyph> Carvings => _carvings;
@@ -97,14 +97,15 @@ public sealed class ScriptState
     /// <summary>
     /// 時間が進んだ後に呼ぶ。崩れの年を越えたら崩れた時代にし、建物の札・祠の札・禁忌の札を書き換える。
     /// </summary>
-    /// <returns>この呼び出しで字が崩れたか（年表に残すのに使う）。</returns>
+    /// <returns>この呼び出しで字が崩れたか（年表に残すのに使う。跳躍で 2 回分を越えても true を 1 度だけ返す）。</returns>
     public bool Update(int year, IReadOnlyList<Building> buildings, Residents? residents)
     {
         ArgumentNullException.ThrowIfNull(buildings);
         var decayedNow = false;
-        if (!Decayed && year >= Rules.DecayYears)
+        var stage = Rules.DecayYears.Count(decayYear => year >= decayYear);
+        if (stage > Stage)
         {
-            Decayed = true;
+            Stage = stage;
             decayedNow = true;
         }
 
@@ -148,7 +149,7 @@ public sealed class ScriptState
             {
                 _carvings.RemoveAt(index);
             }
-            _carvings.Add(new CarvedGlyph(kind, sentence, building.Region, building.Column, building.Row, year, Decayed, building.Id));
+            _carvings.Add(new CarvedGlyph(kind, sentence, building.Region, building.Column, building.Row, year, Stage, building.Id));
         }
 
         UpdateTabooPlates(year, residents);
@@ -173,22 +174,23 @@ public sealed class ScriptState
         }
         var used = steles.Select(carving => carving.Row).ToHashSet();
         var row = Enumerable.Range(1, Rules.MaxStelesPerRegion).First(candidate => !used.Contains(candidate));
-        var stele = new CarvedGlyph(CarvingKind.Stele, sentence, region, Regions.FirstColumn(region), row, year, Decayed);
+        var stele = new CarvedGlyph(CarvingKind.Stele, sentence, region, Regions.FirstColumn(region), row, year, Stage);
         _carvings.Add(stele);
         return stele;
     }
 
     /// <summary>
-    /// 字が崩れた年に呼ぶ。崩れる前に刻まれた碑を、古い順に今の人が読み直す。人はどの記号も知っている（謎の語は無い）。
-    /// 崩れる前の読みと今の読みで教えが違う碑を返す（似た形の組の語を含む碑だけが違って読まれる）。
+    /// 字が崩れた年に呼ぶ。この崩れの前に刻まれた碑を、古い順に今の人が読み直す。人はどの記号も知っている（謎の語は無い）。
+    /// 崩れる前の読みと今の読みで教えが違う碑を返す（この崩れで混ざった組の語を含む碑だけが違って読まれる）。
     /// </summary>
-    public IReadOnlyList<SteleMisreading> RereadSteles()
+    /// <param name="fromStage">崩れる前の時代（崩れの回数）。</param>
+    public IReadOnlyList<SteleMisreading> RereadSteles(int fromStage)
     {
-        Dogma? Teaching(Sentence sentence, bool decayed) => ReadAsPeople(sentence, decayed)?.Teaching;
+        Dogma? Teaching(Sentence sentence, int stage) => ReadAsPeople(sentence, stage)?.Teaching;
         var misreadings = new List<SteleMisreading>();
-        foreach (var stele in _carvings.Where(carving => carving.Kind == CarvingKind.Stele && !carving.Decayed))
+        foreach (var stele in _carvings.Where(carving => carving.Kind == CarvingKind.Stele && carving.Stage <= fromStage))
         {
-            if (Teaching(stele.Sentence, false) is { } written && Teaching(stele.Sentence, true) is { } read
+            if (Teaching(stele.Sentence, fromStage) is { } written && Teaching(stele.Sentence, Stage) is { } read
                 && (written.TargetSymbolId, written.Type) != (read.TargetSymbolId, read.Type))
             {
                 misreadings.Add(new SteleMisreading(stele, written, read));
@@ -198,15 +200,15 @@ public sealed class ScriptState
     }
 
     /// <summary>
-    /// 人（住人）が文を読む。住人はどの記号も知っているので、謎の語は無い。<paramref name="decayed"/> は読む人の時代（崩れた後か）。
+    /// 人（住人）が文を読む。住人はどの記号も知っているので、謎の語は無い。<paramref name="stage"/> は読む人の時代（崩れの回数）。
     /// 文が読めない形（語が 0 個・多すぎる・定義に無い語）なら null。
     /// </summary>
-    public ScriptReading? ReadAsPeople(Sentence sentence, bool decayed)
+    public ScriptReading? ReadAsPeople(Sentence sentence, int stage)
     {
         ArgumentNullException.ThrowIfNull(sentence);
         var words = Script.Radicals.Select(radical => radical.Id).ToHashSet();
         var symbols = Script.Radicals.Where(radical => radical.Kind == RadicalKind.Meaning).Select(radical => radical.Key).ToList();
-        return ScriptReader.Read(Script, Rules, sentence, words, symbols, decayed).Reading;
+        return ScriptReader.Read(Script, Rules, sentence, words, symbols, stage).Reading;
     }
 
     /// <summary>刻まれた文か祈りの文を見た。その文の語の字を手帳に載せる（載っていれば何もしない）。</summary>
@@ -241,15 +243,16 @@ public sealed class ScriptState
     public bool IsLabel(string label) => label == NotebookLabels.Unknown || Script.Radicals.Any(radical => radical.Key == label);
 
     public ScriptSave Capture() =>
-        new(Script.Radicals, Script.WordOrder, Script.SimilarPair, Decayed, [.. _carvings], new Dictionary<string, string>(_notebook));
+        new(Script.Radicals, Script.WordOrder, Script.SimilarPairs, Stage, [.. _carvings], new Dictionary<string, string>(_notebook));
 
     /// <summary>セーブから読み込んだ状態に置き換える。検証を済ませてから置き換える。</summary>
     /// <exception cref="ArgumentException">定義に合わない値。</exception>
     public void Restore(ScriptSave save)
     {
         ArgumentNullException.ThrowIfNull(save);
-        var script = PlanetScript.Restore(Rules, save.Radicals, save.WordOrder, save.SimilarPair);
-        var valid = save.Carvings.All(carving => carving.Sentence.Words.Count > 0 && carving.Sentence.Words.All(id => script.Find(id) is not null)
+        var script = PlanetScript.Restore(Rules, save.Radicals, save.WordOrder, save.SimilarPairs);
+        bool InStages(int stage) => stage >= 0 && stage <= Rules.DecayYears.Count;
+        var valid = InStages(save.Stage) && save.Carvings.All(carving => InStages(carving.Stage) && carving.Sentence.Words.Count > 0 && carving.Sentence.Words.All(id => script.Find(id) is not null)
                 && carving.Region >= 0 && carving.Region < Regions.Count && carving.Year >= 0 && Enum.IsDefined(carving.Kind))
             && save.Notebook.All(pair => script.Find(pair.Key) is not null
                 && (pair.Value == NotebookLabels.Unknown || script.Radicals.Any(radical => radical.Key == pair.Value)));
@@ -258,7 +261,7 @@ public sealed class ScriptState
             throw new ArgumentException("刻まれた字か手帳が、字の定義に合わない", nameof(save));
         }
         Script = script;
-        Decayed = save.Decayed;
+        Stage = save.Stage;
         _carvings.Clear();
         _carvings.AddRange(save.Carvings);
         _notebook.Clear();
@@ -282,7 +285,7 @@ public sealed class ScriptState
             if (Script.Find(RadicalKind.Meaning, landmark.SymbolId) is not null)
             {
                 _carvings.Add(new CarvedGlyph(
-                    CarvingKind.Landmark, Script.SentenceFor(landmark.SymbolId), Regions.RegionOf(landmark.Column), landmark.Column, landmark.Row, 0, Decayed));
+                    CarvingKind.Landmark, Script.SentenceFor(landmark.SymbolId), Regions.RegionOf(landmark.Column), landmark.Column, landmark.Row, 0, Stage));
             }
         }
     }
@@ -311,7 +314,7 @@ public sealed class ScriptState
             }
             if (sentence is not null && index < 0)
             {
-                _carvings.Add(new CarvedGlyph(CarvingKind.Taboo, sentence, region, Regions.FirstColumn(region), 0, year, Decayed));
+                _carvings.Add(new CarvedGlyph(CarvingKind.Taboo, sentence, region, Regions.FirstColumn(region), 0, year, Stage));
             }
         }
     }

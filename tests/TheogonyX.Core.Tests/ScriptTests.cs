@@ -6,7 +6,7 @@ public class ScriptTests
 {
     private const int Seed = 42;
 
-    internal static readonly ScriptRules Rules = new(GridSize: 4, MinStrokes: 3, MaxStrokes: 6, DecayYears: 300, TeachingIntensity: 0.7f, MaxStelesPerRegion: 3, MisreadShare: 0.3f, StyleJitter: 0.1f);
+    internal static readonly ScriptRules Rules = new(GridSize: 4, MinStrokes: 3, MaxStrokes: 6, DecayYears: [300, 600, 900], TeachingIntensity: 0.7f, MaxStelesPerRegion: 3, MisreadShare: 0.3f, StyleJitter: 0.1f);
 
     internal static readonly string[] Symbols = ["SYM_TREE", "SYM_WATER", "SYM_BLOOD", "SYM_FIRE", "SYM_EARTH", "SYM_METAL"];
 
@@ -21,8 +21,8 @@ public class ScriptTests
     private static PlanetScript CreateWith(WordOrder order) =>
         Enumerable.Range(0, 100).Select(seed => Create(seed)).First(script => script.WordOrder == order);
 
-    private static ScriptReading Read(PlanetScript script, IReadOnlyCollection<string>? hand = null, bool decayed = false, params string[] words) =>
-        ScriptReader.Read(script, Rules, new Sentence(words), AllRadicals(script), hand ?? AllHand, decayed).Reading!;
+    private static ScriptReading Read(PlanetScript script, IReadOnlyCollection<string>? hand = null, int stage = 0, params string[] words) =>
+        ScriptReader.Read(script, Rules, new Sentence(words), AllRadicals(script), hand ?? AllHand, stage).Reading!;
 
     private static string Shape(IEnumerable<Stroke> strokes) => string.Join(';', strokes.Order());
 
@@ -35,10 +35,10 @@ public class ScriptTests
         var other = Create(seed: 7);
 
         Assert.Equal(first.WordOrder, second.WordOrder);
-        Assert.Equal(first.SimilarPair, second.SimilarPair);
+        Assert.Equal(first.SimilarPairs, second.SimilarPairs);
         Assert.Equal(
-            first.Radicals.Select(radical => (radical.Id, radical.Kind, radical.Key, Shape(radical.Strokes), radical.DecayStroke)),
-            second.Radicals.Select(radical => (radical.Id, radical.Kind, radical.Key, Shape(radical.Strokes), radical.DecayStroke)));
+            first.Radicals.Select(radical => (radical.Id, radical.Kind, radical.Key, Shape(radical.Strokes), radical.DecayStroke, radical.DecayStage)),
+            second.Radicals.Select(radical => (radical.Id, radical.Kind, radical.Key, Shape(radical.Strokes), radical.DecayStroke, radical.DecayStage)));
         Assert.NotEqual(
             first.Radicals.Select(radical => Shape(radical.Strokes)),
             other.Radicals.Select(radical => Shape(radical.Strokes)));
@@ -46,25 +46,47 @@ public class ScriptTests
 
     [Fact]
     [Trait("TS", "TS-script-decipher-002")]
-    public void Create_多くのシード_語は11個で形が重ならず似た組だけが1本違いで崩れると同じ形になる()
+    public void Create_多くのシード_語は11個で形が重ならず組は回ごとに名詞名詞動詞で混ざるまで別の形()
     {
         for (var seed = 0; seed < 50; seed++)
         {
             var script = Create(seed);
-            var (a, b) = script.SimilarPair;
-            var pair = new[] { a, b };
 
             Assert.Equal(11, script.Radicals.Count);
             Assert.All(script.Radicals, radical => Assert.InRange(radical.Strokes.Count, 3, 6));
-            Assert.Equal(11, script.Radicals.Select(radical => Shape(radical.ShapeIn(false))).Distinct().Count());
-            var decayedOthers = script.Radicals.Where(radical => !pair.Contains(radical.Id)).Select(radical => Shape(radical.ShapeIn(true))).ToList();
-            Assert.Equal(9, decayedOthers.Distinct().Count());
-            var (radicalA, radicalB) = (script.Find(a)!, script.Find(b)!);
-            Assert.Equal(RadicalKind.Meaning, radicalA.Kind);
-            Assert.Equal(RadicalKind.Meaning, radicalB.Kind);
-            Assert.Single(radicalA.Strokes.Except(radicalB.Strokes));
-            Assert.Equal(Shape(radicalA.ShapeIn(true)), Shape(radicalB.ShapeIn(true)));
+            Assert.All(script.Radicals, radical => Assert.InRange(radical.DecayStage, 1, 3));
+            Assert.Equal(3, script.SimilarPairs.Count);
+            Assert.Equal(6, script.SimilarPairs.SelectMany(pair => new[] { pair.A, pair.B }).Distinct().Count());
+            RadicalKind[] kinds = [RadicalKind.Meaning, RadicalKind.Meaning, RadicalKind.Function];
+            for (var i = 0; i < 3; i++)
+            {
+                var (radicalA, radicalB) = (script.Find(script.SimilarPairs[i].A)!, script.Find(script.SimilarPairs[i].B)!);
+                Assert.Equal(kinds[i], radicalA.Kind);
+                Assert.Equal(kinds[i], radicalB.Kind);
+                Assert.Equal(i + 1, radicalA.DecayStage);
+                Assert.Equal(i + 1, radicalB.DecayStage);
+                Assert.Single(radicalA.Strokes.Except(radicalB.Strokes));
+                Assert.NotEqual(Shape(radicalA.ShapeIn(i)), Shape(radicalB.ShapeIn(i)));
+                Assert.Equal(Shape(radicalA.ShapeIn(i + 1)), Shape(radicalB.ShapeIn(i + 1)));
+            }
+            // どの時代も、形が同じになるのは、その時代までに混ざった組だけ
+            for (var stage = 0; stage <= 3; stage++)
+            {
+                Assert.Equal(11 - stage, script.Radicals.Select(radical => Shape(radical.ShapeIn(stage))).Distinct().Count());
+            }
         }
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-002")]
+    public void ShapeIn_語の崩れる回の前後_その回から線が1本消え後の回では変わらない()
+    {
+        var radical = Create().Radicals.First(candidate => candidate.DecayStage == 2);
+
+        Assert.Equal(radical.Strokes.Count, radical.ShapeIn(1).Count);
+        Assert.Equal(radical.Strokes.Count - 1, radical.ShapeIn(2).Count);
+        Assert.DoesNotContain(radical.DecayStroke, radical.ShapeIn(2));
+        Assert.Equal(radical.ShapeIn(2), radical.ShapeIn(3));
     }
 
     [Theory]
@@ -150,17 +172,43 @@ public class ScriptTests
     public void Read_崩れた後の似た形の組_どちらの語で書いてもIDの小さい方として読まれる()
     {
         var script = Create();
-        var (a, b) = script.SimilarPair;
+        var (a, b) = script.SimilarPairs[0];
         var smaller = string.CompareOrdinal(a, b) < 0 ? a : b;
         var larger = smaller == a ? b : a;
         var smallerSymbol = script.Find(smaller)!.Key;
         var largerSymbol = script.Find(larger)!.Key;
 
         var before = Read(script, words: larger);
-        var after = Read(script, decayed: true, words: larger);
+        var after = Read(script, stage: 1, words: larger);
 
         Assert.Equal(largerSymbol, before.Teaching!.TargetSymbolId);
         Assert.Equal(smallerSymbol, after.Teaching!.TargetSymbolId);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-005")]
+    public void Read_2回目の組の語_1回目の時代では混ざらず2回目の時代で混ざる()
+    {
+        var script = Create();
+        var (a, b) = script.SimilarPairs[1];
+        var (smaller, larger) = string.CompareOrdinal(a, b) < 0 ? (a, b) : (b, a);
+
+        Assert.Equal(script.Find(larger)!.Key, Read(script, stage: 1, words: larger).Teaching!.TargetSymbolId);
+        Assert.Equal(script.Find(smaller)!.Key, Read(script, stage: 2, words: larger).Teaching!.TargetSymbolId);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-023")]
+    public void Read_3回目に混ざる動詞_同じ文が別の種別の教えに読まれる()
+    {
+        var script = Create();
+        var (a, b) = script.SimilarPairs[2];
+        var (smaller, larger) = string.CompareOrdinal(a, b) < 0 ? (a, b) : (b, a);
+        var (smallerType, largerType) = (Enum.Parse<DogmaType>(script.Find(smaller)!.Key), Enum.Parse<DogmaType>(script.Find(larger)!.Key));
+        var sentence = script.SentenceFor("SYM_TREE", largerType).Words.ToArray();
+
+        Assert.Equal(largerType, Read(script, stage: 2, words: sentence).Teaching!.Type);
+        Assert.Equal(smallerType, Read(script, stage: 3, words: sentence).Teaching!.Type);
     }
 
     [Fact]
@@ -172,11 +220,11 @@ public class ScriptTests
         var known = new HashSet<string> { tree };
         Sentence Of(params string[] words) => new(words);
 
-        Assert.Equal("no_glyphs", ScriptReader.Read(script, Rules, Of(), AllRadicals(script), AllHand, false).RejectedReason);
-        Assert.Equal("too_many_glyphs", ScriptReader.Read(script, Rules, Of(tree, tree, tree, tree, tree), AllRadicals(script), AllHand, false).RejectedReason);
-        Assert.Null(ScriptReader.Read(script, Rules, Of(tree, tree, tree, tree), AllRadicals(script), AllHand, false).RejectedReason);
-        Assert.Equal("glyph_not_found", ScriptReader.Read(script, Rules, script.SentenceFor("SYM_TREE", DogmaType.Worship), known, AllHand, false).RejectedReason);
-        Assert.Equal("glyph_not_found", ScriptReader.Read(script, Rules, Of("RAD_99"), AllRadicals(script), AllHand, false).RejectedReason);
+        Assert.Equal("no_glyphs", ScriptReader.Read(script, Rules, Of(), AllRadicals(script), AllHand, 0).RejectedReason);
+        Assert.Equal("too_many_glyphs", ScriptReader.Read(script, Rules, Of(tree, tree, tree, tree, tree), AllRadicals(script), AllHand, 0).RejectedReason);
+        Assert.Null(ScriptReader.Read(script, Rules, Of(tree, tree, tree, tree), AllRadicals(script), AllHand, 0).RejectedReason);
+        Assert.Equal("glyph_not_found", ScriptReader.Read(script, Rules, script.SentenceFor("SYM_TREE", DogmaType.Worship), known, AllHand, 0).RejectedReason);
+        Assert.Equal("glyph_not_found", ScriptReader.Read(script, Rules, Of("RAD_99"), AllRadicals(script), AllHand, 0).RejectedReason);
     }
 
     [Fact]
@@ -200,13 +248,17 @@ public class ScriptTests
     {
         var script = Create();
 
-        var restored = PlanetScript.Restore(Rules, script.Radicals, script.WordOrder, script.SimilarPair);
+        var restored = PlanetScript.Restore(Rules, script.Radicals, script.WordOrder, script.SimilarPairs);
 
         Assert.Equal(script.Radicals, restored.Radicals);
-        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, script.Radicals, script.WordOrder, (script.SimilarPair.A, script.SimilarPair.A)));
+        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, script.Radicals, script.WordOrder, [(script.SimilarPairs[0].A, script.SimilarPairs[0].A)]));
+        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, script.Radicals, script.WordOrder, []));
+        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, script.Radicals, script.WordOrder, [script.SimilarPairs[1]])); // 組の回と語の回が合わない
+        var lateStage = script.Radicals[0] with { DecayStage = 4 };
+        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, [lateStage, .. script.Radicals.Skip(1)], script.WordOrder, script.SimilarPairs));
         Assert.Throws<ArgumentException>(() => PlanetScript.Restore(
-            Rules, [.. script.Radicals.Where(radical => radical.Kind != RadicalKind.Direction)], script.WordOrder, script.SimilarPair));
+            Rules, [.. script.Radicals.Where(radical => radical.Kind != RadicalKind.Direction)], script.WordOrder, script.SimilarPairs));
         var outside = script.Radicals[0] with { Strokes = [new Stroke(0, 0, 9, 9), .. script.Radicals[0].Strokes] };
-        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, [outside, .. script.Radicals.Skip(1)], script.WordOrder, script.SimilarPair));
+        Assert.Throws<ArgumentException>(() => PlanetScript.Restore(Rules, [outside, .. script.Radicals.Skip(1)], script.WordOrder, script.SimilarPairs));
     }
 }

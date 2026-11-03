@@ -13,23 +13,25 @@
 | TS-script-decipher-002 | AC-script-decipher-009 | 部品の数・線の数・形が重ならないこと・似た形の組 | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs` |
 | TS-script-decipher-003 | AC-script-decipher-003 | 星の語順どおりの文が教えになる（語順の両方） | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs` |
 | TS-script-decipher-004 | AC-script-decipher-004, 013, 014, 015 | 語順が逆の文の読み落とし・方角の語の位置・知らない記号・名詞だけの語 | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs` |
-| TS-script-decipher-005 | AC-script-decipher-005 | 崩れた後、似た形の組が一方に読まれる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs` |
+| TS-script-decipher-005 | AC-script-decipher-005 | 組の回から、似た形の組が一方に読まれる（前の時代では混ざらない） | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs` |
 | TS-script-decipher-006 | AC-script-decipher-010 | 語が無い・5 語・手帳に無い字を拒み、4 語は受け付ける | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs` |
 | TS-script-decipher-007 | AC-script-decipher-002, 011 | 祈りの文の並べ方 | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs` |
 | TS-script-decipher-008 | AC-script-decipher-012 | 字を語の字から戻し、合わない字を拒む | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs` |
 | TS-script-decipher-009 | AC-script-decipher-006 | 地形の目印が、名詞 1 語の文で年 0 に刻まれる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
 | TS-script-decipher-010 | AC-script-decipher-007, 016 | 工房・家・祠の札と、祠の札の刻み直し・消え方 | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
 | TS-script-decipher-011 | AC-script-decipher-017 | 禁忌の札の立つ・消える境（3 割） | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
-| TS-script-decipher-012 | AC-script-decipher-008, 018 | 崩れは一度だけで、古い字は古い形のまま | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
+| TS-script-decipher-012 | AC-script-decipher-008, 018 | 崩れは年ごとに回が進み、跳躍では 1 度にまとめ、古い字は古い形のまま | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
 | TS-script-decipher-013 | AC-script-decipher-019 | 手帳に語の字が載り、書き込みは一覧の意味だけ | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
-| TS-script-decipher-014 | AC-script-decipher-020 | 字・刻まれた文・手帳のセーブ（版 18）と、壊れた手帳の拒否 | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
+| TS-script-decipher-014 | AC-script-decipher-020 | 字・刻まれた文・手帳のセーブ（版 20）と、壊れた手帳の拒否 | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
 | TS-script-decipher-015 | （画面。仕様書の 2.1「見え方」） | 刻まれた字の印・拓本の欄・祈りの字の並び | Godot 4.7.2 で動かす | 下の手順 | 下の手順のとおり | 手動 | — |
 | TS-script-decipher-016 | AC-script-decipher-021 | 字の神託: 読めた組から教えと行き先・謎の語だけでも神威を使う・手帳に無い字と神威不足を拒む | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptSpeakTests.cs` |
 | TS-script-decipher-018 | AC-script-decipher-022 | 碑は 1 地域に新しい 3 つまで、左端の列の 1〜3 行目 | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SteleTests.cs` |
 | TS-script-decipher-019 | AC-script-decipher-023 | 神託を下すと予言者の地域に碑が刻まれる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SteleTests.cs` |
-| TS-script-decipher-020 | AC-script-decipher-024 | 崩れた年の読み直しで、似た形の組を含む崩れる前の碑だけが別の教えになる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SteleTests.cs` |
+| TS-script-decipher-020 | AC-script-decipher-024 | 崩れた年の読み直しで、この崩れで混ざった組を含む、前の時代の碑だけが別の教えになる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SteleTests.cs` |
 | TS-script-decipher-021 | AC-script-decipher-025 | 読み違いを信じる住人の数と決まり方・年表の行・セーブ | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SteleTests.cs` |
 | TS-script-decipher-022 | AC-script-decipher-026 | 書きぶりは星と時代で決まり、揺れは場所と年で決まって上限を越えない | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStyleTests.cs` |
+| TS-script-decipher-023 | AC-script-decipher-027 | 3 回目に動詞の組が混ざると、文と碑が別の種別に読まれる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs`・`SteleTests.cs` |
+| TS-script-decipher-024 | AC-script-decipher-028 | 版 19 のセーブを、崩れ 1 回分の形で読む | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
 | TS-script-decipher-017 | （画面。仕様書の「書く」） | 手帳の書き込みと、文を書いて語りかける欄 | Godot 4.7.2 で動かす | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順
@@ -40,7 +42,7 @@
 3. 印を押すと、左上に拓本の欄が開き、文が大きく出て、「地形の目印　0 年に刻まれた」のような説明と、「手帳に新しく N 個の字を写した」が出ることを確かめる。工房・祠・禁忌の札は 2 語の文に見える。同じ印をもう一度押すと「もう手帳にある」になる。
 4. 依頼が出ると、依頼の吹き出しの下に祈りの文（人の字）が並ぶことを確かめる。依頼が済むと消える。
 5. 文を書いて語りかけると、予言者のいる地域の左端の列に碑の印が増えることを確かめる。押すと拓本の欄に「神託の碑　〇〇年に刻まれた」と「人の読み：…」が出る。拓本の欄は吹き出しより手前に出て、重なっても読める。
-6. 300 年を越えると、Godot の出力に `event=script_decayed` が出て、年表に「人の字が崩れた」が残ることを確かめる。崩れた後に刻まれた札の字は線が減り、前からある札の字はそのままであることを確かめる。
+6. 300・600・900 年を越えるたびに、Godot の出力に `event=script_decayed` が出て、年表に「人の字が崩れた」が残ることを確かめる。崩れた後に刻まれた札の字は線が減り、前からある札の字はそのままであることを確かめる。
 
 2026-10-17 に、`--script` で動かす確かめで、印が出ること・拓本の欄が開くこと・祈りの字が並ぶこと・300 年で崩れることを確かめた（画面のスクショ。手で押す操作は未確認）。
 

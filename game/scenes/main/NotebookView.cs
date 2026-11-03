@@ -78,7 +78,7 @@ public sealed class NotebookView
         {
             return;
         }
-        var signature = string.Join(',', script.Notebook.Keys.Order(StringComparer.Ordinal)) + script.Decayed;
+        var signature = string.Join(',', script.Notebook.Keys.Order(StringComparer.Ordinal)) + script.Stage;
         if (signature == _shown)
         {
             return;
@@ -98,7 +98,7 @@ public sealed class NotebookView
         {
             var row = new HBoxContainer();
             var view = new GlyphView { CustomMinimumSize = new Vector2(28, 28) };
-            view.Show(script.Script, id, script.Decayed);
+            view.Show(script.Script, id, script.Stage);
             var choice = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
             foreach (var candidate in Labels)
             {

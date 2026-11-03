@@ -17,7 +17,7 @@ public partial class GlyphView : Control
 
     private PlanetScript? _script;
     private Sentence? _sentence;
-    private bool _decayed;
+    private int _stage;
     private ScriptStyle? _style;
     private (int Column, int Row, int Year, float Amount)? _mason;
 
@@ -35,20 +35,20 @@ public partial class GlyphView : Control
 
     /// <summary>描く文を替える。</summary>
     /// <param name="mason">刻まれた字なら、その場所・年と揺れの大きさ（格子 1 マスを 1 とする）。手帳や欄の字は揺らさないので null。</param>
-    public void Show(PlanetScript script, Sentence sentence, bool decayed, (int Column, int Row, int Year, float Amount)? mason = null)
+    public void Show(PlanetScript script, Sentence sentence, int stage, (int Column, int Row, int Year, float Amount)? mason = null)
     {
         _script = script;
         _sentence = sentence;
-        _decayed = decayed;
+        _stage = stage;
         _mason = mason;
-        _style = ScriptStyle.Of(script, decayed);
+        _style = ScriptStyle.Of(script, stage);
         _cells = Mathf.Max(1, script.Radicals.SelectMany(radical => radical.Strokes)
             .Select(stroke => Mathf.Max(Mathf.Max(stroke.X1, stroke.X2), Mathf.Max(stroke.Y1, stroke.Y2))).DefaultIfEmpty(1).Max());
         QueueRedraw();
     }
 
     /// <summary>語の字 1 つを描く。</summary>
-    public void Show(PlanetScript script, string radicalId, bool decayed) => Show(script, new Sentence([radicalId]), decayed);
+    public void Show(PlanetScript script, string radicalId, int stage) => Show(script, new Sentence([radicalId]), stage);
 
     public override void _Draw()
     {
@@ -106,7 +106,7 @@ public partial class GlyphView : Control
         (float X, float Y) Shake(int stroke, int end) => _mason is { } mason
             ? ScriptStyle.Jitter(mason.Amount, mason.Column, mason.Row, mason.Year, (wordIndex * 16) + stroke, end)
             : (0f, 0f);
-        var shape = radical.ShapeIn(_decayed);
+        var shape = radical.ShapeIn(_stage);
         for (var i = 0; i < shape.Count; i++)
         {
             var stroke = shape[i];

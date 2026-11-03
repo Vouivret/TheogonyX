@@ -234,7 +234,7 @@ public sealed class OracleView
             child.QueueFree();
         }
         var view = new GlyphView { CustomMinimumSize = new Vector2(32 * sentence.Words.Count, 32), MouseFilter = Control.MouseFilterEnum.Ignore };
-        view.Show(script.Script, sentence, script.Decayed);
+        view.Show(script.Script, sentence, script.Stage);
         _prayerGlyphs.AddChild(view);
         var added = script.Discover(sentence);
         _prayerPanel.Visible = sentence.Words.Count > 0;

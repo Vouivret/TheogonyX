@@ -42,20 +42,20 @@ public enum GlyphFrame
 public sealed record ScriptStyle(StrokeCap Cap, float Weight, float Bend, float Slant, GlyphOrnament Ornament, GlyphFrame Frame)
 {
     /// <summary>
-    /// 星の字の、時代ごとの書きぶり。崩れた後は振り直し、線の端の形は必ず崩れる前と変える（昔の碑と今の札の見た目が違う）。
+    /// 星の字の、時代ごとの書きぶり（<paramref name="stage"/> は崩れの回数）。崩れるたびに振り直し、線の端の形は必ず前の時代と変える（昔の碑と今の札の見た目が違う）。
     /// 語ごとには変えない（飾りで字を見分けられないように）。
     /// </summary>
-    public static ScriptStyle Of(PlanetScript script, bool decayed)
+    public static ScriptStyle Of(PlanetScript script, int stage)
     {
         ArgumentNullException.ThrowIfNull(script);
-        var before = Roll(new Random(Fingerprint(script)));
-        if (!decayed)
+        var style = Roll(new Random(Fingerprint(script)));
+        for (var turn = 0; turn < stage; turn++)
         {
-            return before;
+            var random = new Random(unchecked(Fingerprint(script) + 0x44454341 + turn)); // "DECA"
+            var after = Roll(random);
+            style = after with { Cap = (StrokeCap)(((int)style.Cap + 1 + random.Next(2)) % 3) };
         }
-        var random = new Random(unchecked(Fingerprint(script) + 0x44454341)); // "DECA"
-        var after = Roll(random);
-        return after with { Cap = (StrokeCap)(((int)before.Cap + 1 + random.Next(2)) % 3) };
+        return style;
     }
 
     /// <summary>

@@ -24,13 +24,13 @@ public readonly record struct Stroke(int X1, int Y1, int X2, int Y2) : IComparab
 }
 
 /// <summary>
-/// 字の部品。形は格子点を結ぶ線の集まり。崩れると <paramref name="DecayStroke"/> の線が消える。
+/// 字の部品。形は格子点を結ぶ線の集まり。<paramref name="DecayStage"/> 回目の崩れで <paramref name="DecayStroke"/> の線が消える（語ごとに一度だけ）。
 /// <paramref name="Key"/> は、意味の部品なら記号の ID、働きの部品なら <see cref="DogmaType"/> の名前、方角の部品なら <see cref="TravelDirection"/> の名前。
 /// ID は意味を表さない（見た目からだけ推理するため）。
 /// </summary>
-public sealed record ScriptRadical(string Id, RadicalKind Kind, string Key, IReadOnlyList<Stroke> Strokes, Stroke DecayStroke)
+public sealed record ScriptRadical(string Id, RadicalKind Kind, string Key, IReadOnlyList<Stroke> Strokes, Stroke DecayStroke, int DecayStage = 1)
 {
-    /// <summary>時代ごとの形（崩れた後は <see cref="DecayStroke"/> を除く）。線は並べ替えてそろえる。</summary>
-    public IReadOnlyList<Stroke> ShapeIn(bool decayed) =>
-        [.. Strokes.Where(stroke => !decayed || stroke != DecayStroke).Order()];
+    /// <summary>時代ごとの形（<paramref name="stage"/> は崩れの回数。その語が崩れた後は <see cref="DecayStroke"/> を除く）。線は並べ替えてそろえる。</summary>
+    public IReadOnlyList<Stroke> ShapeIn(int stage) =>
+        [.. Strokes.Where(stroke => stage < DecayStage || stroke != DecayStroke).Order()];
 }

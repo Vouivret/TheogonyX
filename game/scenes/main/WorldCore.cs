@@ -273,7 +273,7 @@ public partial class WorldCore : Node2D
     {
         try
         {
-            var probe = PlanetScript.Restore(rules, save.Radicals, save.WordOrder, save.SimilarPair);
+            var probe = PlanetScript.Restore(rules, save.Radicals, save.WordOrder, save.SimilarPairs);
             new ScriptState(rules, probe, regions, [], 0.3f).Restore(save);
             return true;
         }
