@@ -34,11 +34,11 @@
 | 精神崩壊 | `BreakdownKind` | SAN 値が 0 になった住人の状態。狂乱（`Rampage`）か自閉・絶望（`Catatonia`）で、3 年続く | Breakdown | 発狂 |
 | 称号 | `ResidentEpithet` | 住人が行いで得る呼び名（例: 血を恐れぬ者）。1 人 1 つで、最初に得たものを残す | Epithet | 二つ名 |
 | 家 | `BuildingType.HouseHut`・`HouseTimber`・`HouseBrick` | 屋根を探す住人が建てる建物。1 軒に 4 人が住める。種類は建った年の地域の技術の段階で決まる（わらぶき小屋・木組みの家・れんがの家） | House | 住居、民家 |
-| 神の声 | `SPEAK`（通信） | プレイヤーが自由な文で書いて予言者に語りかける神託（[神託の作り方](oracle-pair.md)の「自由文の神託」） | Divine voice | |
-| 予言者の語彙 | `OracleDeck` | 予言者が知っている言葉。手札のルーンの記号の名詞と、すべての動詞。画面には見せない（[神託の作り方](oracle-pair.md)） | Prophet vocabulary | |
-| 語義のずれ表 | `DialectTable` | 星のシードと器の段から作る「神の言葉 → 予言者に聞こえる意味」の表（[神託の作り方](oracle-pair.md)） | Dialect table | |
-| 方言帳 | `DialectBook` | 神託と祈りで分かった聞き違えと知っている言葉を、自動で書き留める欄（[神託の作り方](oracle-pair.md)） | Dialect book | |
-| 謎の言葉 | `MysteryWords` | 神の文のうち、どの記号にも当たらない言葉。教えにならず、経典にだけ残る（[神託の作り方](oracle-pair.md)） | Mystery word | |
+| 神の声 | `SPEAK`（通信） | （廃止予定。字の神託に置き換わる）プレイヤーが自由な文で書いて予言者に語りかける神託（[神託の作り方](oracle-pair.md)の「自由文の神託」） | Divine voice | |
+| 予言者の語彙 | `OracleDeck` | （廃止予定。字の神託では「知っている字」＝手帳の字に置き換わる）予言者が知っている言葉。手札のルーンの記号の名詞と、すべての動詞。画面には見せない（[神託の作り方](oracle-pair.md)） | Prophet vocabulary | |
+| 語義のずれ表 | `DialectTable` | （廃止予定）星のシードと器の段から作る「神の言葉 → 予言者に聞こえる意味」の表（[神託の作り方](oracle-pair.md)） | Dialect table | |
+| 方言帳 | `DialectBook` | （廃止予定）神託と祈りで分かった聞き違えと知っている言葉を、自動で書き留める欄（[神託の作り方](oracle-pair.md)） | Dialect book | |
+| 謎の言葉 | `MysteryWords` | （廃止予定。碑の読み違いに置き換わる）神の文のうち、どの記号にも当たらない言葉。教えにならず、経典にだけ残る（[神託の作り方](oracle-pair.md)） | Mystery word | |
 | 掟の 1 行 | `ORACLE_LINE_*` | 予言者が告げる吹き出しの頭に出す、記号と種別を決まった形で書いた 1 行（例:「〈木〉を崇めよ」）（[神託の作り方](oracle-pair.md)） | Law line | |
 | 信仰 | `Belief` | 住人が信じている教えと、その強さ。1 人 3 つまで（[信仰としてのドグマ](dogma-belief.md)） | Belief | |
 | 信者 | | ある教えを信じている住人 | Believer | |
