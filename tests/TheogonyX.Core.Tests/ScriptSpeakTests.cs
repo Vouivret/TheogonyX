@@ -30,7 +30,8 @@ public class ScriptSpeakTests
         var outcome = prophet.SpeakScript(sentence);
 
         Assert.Null(outcome.RejectedReason);
-        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f), Assert.Single(time.Dogmas));
+        // 危機の困りごとを定義していない星は平時なので、崇拝の読みは「祀る」（docs/domain/script-decipher.md の 9）
+        Assert.Equal(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f, OracleReading.Revere), Assert.Single(time.Dogmas));
         Assert.Equal(TravelDirection.East, time.Prophet!.Destination);
         Assert.Equal(2.0, prophet.Faith.Value, 3);
         Assert.Equal(outcome.Result!.Record, Assert.Single(prophet.Dialect!.Records));

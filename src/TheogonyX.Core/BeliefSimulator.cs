@@ -53,7 +53,7 @@ public static class BeliefSimulator
         ArgumentNullException.ThrowIfNull(residents);
         ArgumentNullException.ThrowIfNull(dogma);
         ArgumentNullException.ThrowIfNull(rules);
-        var belief = new Belief(dogma.TargetSymbolId, dogma.Type, dogma.Intensity);
+        var belief = new Belief(dogma.TargetSymbolId, dogma.Type, dogma.Intensity, dogma.Reading);
         var people = residents.People
             .Select(person => Math.Abs(person.Region - prophetRegion) <= rules.SeedRegions ? Believe(person, belief, rules.MaxBeliefs) : person)
             .ToList();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Godot;
 using TheogonyX.Core;
@@ -10,12 +11,14 @@ namespace TheogonyX.Scenes.Main;
 /// 文を書いて神託を下す欄（docs/domain/script-decipher.md の「7. 語の字と神託の碑」）。手帳の字を押すと文の後ろに足され、
 /// 文の字を押すとその字が消える。「語りかける」で <see cref="Submitted"/> を知らせる。
 /// 字の意味は見せない（神の手帳の書き込みだけを、字の下に小さく出す）。
+/// 予言者のいる地域の今の危機を出し、崩れで混ざった組の字は 1 つにまとめて出す（docs/domain/script-decipher.md の 9）。
 /// </summary>
 public sealed class ScriptComposerView
 {
     private readonly ProphetDreams _prophet;
     private readonly PanelContainer _panel;
     private readonly Label _hint;
+    private readonly Label _crisis;
     private readonly HFlowContainer _palette;
     private readonly GlyphView[] _slots = new GlyphView[ScriptRules.MaxGlyphsPerOracle];
     private readonly Button _speakButton;
@@ -32,6 +35,8 @@ public sealed class ScriptComposerView
         header.AddChild(new Label { Text = "COMPOSE_TITLE", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
         header.AddChild(close);
         _hint = new Label { Name = "ComposeHint", AutowrapMode = TextServer.AutowrapMode.WordSmart, Modulate = new Color(1f, 0.85f, 0.3f) };
+
+        _crisis = new Label { Name = "ComposeCrisis" };
 
         _palette = new HFlowContainer { Name = "Palette", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
 
@@ -59,6 +64,7 @@ public sealed class ScriptComposerView
         var column = new VBoxContainer();
         column.AddChild(header);
         column.AddChild(_hint);
+        column.AddChild(_crisis);
         column.AddChild(new Label { Text = "COMPOSE_PALETTE" });
         column.AddChild(_palette);
         column.AddChild(new HSeparator());
@@ -113,9 +119,12 @@ public sealed class ScriptComposerView
             : _words.Count == 0 ? Tr("COMPOSE_HINT_PLACE")
             : _words.Count < _slots.Length ? Tr("COMPOSE_HINT_READY")
             : Tr("COMPOSE_HINT_FULL");
+        _crisis.Text = string.Format(
+            CultureInfo.CurrentCulture, Tr("CRISIS_LABEL"), Tr($"CRISIS_{_prophet.CurrentCrisis().ToString().ToUpperInvariant()}"));
     }
 
-    // 手帳に載った字を並べる。字の下に、神の書き込み（意味の推理）を小さく出す
+    // 手帳に載った字を並べる。字の下に、神の書き込み（意味の推理）を小さく出す。
+    // 混ざった組の字は形がもう同じなので 1 つにまとめ、書き込みを「/」でつなぐ。押すと組の中で手帳にある ID の小さい方を足す
     private void RebuildPalette(ScriptState script)
     {
         var signature = string.Join(',', script.Notebook.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => $"{pair.Key}={pair.Value}")) + script.Stage;
@@ -129,10 +138,14 @@ public sealed class ScriptComposerView
             _palette.RemoveChild(child);
             child.QueueFree();
         }
-        foreach (var (id, label) in script.Notebook.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        var groups = script.Notebook.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .GroupBy(pair => ScriptReader.ReadAs(script.Script, pair.Key, script.Stage));
+        foreach (var group in groups)
         {
+            var id = group.First().Key;
+            var label = string.Join(" / ", group.Select(pair => NotebookView.LabelText(pair.Value)).Distinct());
             var cell = new VBoxContainer();
-            var view = new GlyphView { CustomMinimumSize = new Vector2(32, 32), MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = NotebookView.LabelText(label) };
+            var view = new GlyphView { CustomMinimumSize = new Vector2(32, 32), MouseFilter = Control.MouseFilterEnum.Stop, TooltipText = label };
             view.Show(script.Script, id, script.Stage);
             var radicalId = id;
             view.GuiInput += input =>
@@ -144,7 +157,7 @@ public sealed class ScriptComposerView
                 }
             };
             cell.AddChild(view);
-            cell.AddChild(new Label { Text = NotebookView.LabelText(label), ThemeTypeVariation = "TooltipLabel", HorizontalAlignment = HorizontalAlignment.Center });
+            cell.AddChild(new Label { Text = label, ThemeTypeVariation = "TooltipLabel", HorizontalAlignment = HorizontalAlignment.Center });
             _palette.AddChild(cell);
         }
     }

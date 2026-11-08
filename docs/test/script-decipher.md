@@ -32,6 +32,16 @@
 | TS-script-decipher-022 | AC-script-decipher-026 | 書きぶりは星と時代で決まり、揺れは場所と年で決まって上限を越えない | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStyleTests.cs` |
 | TS-script-decipher-023 | AC-script-decipher-027 | 3 回目に動詞の組が混ざると、文と碑が別の種別に読まれる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs`・`SteleTests.cs` |
 | TS-script-decipher-024 | AC-script-decipher-028 | 版 19 のセーブを、崩れ 1 回分の形で読む | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
+| TS-script-decipher-025 | AC-script-decipher-029 | 危機は争い・欠乏・平時の順で先に当てはまるもの（疫病はまだ無い） | 困りごとの無い星 | 渇きを起こし、さらに混乱を起こす | 平時 → 欠乏 → 争い | 自動 | `tests/TheogonyX.Core.Tests/OracleReadingTests.cs` |
+| TS-script-decipher-026 | AC-script-decipher-030・031 | 字の神託の教えに、予言者のいる今の危機で読みが付く。読みの違う教えは別の教えとして並ぶ | 平時の星と争いの星 | 「木 壊せ」で神託を下す | 平時は切り開く、争いは武器と壁にする。年表の行にも読みが残る | 自動 | `tests/TheogonyX.Core.Tests/OracleReadingTests.cs` |
+| TS-script-decipher-027 | （9 の表） | 12 通りの表から読みを引く。血の教えには読みを付けない | 血の崇拝・水の禁忌 | 読みを付ける | 血はそのまま、水の禁忌 × 疫病は隔てる | 自動 | `tests/TheogonyX.Core.Tests/OracleReadingTests.cs` |
+| TS-script-decipher-028 | AC-script-decipher-038 | 混ざった組の語は、混ざった後は ID の小さい方として読む（神託を書く欄で 1 つにまとめる元） | 似た形の組の 1 つ目 | 崩れ 0 回と 1 回で読む | 0 回はそのまま、1 回は小さい方 | 自動 | `tests/TheogonyX.Core.Tests/OracleReadingTests.cs` |
+| TS-script-decipher-029 | AC-script-decipher-035 | 読みの付いた教え・信仰・年表がセーブから戻る。種別の行に無い読みは拒む | 読みの付いた教えがある星 | 保存して読み戻す／破壊の教えの読みを「祀る」に書き換える | 戻る／拒む | 自動 | `tests/TheogonyX.Core.Tests/OracleReadingTests.cs`・`SteleTests.cs` |
+| TS-script-decipher-030 | AC-script-decipher-037・038 | 神託を書く欄に今の危機が出て、混ざった組の字が 1 つにまとまる | Godot で星を作り、手帳に字がある | 欄を開く。カオス度を上げて開き直す。崩れの後に開く | 危機の表示が変わる。混ざった組の字が 1 つになり、書き込みが「/」でつながる | 手動 | `game/scenes/main/ScriptComposerView.cs` |
+| TS-script-decipher-031 | AC-script-decipher-033 | 同じ地域に同じ記号の崇拝と破壊を信じる人がいると、対立の地域 1 つ分カオス度が上がる。別の地域なら対立しない | 地域 2 に木の崇拝 3 人・破壊 7 人、カオス度 10 | 1 年を計算する | カオス度 12、誰も移らない | 自動 | `tests/TheogonyX.Core.Tests/SchismTests.cs` |
+| TS-script-decipher-032 | AC-script-decipher-034 | カオス度が閾値以上なら、少ない側の教えだけを信じる人が、隣のうち住人の少ない地域へ移る。同じ数なら後に加わった教えの側・東。つがいの相手は一緒に移り、残る人との好感度は消える | 受け入れ条件のとおり | 1 年を計算する | 崇拝の 3 人が地域 3 へ移る | 自動 | `tests/TheogonyX.Core.Tests/SchismTests.cs` |
+| TS-script-decipher-033 | AC-script-decipher-036 | 隣の地域が無ければ追放は起きない | 地域が 1 つだけの星 | 1 年を計算する | 誰も移らない | 自動 | `tests/TheogonyX.Core.Tests/SchismTests.cs` |
+| TS-script-decipher-034 | AC-script-decipher-034・035 | 追放は年表に 1 行残り、セーブから戻る。隣でない地域への行は拒む | 追放の条件を満たした星 | 1 年進めて保存し、読み戻す／移った地域を書き換える | 戻る／拒む | 自動 | `tests/TheogonyX.Core.Tests/SchismTests.cs` |
 | TS-script-decipher-017 | （画面。仕様書の「書く」） | 手帳の書き込みと、文を書いて語りかける欄 | Godot 4.7.2 で動かす | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順

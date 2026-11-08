@@ -142,6 +142,7 @@ public partial class WorldCore : Node2D
         _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
         _screen.TimeAdvanced += () => LogForgottenDogmas(timeControl);
         _screen.TimeAdvanced += () => LogProphetMoves(timeControl);
+        _screen.TimeAdvanced += () => LogExiles(timeControl);
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         // 詳細の視点は住人の絵、中拡大・大陸は群衆の点。境目は重ねて薄くしながら切り替える（docs/domain/camera-views.md の「群衆の描き方」）
@@ -342,6 +343,15 @@ public partial class WorldCore : Node2D
         {
             var reason = move.Reason == ProphetMoveReason.Destination ? "destination" : "wander";
             GD.Print($"event=prophet_moved year={move.Year} region={move.To} reason={reason}");
+        }
+    }
+
+    // 追放は出来事なので Info
+    private static void LogExiles(TimeControl timeControl)
+    {
+        foreach (var exile in timeControl.Exiles)
+        {
+            GD.Print($"event=residents_exiled year={exile.Year} region={exile.From} count={exile.ResidentIds.Count} symbolId={exile.SymbolId} dogmaType={exile.Type}");
         }
     }
 

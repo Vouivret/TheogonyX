@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 20;
+    public const int SaveVersion = 21;
 
     // 版 19 は住人の好感度を足しただけなので、版 18 のセーブは好感度が空として読む
     private const int OldestReadableVersion = 18;
@@ -42,6 +42,7 @@ public static class SaveDataSerializer
         [HistoryEventType.DogmaForgotten] = "DOGMA_FORGOTTEN",
         [HistoryEventType.ScriptDecayed] = "SCRIPT_DECAYED",
         [HistoryEventType.SteleMisread] = "STELE_MISREAD",
+        [HistoryEventType.Exiled] = "EXILED",
         [HistoryEventType.ResidentBrokeDown] = "RESIDENT_BROKE_DOWN",
         [HistoryEventType.NotableDied] = "NOTABLE_DIED",
         [HistoryEventType.WorldDestroyed] = "WORLD_DESTROYED",
@@ -86,12 +87,7 @@ public static class SaveDataSerializer
                 harmonyLevel = world.HarmonyLevel,
                 isDestroyed = world.IsDestroyed,
             },
-            dogmas = data.Dogmas.Select(dogma => new
-            {
-                targetSymbolId = dogma.TargetSymbolId,
-                dogmaType = dogma.Type.ToString(),
-                intensity = dogma.Intensity,
-            }),
+            dogmas = data.Dogmas.Select(WriteDogma),
             request = data.RequestId,
             answeredYears = data.AnsweredYears,
             autoPlay = new { speed = SpeedNames[data.Speed], elapsedSeconds = data.ElapsedSeconds },
@@ -134,12 +130,7 @@ public static class SaveDataSerializer
                     tech = relic.Tech,
                     culture = relic.Culture,
                     chaos = relic.Chaos,
-                    dogmas = relic.Dogmas.Select(dogma => new
-                    {
-                        targetSymbolId = dogma.TargetSymbolId,
-                        dogmaType = dogma.Type.ToString(),
-                        intensity = dogma.Intensity,
-                    }),
+                    dogmas = relic.Dogmas.Select(WriteDogma),
                 }),
                 nextBuildingId = data.Civilization.NextBuildingId,
             },
@@ -169,6 +160,7 @@ public static class SaveDataSerializer
                         symbolId = belief.SymbolId,
                         dogmaType = belief.Type.ToString(),
                         strength = belief.Strength,
+                        reading = belief.Reading?.ToString(),
                     }),
                 }),
                 graves = data.Residents.Graves.Select(grave => new
@@ -200,6 +192,10 @@ public static class SaveDataSerializer
                 chaosTo = entry.ChaosTo,
                 myth = entry.Myth is null ? null : new { heading = entry.Myth.Heading, body = entry.Myth.Body },
                 written = entry.WrittenSymbolId is null ? null : new { symbolId = entry.WrittenSymbolId, dogmaType = entry.WrittenDogmaType?.ToString() },
+                reading = entry.Reading?.ToString(),
+                region = entry.Region,
+                toRegion = entry.ToRegion,
+                count = entry.Count,
             }),
             historyChapterStart = new { year = data.Chapter.Year, chaos = data.Chapter.ChaosLevel },
             deck = new
@@ -256,9 +252,7 @@ public static class SaveDataSerializer
                         godText = record.GodText,
                         heardNounId = record.HeardNounId,
                         heardVerbId = record.HeardVerbId,
-                        teaching = record.Teaching is null
-                            ? null
-                            : new { targetSymbolId = record.Teaching.TargetSymbolId, dogmaType = record.Teaching.Type.ToString(), intensity = record.Teaching.Intensity },
+                        teaching = record.Teaching is null ? null : WriteDogma(record.Teaching),
                         destination = record.Destination.ToString(),
                         mysteryWords = record.MysteryWords,
                         heardText = record.HeardText,
@@ -660,7 +654,7 @@ public static class SaveDataSerializer
             }
             return (id, Enum.Parse<DogmaType>(typeName));
         }
-        if (type.Key is HistoryEventType.DogmaFormed or HistoryEventType.DogmaForgotten or HistoryEventType.SteleMisread)
+        if (type.Key is HistoryEventType.DogmaFormed or HistoryEventType.DogmaForgotten or HistoryEventType.SteleMisread or HistoryEventType.Exiled)
         {
             (symbolId, var teachingType) = ReadTeaching(symbolElement, dogmaTypeElement);
             dogmaType = teachingType;
@@ -772,8 +766,31 @@ public static class SaveDataSerializer
         {
             throw new InvalidSaveDataException("invalid_history");
         }
+        // 読みは、教えが生まれた行と碑の読み違いの行だけが持つ
+        OracleReading? reading = null;
+        if (type.Key is HistoryEventType.DogmaFormed or HistoryEventType.SteleMisread)
+        {
+            reading = ReadReading(element, dogmaType!.Value, "invalid_history");
+        }
+        else if (element.TryGetProperty("reading", out var readingElement) && readingElement.ValueKind != JsonValueKind.Null)
+        {
+            throw new InvalidSaveDataException("invalid_history");
+        }
+        // 追放の行だけが、元の地域・移った地域（東西の隣）・人数を持つ（版 21 で足した）
+        int? Optional(string key) =>
+            !element.TryGetProperty(key, out var value) || value.ValueKind == JsonValueKind.Null ? null
+            : value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number) ? number
+            : throw new InvalidSaveDataException("invalid_history");
+        var (region, toRegion, count) = (Optional("region"), Optional("toRegion"), Optional("count"));
+        if (type.Key == HistoryEventType.Exiled
+            ? region is not >= 0 || toRegion is not >= 0 || Math.Abs(region.Value - toRegion.Value) != 1 || count is not >= 1
+            : region is not null || toRegion is not null || count is not null)
+        {
+            throw new InvalidSaveDataException("invalid_history");
+        }
         return new HistoryEntry(
-            year, type.Key, symbolId, dogmaType, name, epithet, breakdown, oracle, fromYear, chaosFrom, chaosTo, myth, writtenSymbolId, writtenDogmaType);
+            year, type.Key, symbolId, dogmaType, name, epithet, breakdown, oracle, fromYear, chaosFrom, chaosTo, myth, writtenSymbolId, writtenDogmaType,
+            reading, region, toRegion, count);
     }
 
     private static object WriteName(ResidentName name) => new
@@ -945,7 +962,8 @@ public static class SaveDataSerializer
             {
                 throw new InvalidSaveDataException("invalid_residents");
             }
-            var belief = new Belief(symbolId, Enum.Parse<DogmaType>(typeName), strength);
+            var beliefType = Enum.Parse<DogmaType>(typeName);
+            var belief = new Belief(symbolId, beliefType, strength, ReadReading(item, beliefType, "invalid_residents"));
             if (beliefs.Any(existing => existing.IsSameTeaching(belief)))
             {
                 throw new InvalidSaveDataException("invalid_residents");
@@ -1115,8 +1133,32 @@ public static class SaveDataSerializer
         {
             throw new InvalidSaveDataException("unknown_dogma_type");
         }
-        return new Dogma(symbolId, Enum.Parse<DogmaType>(typeName), ReadFloat(element, "intensity"));
+        var type = Enum.Parse<DogmaType>(typeName);
+        return new Dogma(symbolId, type, ReadFloat(element, "intensity"), ReadReading(element, type, "invalid_field"));
     }
+
+    // 版 21 で足した教えの読み（docs/domain/script-decipher.md の 9）。無いか null なら読み無し。種別の行に無い読みは拒む
+    private static OracleReading? ReadReading(JsonElement element, DogmaType type, string reason)
+    {
+        if (!element.TryGetProperty("reading", out var value) || value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        var name = value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+        if (name is null || !Enum.GetNames<OracleReading>().Contains(name) || !OracleReadings.Fits(type, Enum.Parse<OracleReading>(name)))
+        {
+            throw new InvalidSaveDataException(reason);
+        }
+        return Enum.Parse<OracleReading>(name);
+    }
+
+    private static object WriteDogma(Dogma dogma) => new
+    {
+        targetSymbolId = dogma.TargetSymbolId,
+        dogmaType = dogma.Type.ToString(),
+        intensity = dogma.Intensity,
+        reading = dogma.Reading?.ToString(),
+    };
 
     // 0 以上、今の年以下の年
     private static int ReadYearUpTo(JsonElement element, int currentYear)

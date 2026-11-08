@@ -267,7 +267,7 @@ public static class GameDataLoader
                 ?? throw new InvalidDataException("字の定義が空: file=rules.json key=script");
             var rules = new ScriptRules(
                 file.GridSize, file.MinStrokes, file.MaxStrokes, file.DecayYears, file.TeachingIntensity, file.MaxStelesPerRegion, file.MisreadShare,
-                file.StyleJitter);
+                file.StyleJitter, StrifeRequestIds: file.StrifeRequests, WantRequestIds: file.WantRequests);
             rules.Validate();
             if (file.TabooPlateShare is <= 0f or > 1f || file.Landmarks is null)
             {
@@ -484,7 +484,7 @@ public static class GameDataLoader
 
     private sealed record ScriptFile(
         int GridSize, int MinStrokes, int MaxStrokes, int[] DecayYears, float TeachingIntensity, int MaxStelesPerRegion, float MisreadShare,
-        float StyleJitter, float TabooPlateShare, IReadOnlyList<ScriptLandmark> Landmarks);
+        float StyleJitter, float TabooPlateShare, IReadOnlyList<ScriptLandmark> Landmarks, string[] StrifeRequests, string[] WantRequests);
 
     private sealed record DialectSection(JsonElement? Dialect, string? DialectVessel);
 

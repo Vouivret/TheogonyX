@@ -118,7 +118,11 @@
     "gatherTransmit": 0.3,
     "partnerTransmit": 0.5,
     "dampen": 0.8,
-    "inheritDampen": 0.8
+    "inheritDampen": 0.8,
+    "schism": {
+      "chaosPerConflictRegion": 2.0,
+      "exileChaosAtOrAbove": 50.0
+    }
   },
   "dialectVessel": "VESSEL_PRIEST",
   "dialect": {
@@ -190,6 +194,8 @@
     "misreadShare": 0.3,
     "styleJitter": 0.1,
     "tabooPlateShare": 0.3,
+    "strifeRequests": ["CHAOS"],
+    "wantRequests": ["THIRST", "FAMINE", "HEAT", "COLD"],
     "landmarks": [
       { "symbolId": "SYM_WATER", "column": 19, "row": 8 },
       { "symbolId": "SYM_FIRE", "column": 11, "row": 2 },

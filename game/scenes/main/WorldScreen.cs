@@ -227,8 +227,7 @@ public sealed class WorldScreen
             : string.Join("\n", _timeControl.Dogmas.Select(dogma => string.Format(
                 culture,
                 Tr("DOGMA_ENTRY_BELIEVERS"),
-                Tr($"SYMBOL_{dogma.TargetSymbolId}"),
-                Tr($"DOGMA_TYPE_{dogma.Type.ToString().ToUpperInvariant()}"),
+                ChronicleText.TeachingOf(dogma.TargetSymbolId, dogma.Type, dogma.Reading),
                 _timeControl.BelieversOf(dogma))));
     }
 

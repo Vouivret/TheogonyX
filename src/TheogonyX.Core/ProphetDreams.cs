@@ -311,7 +311,11 @@ public sealed class ProphetDreams
         {
             return new ScriptSpeakOutcome(outcome.RejectedReason, null, null);
         }
-        var hearing = new Hearing(reading.Teaching, null, null, reading.Destination, false, [], []);
+        // 教えには、予言者のいる今の危機で決まる読みを付ける（docs/domain/script-decipher.md の 9）
+        var crisis = CurrentCrisis();
+        var teaching = reading.Teaching is { } read ? OracleReadings.WithReading(read, crisis) : null;
+        reading = reading with { Teaching = teaching };
+        var hearing = new Hearing(teaching, null, null, reading.Destination, false, [], []);
         // 神託の記録には、神が書いた文を語の字の ID で残す（経典の元）
         var result = Speak(hearing, sentence.ToString());
         // 神が書いた文を、予言者のいる地域に碑として刻む
@@ -322,20 +326,31 @@ public sealed class ProphetDreams
         return new ScriptSpeakOutcome(null, result, reading);
     }
 
-    // 字が崩れた年: 崩れる前の碑を読み直し、読み違えた教えを、その地域の住人の一部が信じる。年表に残す
+    /// <summary>
+    /// 今の危機（docs/domain/script-decipher.md の 9）。小さな MVP では環境の値が星全体で 1 つなので、どの地域も同じ危機になる。
+    /// 星の字の状態が無ければ平時。
+    /// </summary>
+    public Crisis CurrentCrisis() => Script is { } script
+        ? OracleReadings.CrisisOf(_timeControl.World, _timeControl.Civilization, _rules.Requests, script.Rules)
+        : Crisis.Peace;
+
+    // 字が崩れた年: 崩れる前の碑を読み直し、読み違えた教えを、その地域の住人の一部が信じる。年表に残す。
+    // 読み違えた教えの読みは、崩れた年の危機で決める（元の教えの読みは変えない）
     private int RereadSteles(int year, int fromStage)
     {
         var script = Script!;
         var misreadings = script.RereadSteles(fromStage);
+        var crisis = CurrentCrisis();
         foreach (var misreading in misreadings)
         {
             var stele = misreading.Stele;
+            var read = OracleReadings.WithReading(misreading.Read, crisis);
             _timeControl.AdoptMisreading(
-                misreading.Read, stele.Region, script.Rules.MisreadShare,
+                read, stele.Region, script.Rules.MisreadShare,
                 unchecked((stele.Year * 7919) + stele.Region));
             _timeControl.History?.Add(new HistoryEntry(
-                year, HistoryEventType.SteleMisread, misreading.Read.TargetSymbolId, misreading.Read.Type, FromYear: stele.Year,
-                WrittenSymbolId: misreading.Written.TargetSymbolId, WrittenDogmaType: misreading.Written.Type));
+                year, HistoryEventType.SteleMisread, read.TargetSymbolId, read.Type, FromYear: stele.Year,
+                WrittenSymbolId: misreading.Written.TargetSymbolId, WrittenDogmaType: misreading.Written.Type, Reading: read.Reading));
         }
         return misreadings.Count;
     }

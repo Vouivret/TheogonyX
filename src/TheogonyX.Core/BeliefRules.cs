@@ -10,8 +10,9 @@ namespace TheogonyX.Core;
 /// <param name="PartnerTransmit">つがいの相手にうつすときのうつりやすさ。</param>
 /// <param name="Dampen">人から人へうつるときに、強さに掛けて弱める倍率。</param>
 /// <param name="InheritDampen">親から子へ継ぐときに、強さに掛けて弱める倍率。</param>
+/// <param name="Schism">教えの対立と追放の定義。null なら対立を計算しない。</param>
 public sealed record BeliefRules(
-    int MaxBeliefs, int SeedRegions, float GatherTransmit, float PartnerTransmit, float Dampen, float InheritDampen)
+    int MaxBeliefs, int SeedRegions, float GatherTransmit, float PartnerTransmit, float Dampen, float InheritDampen, SchismRules? Schism = null)
 {
     /// <summary>値が範囲の中にあることを確かめる。</summary>
     /// <exception cref="ArgumentException">範囲外の値。</exception>
@@ -22,6 +23,7 @@ public sealed record BeliefRules(
         {
             throw new ArgumentException($"信仰の定義の値が範囲外: {this}");
         }
+        Schism?.Validate();
     }
 
     private static bool IsRatio(float value) => float.IsFinite(value) && value is >= 0f and <= 1f;

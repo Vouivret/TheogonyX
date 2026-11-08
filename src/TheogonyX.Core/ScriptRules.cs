@@ -12,10 +12,18 @@ namespace TheogonyX.Core;
 /// <param name="MisreadShare">碑の読み違いの教えを信じる、その地域の住人の割合。</param>
 /// <param name="StyleJitter">刻まれた字の、石工の手の揺れの大きさ（格子 1 マスを 1 とする。見た目だけ。似た形の組の線 1 本の違いが消えないよう 0.25 まで）。</param>
 /// <param name="MaxAttempts">部品の形を作り直す回数の上限（越えたら定義が悪い）。</param>
+/// <param name="StrifeRequestIds">危機「争い」に当たる、予言者の依頼の困りごとの ID（docs/domain/script-decipher.md の 9）。無ければ空。</param>
+/// <param name="WantRequestIds">危機「欠乏」に当たる、予言者の依頼の困りごとの ID。無ければ空。</param>
 public sealed record ScriptRules(
     int GridSize, int MinStrokes, int MaxStrokes, IReadOnlyList<int> DecayYears, float TeachingIntensity, int MaxStelesPerRegion, float MisreadShare,
-    float StyleJitter, int MaxAttempts = 1000)
+    float StyleJitter, int MaxAttempts = 1000, IReadOnlyList<string>? StrifeRequestIds = null, IReadOnlyList<string>? WantRequestIds = null)
 {
+    /// <summary>危機「争い」に当たる困りごとの ID。</summary>
+    public IReadOnlyList<string> StrifeRequests => StrifeRequestIds ?? [];
+
+    /// <summary>危機「欠乏」に当たる困りごとの ID。</summary>
+    public IReadOnlyList<string> WantRequests => WantRequestIds ?? [];
+
     /// <summary>神託 1 回の文に並べられる語の数の上限。</summary>
     public const int MaxGlyphsPerOracle = 4;
 

@@ -188,11 +188,15 @@ public class SteleTests
 
         Assert.True(update.ScriptDecayed);
         Assert.Equal(1, update.SteleMisreadings);
-        var misread = new Dogma(smaller, DogmaType.Worship, 0.7f);
+        // 崩れた年は平時なので、読み違えた崇拝の読みは「祀る」（docs/domain/script-decipher.md の 9）
+        var misread = new Dogma(smaller, DogmaType.Worship, 0.7f, OracleReading.Revere);
         Assert.Equal(3, BelieversIn(time, misread).Count);
+        Assert.Contains(misread, time.Dogmas);
         var entry = Assert.Single(time.History!.Entries, entry => entry.Type == HistoryEventType.SteleMisread);
         Assert.Equal(
-            new HistoryEntry(300, HistoryEventType.SteleMisread, smaller, DogmaType.Worship, FromYear: 40, WrittenSymbolId: larger, WrittenDogmaType: DogmaType.Worship),
+            new HistoryEntry(
+                300, HistoryEventType.SteleMisread, smaller, DogmaType.Worship, FromYear: 40, WrittenSymbolId: larger, WrittenDogmaType: DogmaType.Worship,
+                Reading: OracleReading.Revere),
             entry);
 
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
@@ -206,6 +210,10 @@ public class SteleTests
             SaveDataSerializer.TryParse(json, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var data, out var reason),
             reason);
         Assert.Contains(entry, data!.History);
+        Assert.Contains(misread, data.Dogmas);
+        Assert.Equal(
+            3,
+            data.Residents.People.Count(person => person.Beliefs.Any(belief => belief.IsSameTeaching(misread))));
         Assert.Contains(data.Script!.Carvings, carving => carving.Kind == CarvingKind.Stele && carving.Year == 40);
     }
 }

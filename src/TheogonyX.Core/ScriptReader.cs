@@ -109,6 +109,14 @@ public static class ScriptReader
         return new Sentence(words);
     }
 
+    /// <summary>語 <paramref name="radicalId"/> が、時代 <paramref name="stage"/> の人にどの語として読まれるか（混ざった組は ID の小さい方）。</summary>
+    public static string ReadAs(PlanetScript script, string radicalId, int stage)
+    {
+        ArgumentNullException.ThrowIfNull(script);
+        ArgumentNullException.ThrowIfNull(radicalId);
+        return script.Find(radicalId) is null ? radicalId : Resolve(script, radicalId, stage).Id;
+    }
+
     // その時代までに混ざった似た形の組のどちらも、ID の小さい方として読まれる
     private static ScriptRadical Resolve(PlanetScript script, string radicalId, int stage)
     {

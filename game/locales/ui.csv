@@ -5,7 +5,26 @@ HUD_HARMONY,調和度 {0:F1}%,Harmony {0:F1}%
 HUD_DOGMAS,ドグマ,Dogmas
 HUD_NO_DOGMA,（なし）,(none)
 DOGMA_ENTRY,{0}の{1},{1} of {0}
-DOGMA_ENTRY_BELIEVERS,{0}の{1}　信者 {2} 人,{1} of {0}: {2} believers
+DOGMA_ENTRY_BELIEVERS,{0}　信者 {1} 人,{0}: {1} believers
+DOGMA_ENTRY_READING,{0}（{1}）,{0} ({1})
+READING_REVERE,祀る,revere
+READING_STORE,蓄える,store
+READING_PURIFY,清める,purify
+READING_GUARDIAN,守り神にする,make a guardian
+READING_AVOID,遠ざける,avoid
+READING_RATION,控える,ration
+READING_ISOLATE,隔てる,isolate
+READING_SEAL,境を閉ざす,seal the border
+READING_CLEAR,切り開く,clear
+READING_STRIP,取り尽くす,strip bare
+READING_BURN,焼き払う,burn
+READING_ARM,武器と壁にする,make weapons and walls
+HISTORY_EXILED,{0} 年　{2}を信じる {1} 人が、教えの対立で地域 {3} を追われ、地域 {4} へ移った,"Year {0}: {1} believers in {2} were driven out of region {3} over a clash of teachings and moved to region {4}"
+CRISIS_LABEL,いまの危機: {0},Current crisis: {0}
+CRISIS_PEACE,平時,Peace
+CRISIS_WANT,欠乏,Want
+CRISIS_PLAGUE,疫病,Plague
+CRISIS_STRIFE,争い,Strife
 SYMBOL_SYM_TREE,木,Tree
 SYMBOL_SYM_WATER,恵みの雨,Blessed Rain
 SYMBOL_SYM_BLOOD,血,Blood

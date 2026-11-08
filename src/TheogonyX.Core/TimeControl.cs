@@ -75,6 +75,9 @@ public sealed class TimeControl
     /// <summary>直前の跳躍・1 年の進みで、予言者が動いた記録（ログに出す）。</summary>
     public IReadOnlyList<ProphetMove> ProphetMoves { get; private set; } = [];
 
+    /// <summary>直前の跳躍・1 年の進みで、教えの対立で地域を追われた記録（ログに出す）。</summary>
+    public IReadOnlyList<Exile> Exiles { get; private set; } = [];
+
     /// <summary>予言者の行き先を決める（神の声の行き先）。予言者がいなければ何もしない。</summary>
     public void SetDestination(TravelDirection destination)
     {
@@ -93,18 +96,18 @@ public sealed class TimeControl
     public bool CanDo(TimeControlAction action) => Transitions.ContainsKey((State, action));
 
     /// <summary>
-    /// ドグマを一覧に加え、年表に残す。状態は変えない。同じ教え（記号と種別が同じ）がもう一覧にあれば、行は足さず年表にも残さず、
+    /// ドグマを一覧に加え、年表に残す。状態は変えない。同じ教え（記号・種別・読みが同じ）がもう一覧にあれば、行は足さず年表にも残さず、
     /// 予言者の近くの住人にその教えを改めて信じさせる。
     /// </summary>
     public void AddDogma(Dogma dogma)
     {
         ArgumentNullException.ThrowIfNull(dogma);
-        var preached = _dogmas.FirstOrDefault(existing => existing.TargetSymbolId == dogma.TargetSymbolId && existing.Type == dogma.Type);
+        var preached = _dogmas.FirstOrDefault(existing => existing.IsSameTeaching(dogma));
         if (preached is null)
         {
             preached = dogma;
             _dogmas.Add(dogma);
-            History?.Add(new HistoryEntry(World.Year, HistoryEventType.DogmaFormed, dogma.TargetSymbolId, dogma.Type));
+            History?.Add(new HistoryEntry(World.Year, HistoryEventType.DogmaFormed, dogma.TargetSymbolId, dogma.Type, Reading: dogma.Reading));
         }
         if (_belief is not null && Residents is not null && _civilizationSetup is { } setup)
         {
@@ -133,12 +136,12 @@ public sealed class TimeControl
         var count = Math.Max(1, (int)Math.Round(people.Count * share, MidpointRounding.AwayFromZero));
         var random = new Random(unchecked((setup.Seed * 31) + salt));
         var chosen = people.OrderBy(_ => random.Next()).Take(count).Select(person => person.Id).ToHashSet();
-        var belief = new Belief(dogma.TargetSymbolId, dogma.Type, dogma.Intensity);
+        var belief = new Belief(dogma.TargetSymbolId, dogma.Type, dogma.Intensity, dogma.Reading);
         var updated = Residents.People
             .Select(person => chosen.Contains(person.Id) ? BeliefSimulator.Believe(person, belief, _belief.MaxBeliefs) : person)
             .ToList();
         Residents.Replace(updated, [.. Residents.Graves], Residents.NextResidentId);
-        if (!_dogmas.Any(existing => existing.TargetSymbolId == dogma.TargetSymbolId && existing.Type == dogma.Type))
+        if (!_dogmas.Any(existing => existing.IsSameTeaching(dogma)))
         {
             _dogmas.Add(dogma);
         }
@@ -235,6 +238,7 @@ public sealed class TimeControl
         var events = new List<ResidentEvent>();
         var forgotten = new List<Dogma>();
         var moves = new List<ProphetMove>();
+        var exiles = new List<Exile>();
         var history = History;
         var belief = _belief;
         Func<Dogma, double>? share = belief is null || residents is null ? null : dogma => BeliefSimulator.Share(dogma, residents);
@@ -255,6 +259,18 @@ public sealed class TimeControl
                         {
                             BeliefSimulator.Spread(residents, World.Year, setup.Seed, belief, setup.Needs.Affinity);
                             ForgetDogmas(residents, forgotten);
+                            if (belief.Schism is { } schism)
+                            {
+                                var yearExiles = SchismSimulator.AdvanceYear(
+                                    residents, _dogmas, World.Year, setup.Rules.Regions.Count, schism, AddChaos, () => World.ChaosLevel);
+                                exiles.AddRange(yearExiles);
+                                foreach (var exile in yearExiles)
+                                {
+                                    history?.Add(new HistoryEntry(
+                                        exile.Year, HistoryEventType.Exiled, exile.SymbolId, exile.Type, Region: exile.From, ToRegion: exile.To,
+                                        Count: exile.ResidentIds.Count));
+                                }
+                            }
                         }
                         if (_journey is not null && Prophet is not null)
                         {
@@ -276,6 +292,7 @@ public sealed class TimeControl
         ResidentEvents = events;
         ForgottenDogmas = forgotten;
         ProphetMoves = moves;
+        Exiles = exiles;
         if (World.IsDestroyed && !wasDestroyed)
         {
             history?.Add(new HistoryEntry(World.Year, HistoryEventType.WorldDestroyed));
