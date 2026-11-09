@@ -9,13 +9,16 @@ public class MarkTests
     private const int Seed = 42;
     private const int Year = 120;
 
-    // game/data/structures.json と同じ形の仮の値（閾値 2 人、木の印 60 年・石の印 300 年）
+    // game/data/structures.json と同じ形の仮の値（閾値 2 人、木の印 60 年・石の印 300 年、祭壇は調和度 +0.3、木の切り株 -0.5・木の壁 -0.3）
     private static readonly MarkRules Rules = new(2,
     [
-        new MarkType("STRUCT_ALTAR", OracleReading.Revere, "STONE", 300, MarkPlace.SymbolOrCenter),
-        new MarkType("STRUCT_FENCE", OracleReading.Seal, "WOOD", 60, MarkPlace.Border),
-        new MarkType("STRUCT_STUMP", OracleReading.Clear, "WOOD", 40, MarkPlace.SymbolOrAnywhere),
-        new MarkType("STRUCT_WALL", OracleReading.Arm, "STONE", 300, MarkPlace.Border),
+        new MarkType("STRUCT_ALTAR", OracleReading.Revere, "STONE", 300, MarkPlace.SymbolOrCenter,
+            [new MarkEffect(null, new EnvironmentValues(0f, 0f, 0f, 0f, HarmonyLevel: 0.3f))]),
+        new MarkType("STRUCT_FENCE", OracleReading.Seal, "WOOD", 60, MarkPlace.Border, ClosesRegion: true),
+        new MarkType("STRUCT_STUMP", OracleReading.Clear, "WOOD", 40, MarkPlace.SymbolOrAnywhere,
+            [new MarkEffect("SYM_TREE", new EnvironmentValues(ForestAmount: -0.5f, 0f, 0f, 0f, 0f))]),
+        new MarkType("STRUCT_WALL", OracleReading.Arm, "STONE", 300, MarkPlace.Border,
+            [new MarkEffect("SYM_TREE", new EnvironmentValues(ForestAmount: -0.3f, 0f, 0f, 0f, 0f))]),
     ]);
 
     // テストの星は 16 列・8 地域（1 地域 2 列）。焚き火の目印は列 11（地域 5 は列 10・11）
@@ -143,6 +146,59 @@ public class MarkTests
         Assert.Equal(
             [wall, tended with { TendedYear = 160 }], // 木の柵は 60 年で消え、石の壁は残る
             civilization.Marks);
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-040")]
+    public void ApplyEffects_その年に修繕された印だけが効き_記号の合う効き目を足す()
+    {
+        Mark Tended(OracleReading reading, string symbolId, int region, int tendedYear = Year) =>
+            new(reading, symbolId, region, 0, 0, 50, tendedYear);
+        var marks = new[]
+        {
+            Tended(OracleReading.Revere, "SYM_FIRE", 0), // 調和度 +0.3
+            Tended(OracleReading.Revere, "SYM_WATER", 1), // 調和度 +0.3
+            Tended(OracleReading.Revere, "SYM_FIRE", 2, Year - 1), // 修繕されていない（効かない）
+            Tended(OracleReading.Clear, "SYM_TREE", 3), // 森林量 -0.5
+            Tended(OracleReading.Clear, "SYM_WATER", 4), // 木以外の更地は効かない
+            Tended(OracleReading.Arm, "SYM_TREE", 5), // 森林量 -0.3
+            Tended(OracleReading.Seal, "SYM_TREE", 6), // 柵は世界の値を変えない
+        };
+        var world = new WorldState { Year = Year, ForestAmount = 50f, WaterAmount = 50f, Temperature = 15f, ChaosLevel = 10f, HarmonyLevel = 99.8f };
+
+        MarkSimulator.ApplyEffects(marks, Year, Rules, world, TestRules.World);
+
+        Assert.Equal(49.2f, world.ForestAmount, 4);
+        Assert.Equal(100f, world.HarmonyLevel); // 99.8 + 0.6 は上限 100 に収まる
+        Assert.Equal((50f, 15f, 10f), (world.WaterAmount, world.Temperature, world.ChaosLevel));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-041")]
+    public void ClosedRegions_前の年の終わりまでに修繕された柵の地域だけを返し_祭壇や古い柵の地域は含まない()
+    {
+        var marks = new[]
+        {
+            new Mark(OracleReading.Seal, "SYM_TREE", 1, 3, 0, 50, Year - 1), // 前の年の終わりに修繕
+            new Mark(OracleReading.Seal, "SYM_TREE", 4, 9, 0, 50, Year - 2), // 信者がいなくなった柵
+            new Mark(OracleReading.Revere, "SYM_FIRE", 6, 12, 0, 50, Year - 1),
+        };
+
+        Assert.Equal([1], MarkSimulator.ClosedRegions(marks, Year, Rules));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-041")]
+    public void AdvanceYear_柵のある地域_大人がいなくても移住者は来ず_ほかの地域には来る()
+    {
+        var residents = Residents.CreateInitial();
+        var civilization = Civilization.CreateInitial(TestRules.Civilization);
+        var world = new WorldState { Year = 1, ForestAmount = 50f, WaterAmount = 50f, Temperature = 15f };
+
+        ResidentSimulator.AdvanceYear(
+            residents, civilization, world, [], TestRules.Needs, TestRules.Civilization, TestRules.Terrain, Seed, closedRegions: new HashSet<int> { 2, 5 });
+
+        Assert.Equal([0, 1, 3, 4, 6, 7], residents.People.Select(person => person.Region));
     }
 
     [Fact]

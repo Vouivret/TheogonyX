@@ -13,12 +13,20 @@ public enum MarkPlace
     Border,
 }
 
+/// <summary>修繕中の印 1 つが、毎年世界の値に足す量。</summary>
+/// <param name="SymbolId">この記号の印にだけ効く。null ならどの記号でも効く。</param>
+public sealed record MarkEffect(string? SymbolId, EnvironmentValues PerYear);
+
 /// <summary>読みの跡の印の型（game/data/structures.json の 1 行）。</summary>
 /// <param name="Id">型の ID（例: <c>STRUCT_ALTAR</c>）。</param>
 /// <param name="Reading">この印を残す読み。1 つの読みに型は 1 つ。</param>
 /// <param name="Material">材料の ID（例: <c>STONE</c>）。今は見た目と記録だけに使う。</param>
 /// <param name="LifespanYears">信者がいなくなってから消えるまでの年数。</param>
-public sealed record MarkType(string Id, OracleReading Reading, string Material, int LifespanYears, MarkPlace Place);
+/// <param name="Effects">修繕中の印が毎年世界の値に足す量。当てはまるものをすべて足す。</param>
+/// <param name="ClosesRegion">修繕中なら、その地域に移住者も追われた人も入れない（柵）。</param>
+public sealed record MarkType(
+    string Id, OracleReading Reading, string Material, int LifespanYears, MarkPlace Place,
+    IReadOnlyList<MarkEffect>? Effects = null, bool ClosesRegion = false);
 
 /// <summary>
 /// 読みの跡の印の定義（docs/domain/script-decipher.md の 9）。値は仮置き（<c>TODO(AI_UNSURE)</c>）で、遊びながら決める。
@@ -34,7 +42,8 @@ public sealed record MarkRules(int BelieversAtOrAbove, IReadOnlyList<MarkType> T
     {
         if (BelieversAtOrAbove < 1 || Types.Count == 0
             || Types.Any(type => string.IsNullOrWhiteSpace(type.Id) || string.IsNullOrWhiteSpace(type.Material) || type.LifespanYears < 1
-                || !Enum.IsDefined(type.Reading) || !Enum.IsDefined(type.Place))
+                || !Enum.IsDefined(type.Reading) || !Enum.IsDefined(type.Place)
+                || (type.Effects ?? []).Any(effect => effect is null || (effect.SymbolId is { } symbol && string.IsNullOrWhiteSpace(symbol))))
             || Types.Select(type => type.Reading).Distinct().Count() != Types.Count
             || Types.Select(type => type.Id).Distinct().Count() != Types.Count)
         {
@@ -57,6 +66,12 @@ public sealed record Mark(OracleReading Reading, string SymbolId, int Region, in
 {
     /// <summary>印を残した教えの種別。</summary>
     public DogmaType Type => OracleReadings.TypeOf(Reading);
+
+    /// <summary>
+    /// 修繕中か（効き目があるか）。印の計算はその年の終わりにするので、<paramref name="year"/> 年に修繕されたか、
+    /// その前の年の終わりに修繕された印を修繕中とする（その年の印の計算の前に見る移住・追放のため）。
+    /// </summary>
+    public bool IsTended(int year) => TendedYear >= year - 1;
 }
 
 /// <summary>読みの跡の印を建てる・修繕する・消す（docs/domain/script-decipher.md の 9、docs/domain/structures.md の 8）。</summary>
@@ -129,6 +144,51 @@ public static class MarkSimulator
         }
         civilization.ReplaceMarks(kept);
         return built;
+    }
+
+    /// <summary>修繕中の柵（<see cref="MarkType.ClosesRegion"/> の印）がある地域。移住と追放の行き先から外す。</summary>
+    public static IReadOnlySet<int> ClosedRegions(IReadOnlyList<Mark> marks, int year, MarkRules rules)
+    {
+        ArgumentNullException.ThrowIfNull(marks);
+        ArgumentNullException.ThrowIfNull(rules);
+        return marks.Where(mark => mark.IsTended(year) && rules.TypeOf(mark.Reading) is { ClosesRegion: true })
+            .Select(mark => mark.Region).ToHashSet();
+    }
+
+    /// <summary>
+    /// その年に修繕された印の効き目を合計して、世界の値に足す（範囲に収める）。<see cref="AdvanceYear"/> の後に呼ぶ。
+    /// 崩壊の判定は環境の計算の中でするので、ここで値が崩壊の境を越えても、判定は次の年になる。
+    /// </summary>
+    public static void ApplyEffects(IReadOnlyList<Mark> marks, int year, MarkRules rules, WorldState world, WorldRules worldRules)
+    {
+        ArgumentNullException.ThrowIfNull(marks);
+        ArgumentNullException.ThrowIfNull(rules);
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(worldRules);
+        var sum = default(EnvironmentValues);
+        foreach (var mark in marks.Where(mark => mark.TendedYear == year))
+        {
+            foreach (var effect in rules.TypeOf(mark.Reading)?.Effects ?? [])
+            {
+                if (effect.SymbolId is null || effect.SymbolId == mark.SymbolId)
+                {
+                    var add = effect.PerYear;
+                    sum = new EnvironmentValues(
+                        sum.ForestAmount + add.ForestAmount, sum.WaterAmount + add.WaterAmount, sum.Temperature + add.Temperature,
+                        sum.ChaosLevel + add.ChaosLevel, sum.HarmonyLevel + add.HarmonyLevel);
+                }
+            }
+        }
+        if (sum == default)
+        {
+            return;
+        }
+        var (min, max) = (worldRules.Min, worldRules.Max);
+        world.ForestAmount = Math.Clamp(world.ForestAmount + sum.ForestAmount, min.ForestAmount, max.ForestAmount);
+        world.WaterAmount = Math.Clamp(world.WaterAmount + sum.WaterAmount, min.WaterAmount, max.WaterAmount);
+        world.Temperature = Math.Clamp(world.Temperature + sum.Temperature, min.Temperature, max.Temperature);
+        world.ChaosLevel = Math.Clamp(world.ChaosLevel + sum.ChaosLevel, min.ChaosLevel, max.ChaosLevel);
+        world.HarmonyLevel = Math.Clamp(world.HarmonyLevel + sum.HarmonyLevel, min.HarmonyLevel, max.HarmonyLevel);
     }
 
     // 印を置くマス。ほかの印か、建物・廃墟の 2 × 2 マスと重なれば、同じ列で下の行へずらす（一周しても空かなければ重ねる）。

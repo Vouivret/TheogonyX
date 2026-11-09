@@ -256,8 +256,9 @@ public sealed class TimeControl
                     CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed, share, Prophet?.Region);
                     if (residents is not null && setup.Needs is not null)
                     {
+                        var closed = _marks is { } setupMarks ? MarkSimulator.ClosedRegions(civilization.Marks, World.Year, setupMarks.Rules) : null;
                         yearEvents.AddRange(ResidentSimulator.AdvanceYear(
-                            residents, civilization, World, _dogmas, setup.Needs, setup.Rules, setup.Terrain, setup.Seed, belief));
+                            residents, civilization, World, _dogmas, setup.Needs, setup.Rules, setup.Terrain, setup.Seed, belief, closed));
                         if (belief is not null)
                         {
                             BeliefSimulator.Spread(residents, World.Year, setup.Seed, belief, setup.Needs.Affinity);
@@ -265,7 +266,7 @@ public sealed class TimeControl
                             if (belief.Schism is { } schism)
                             {
                                 var yearExiles = SchismSimulator.AdvanceYear(
-                                    residents, _dogmas, World.Year, setup.Rules.Regions.Count, schism, AddChaos, () => World.ChaosLevel);
+                                    residents, _dogmas, World.Year, setup.Rules.Regions.Count, schism, AddChaos, () => World.ChaosLevel, closed);
                                 exiles.AddRange(yearExiles);
                                 foreach (var exile in yearExiles)
                                 {
@@ -281,6 +282,7 @@ public sealed class TimeControl
                                     history?.Add(new HistoryEntry(
                                         mark.BuiltYear, HistoryEventType.MarkBuilt, mark.SymbolId, mark.Type, Reading: mark.Reading, Region: mark.Region));
                                 }
+                                MarkSimulator.ApplyEffects(civilization.Marks, World.Year, marks.Rules, World, _worldRules);
                             }
                         }
                         if (_journey is not null && Prophet is not null)

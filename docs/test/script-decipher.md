@@ -46,6 +46,8 @@
 | TS-script-decipher-036 | AC-script-decipher-040 | 柵・壁は隣のある側の端の列に建つ（同じシードで同じ場所）。1 地域 1 年に 1 つで、信者の多い方から | 受け入れ条件のとおり | 1 年ずつ計算する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/MarkTests.cs` |
 | TS-script-decipher-037 | AC-script-decipher-041 | 信者がいる間は修繕され、いなくなって寿命の年数がたつと消える（寿命の境） | 受け入れ条件のとおり | 159 年・160 年を計算する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/MarkTests.cs` |
 | TS-script-decipher-038 | AC-script-decipher-042 | 印が年表に 1 行残り、セーブ（版 22）から戻る。地域の外の印は拒む | 印の条件を満たした星 | 1 年進めて保存し、読み戻す／印の列を書き換える | 戻る／拒む | 自動 | `tests/TheogonyX.Core.Tests/MarkTests.cs` |
+| TS-script-decipher-040 | AC-script-decipher-043 | その年に修繕された印だけが効き、記号の合う効き目を足して範囲に収める | 受け入れ条件のとおり | 印の効き目を足す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/MarkTests.cs` |
+| TS-script-decipher-041 | AC-script-decipher-044 | 修繕中の柵の地域は移住と追放の行き先にならない | 受け入れ条件のとおり | 柵の地域を求める／移住・追放を 1 年計算する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/MarkTests.cs`・`SchismTests.cs` |
 | TS-script-decipher-039 | AC-script-decipher-039・040 | 印の絵が地表に出て、信者が印へ歩く（祀る人は祭壇を囲む）。年表の文 | Godot で、地域に読みの教えの信者が 2 人以上いる星 | 年を進めて詳細の視点で見る。年表を開く | 祭壇・柵・切り株（木以外は更地）・壁の絵が出る。信者が印のまわりに集まる。年表に印の行が出る | 手動 | `game/scenes/main/MarkView.cs`・`ResidentView.cs` |
 | TS-script-decipher-017 | （画面。仕様書の「書く」） | 手帳の書き込みと、文を書いて語りかける欄 | Godot 4.7.2 で動かす | 下の手順 | 下の手順のとおり | 手動 | — |
 

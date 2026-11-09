@@ -32,9 +32,10 @@ public class SchismTests
         return new Residents(people, [], 400);
     }
 
-    private static (IReadOnlyList<Exile> Exiles, float Chaos) Advance(Residents residents, float chaos, int regionCount = 8, IReadOnlyList<Dogma>? dogmas = null)
+    private static (IReadOnlyList<Exile> Exiles, float Chaos) Advance(
+        Residents residents, float chaos, int regionCount = 8, IReadOnlyList<Dogma>? dogmas = null, IReadOnlySet<int>? closed = null)
     {
-        var exiles = SchismSimulator.AdvanceYear(residents, dogmas ?? [], 120, regionCount, Rules, amount => chaos += amount, () => chaos);
+        var exiles = SchismSimulator.AdvanceYear(residents, dogmas ?? [], 120, regionCount, Rules, amount => chaos += amount, () => chaos, closed);
         return (exiles, chaos);
     }
 
@@ -76,6 +77,21 @@ public class SchismTests
         Assert.Equal([0, 1, 2], exile.ResidentIds);
         Assert.All(residents.People.Where(person => person.Id < 3), person => Assert.Equal(3, person.Region));
         Assert.Equal(7, residents.People.Count(person => person.Region == 2));
+    }
+
+    [Fact]
+    [Trait("TS", "TS-script-decipher-041")]
+    public void AdvanceYear_住人の少ない隣に柵がある_もう一方の隣へ移り_両方に柵があれば誰も移らない()
+    {
+        var toWest = Village(3, 7);
+        var (exiles, _) = Advance(toWest, 49f, closed: new HashSet<int> { 3 });
+        Assert.Equal(1, Assert.Single(exiles).To); // 地域 3 は柵で閉じているので、住人の多い西の地域 1 へ
+
+        var blocked = Village(3, 7);
+        var (none, chaos) = Advance(blocked, 49f, closed: new HashSet<int> { 1, 3 });
+        Assert.Empty(none);
+        Assert.Equal(51f, chaos); // 対立のカオス度は上がる
+        Assert.Equal(10, blocked.People.Count(person => person.Region == 2));
     }
 
     [Fact]

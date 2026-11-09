@@ -37,7 +37,8 @@ public static class ResidentSimulator
         CivilizationRules civilizationRules,
         TerrainRules terrain,
         int seed,
-        BeliefRules? belief = null)
+        BeliefRules? belief = null,
+        IReadOnlySet<int>? closedRegions = null)
     {
         ArgumentNullException.ThrowIfNull(residents);
         ArgumentNullException.ThrowIfNull(civilization);
@@ -63,10 +64,10 @@ public static class ResidentSimulator
         int PeopleIn(int region) => people.Count(person => person.Region == region);
         bool IsAdult(Resident person) => person.AgeIn(year) >= rules.AdultAge;
 
-        // 1. 移り住む（正常な大人が少ない地域に 1 人）
+        // 1. 移り住む（正常な大人が少ない地域に 1 人。修繕中の柵がある地域には来ない）
         for (var region = 0; region < regionCount; region++)
         {
-            if (people.Count(person => person.Region == region && IsAdult(person) && person.Breakdown is null) < rules.ImmigrateBelowAdults)
+            if (closedRegions?.Contains(region) != true && people.Count(person => person.Region == region && IsAdult(person) && person.Breakdown is null) < rules.ImmigrateBelowAdults)
             {
                 var arrived = new Resident(
                     nextId, region, year - rules.ImmigrantAge, 0, 0, 0, 0, 0, rules.MaxHealth, rules.MaxSanity, null, 0,

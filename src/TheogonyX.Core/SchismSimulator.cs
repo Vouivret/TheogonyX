@@ -40,9 +40,11 @@ public static class SchismSimulator
     /// <param name="dogmas">教えの一覧（加わった順）。</param>
     /// <param name="addChaos">カオス度を上げる（上限は呼ぶ側が守る）。</param>
     /// <param name="chaosLevel">今のカオス度を返す。</param>
+    /// <param name="closedRegions">修繕中の柵がある地域。追放の行き先にしない（行き先が無ければ移さない）。</param>
     /// <returns>この年の追放。</returns>
     public static IReadOnlyList<Exile> AdvanceYear(
-        Residents residents, IReadOnlyList<Dogma> dogmas, int year, int regionCount, SchismRules rules, Action<float> addChaos, Func<float> chaosLevel)
+        Residents residents, IReadOnlyList<Dogma> dogmas, int year, int regionCount, SchismRules rules, Action<float> addChaos, Func<float> chaosLevel,
+        IReadOnlySet<int>? closedRegions = null)
     {
         ArgumentNullException.ThrowIfNull(residents);
         ArgumentNullException.ThrowIfNull(dogmas);
@@ -76,7 +78,7 @@ public static class SchismSimulator
         var exiles = new List<Exile>();
         foreach (var (region, symbolId) in conflicts)
         {
-            var neighbors = new[] { region + 1, region - 1 }.Where(other => other >= 0 && other < regionCount).ToList();
+            var neighbors = new[] { region + 1, region - 1 }.Where(other => other >= 0 && other < regionCount && closedRegions?.Contains(other) != true).ToList();
             if (neighbors.Count == 0)
             {
                 continue;
