@@ -48,14 +48,29 @@ public static class GameDataLoader
 
     public static TimeControlSettings ParseTimeControl(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").TimeControl;
 
-    public static AmbienceRules ParseAmbience(string rulesJson)
+    /// <summary>パレット（game/data/palette.json）。定義が正しくなければ読み込みを失敗させる。</summary>
+    public static Palette ParsePalette(string paletteJson)
+    {
+        var file = Parse<PaletteFile>(paletteJson, "palette.json");
+        try
+        {
+            return Palette.FromHex((file.Colors ?? []).Select(color => (color.Name, color.Hex)));
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException($"パレットの定義が正しくない: file=palette.json reason={ex.Message}", ex);
+        }
+    }
+
+    /// <param name="palette">色の名前を引くパレット。昼夜の周期の色は掛け算の色なので <c>#RRGGBB</c> のまま、カオスと崩壊の色はパレットの名前。</param>
+    public static AmbienceRules ParseAmbience(string rulesJson, Palette palette)
     {
         var ambience = Parse<RulesFile>(rulesJson, "rules.json").Ambience;
         return new AmbienceRules(
             ambience.CycleSeconds,
-            ambience.CycleColors.Select(ParseColor).ToList(),
-            ParseColor(ambience.ChaosColor),
-            ParseColor(ambience.DestroyedColor));
+            ambience.CycleColors.Select(color => ParseColor(color, palette)).ToList(),
+            ParseColor(ambience.ChaosColor, palette),
+            ParseColor(ambience.DestroyedColor, palette));
     }
 
     public static CrowdRules ParseCrowd(string rulesJson)
@@ -78,7 +93,7 @@ public static class GameDataLoader
             crowd.FrenzyChaosAtOrAbove, crowd.FieldScale, crowd.FastTimeScale, crowd.Flock!, crowd.TileForces);
     }
 
-    public static CrowdLook ParseCrowdLook(string rulesJson)
+    public static CrowdLook ParseCrowdLook(string rulesJson, Palette palette)
     {
         var crowd = Parse<RulesFile>(rulesJson, "rules.json").Crowd
             ?? throw new InvalidDataException("群衆の定義が無い: file=rules.json key=crowd");
@@ -86,13 +101,13 @@ public static class GameDataLoader
         {
             throw new InvalidDataException($"群衆の点の大きさは 1〜2 px: file=rules.json value={crowd.DotSizePixels}");
         }
-        var color = ParseColor(crowd.DotColor);
+        var color = ParseColor(crowd.DotColor, palette);
         return new CrowdLook(crowd.DotSizePixels, color, crowd.UseGpu);
     }
 
     public static ProphetSettings ParseProphet(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").Prophet;
 
-    public static CampfireSettings ParseCampfire(string rulesJson)
+    public static CampfireSettings ParseCampfire(string rulesJson, Palette palette)
     {
         var rules = Parse<RulesFile>(rulesJson, "rules.json");
         var campfire = rules.Campfire ?? throw new InvalidDataException("焚き火の定義が無い: file=rules.json key=campfire");
@@ -105,7 +120,7 @@ public static class GameDataLoader
             throw new InvalidDataException($"焚き火の定義の値が範囲外: file=rules.json value={campfire}");
         }
         return new CampfireSettings(
-            campfire.Column, ParseColor(campfire.Color), campfire.Energy, campfire.RadiusTiles, campfire.FlickerAmount, campfire.FlickerSpeed);
+            campfire.Column, ParseColor(campfire.Color, palette), campfire.Energy, campfire.RadiusTiles, campfire.FlickerAmount, campfire.FlickerSpeed);
     }
 
     public static LightingSettings ParseLighting(string rulesJson)
@@ -416,15 +431,26 @@ public static class GameDataLoader
 
     private static bool IsPort(int port) => port is >= 1 and <= ushort.MaxValue;
 
-    /// <param name="hex"><c>#RRGGBB</c> の形の色。</param>
-    private static LightColor ParseColor(string hex)
+    /// <param name="value"><c>#RRGGBB</c> の形の色か、パレットの色の名前（docs/art-guide.md の「パレット」）。</param>
+    private static LightColor ParseColor(string value, Palette palette)
     {
-        if (hex.Length != 7 || hex[0] != '#'
-            || !int.TryParse(hex.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb))
+        if (value.StartsWith('#'))
         {
-            throw new InvalidDataException($"色の形が #RRGGBB ではない: file=rules.json value={hex}");
+            if (value.Length != 7 || !int.TryParse(value.AsSpan(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var rgb))
+            {
+                throw new InvalidDataException($"色の形が #RRGGBB ではない: file=rules.json value={value}");
+            }
+            return new LightColor(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f);
         }
-        return new LightColor(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f);
+        try
+        {
+            var color = palette.Get(value);
+            return new LightColor(color.R / 255f, color.G / 255f, color.B / 255f);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            throw new InvalidDataException($"パレットに無い色の名前: file=rules.json value={value}", ex);
+        }
     }
 
     private static T Parse<T>(string json, string fileName)
@@ -439,6 +465,10 @@ public static class GameDataLoader
             throw new InvalidDataException($"ゲームデータを読めない: file={fileName}", ex);
         }
     }
+
+    private sealed record PaletteEntry(string Name, string Hex);
+
+    private sealed record PaletteFile(IReadOnlyList<PaletteEntry>? Colors);
 
     private sealed record SymbolsFile(IReadOnlyList<Symbol> Symbols);
 

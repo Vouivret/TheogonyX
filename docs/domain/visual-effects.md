@@ -98,7 +98,7 @@ status: draft   # draft | approved | as-is
 | `height` | 0.5 | 光の高さ（0〜1。1 で真上から当たり、陰影が出ない） |
 | `energy` | 0.5 | 昼のいちばん明るいときの光の強さ |
 | `shadowOpacity` | 0.35 | 落ち影の濃さ |
-| `shadowWidthRatio` | 0.75 | 落ち影の幅（絵の 1 コマの幅に対する割合。32 px の絵なら 24 px） |
+| `shadowWidthRatio` | 0.75 | 落ち影の幅（絵の 1 コマの幅に対する割合。32 px の絵なら 24 px、16 px の予言者なら 12 px） |
 | `shadowHeight` | 5 | 落ち影の高さ（px） |
 
 | ID | Given（前提） | When（操作） | Then（結果） |

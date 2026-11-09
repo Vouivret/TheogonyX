@@ -23,6 +23,10 @@ window/size/window_height_override=810
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.149, 0.1333, 0.2275, 1)
+
 [dotnet]
 
 project/assembly_name="TheogonyX"

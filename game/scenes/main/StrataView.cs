@@ -13,7 +13,7 @@ namespace TheogonyX.Scenes.Main;
 public sealed class StrataView
 {
     // 層の色（DB16 から選ぶ。docs/art-guide.md）。1 層 粘土・2 層 岩盤・3 層 溶岩。4 層より深い定義なら最後の色を使う
-    private static readonly Color[] LayerColors = [Color.FromHtml("#854c30"), Color.FromHtml("#4e4a4e"), Color.FromHtml("#d04648")];
+    private static readonly Color[] LayerColors = [GamePalette.Of("clay"), GamePalette.Of("stone"), GamePalette.Of("red")];
     private static readonly Color RelicModulate = new(0.55f, 0.55f, 0.55f);
 
     private readonly TimeControl _timeControl;

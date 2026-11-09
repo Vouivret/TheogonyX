@@ -25,10 +25,10 @@ public partial class GlyphView : Control
     private int _cells = 1;
 
     /// <summary>線の色。</summary>
-    public Color LineColor { get; set; } = new(0.87f, 0.93f, 0.84f);
+    public Color LineColor { get; set; } = GamePalette.Of("snow");
 
     /// <summary>背景の色（透明なら塗らない）。</summary>
-    public Color Background { get; set; } = new(0.08f, 0.05f, 0.11f, 0.85f);
+    public Color Background { get; set; } = GamePalette.Of("ink", 0.85f);
 
     /// <summary>縁の色（透明なら描かない）。選んでいる字を目立たせるのに使う。</summary>
     public Color Outline { get; set; } = Colors.Transparent;

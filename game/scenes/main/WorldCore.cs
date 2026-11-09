@@ -52,6 +52,7 @@ public partial class WorldCore : Node2D
         var args = OS.GetCmdlineUserArgs();
         Node? tool = Array.IndexOf(args, CrowdBench.CommandLineArg) >= 0 ? new CrowdBench()
             : Array.IndexOf(args, CrowdCheck.CommandLineArg) >= 0 ? new CrowdCheck()
+            : Array.IndexOf(args, SpriteQuantizer.CommandLineArg) >= 0 ? new SpriteQuantizer()
             : null;
         if (tool is not null)
         {
@@ -65,16 +66,18 @@ public partial class WorldCore : Node2D
 
         var rulesJson = ReadText("res://data/rules.json");
         var dreamRules = GameDataLoader.ParseDreamRules(ReadText("res://data/symbols.json"), rulesJson);
+        GamePalette.Load();
+        var palette = GamePalette.Current;
         var worldRules = GameDataLoader.ParseWorldRules(rulesJson);
         var terrainRules = GameDataLoader.ParseTerrain(rulesJson);
         var timeSettings = GameDataLoader.ParseTimeControl(rulesJson);
-        var ambienceRules = GameDataLoader.ParseAmbience(rulesJson);
+        var ambienceRules = GameDataLoader.ParseAmbience(rulesJson, palette);
         var prophetSettings = GameDataLoader.ParseProphet(rulesJson);
-        var campfireSettings = GameDataLoader.ParseCampfire(rulesJson);
+        var campfireSettings = GameDataLoader.ParseCampfire(rulesJson, palette);
         var lightingSettings = GameDataLoader.ParseLighting(rulesJson);
         var cameraSettings = GameDataLoader.ParseCamera(rulesJson);
         var crowdRules = GameDataLoader.ParseCrowd(rulesJson);
-        var crowdLook = GameDataLoader.ParseCrowdLook(rulesJson);
+        var crowdLook = GameDataLoader.ParseCrowdLook(rulesJson, palette);
         var prophetDreamRules = GameDataLoader.ParseProphetDreams(rulesJson);
         var civilizationRules = GameDataLoader.ParseCivilization(rulesJson);
         var needsRules = GameDataLoader.ParseNeeds(rulesJson);

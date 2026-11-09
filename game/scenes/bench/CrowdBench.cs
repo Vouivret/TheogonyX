@@ -45,7 +45,7 @@ public partial class CrowdBench : Node2D
     {
         var rulesJson = WorldCore.ReadText("res://data/rules.json");
         _rules = GameDataLoader.ParseCrowd(rulesJson);
-        _look = GameDataLoader.ParseCrowdLook(rulesJson);
+        _look = GameDataLoader.ParseCrowdLook(rulesJson, GameDataLoader.ParsePalette(WorldCore.ReadText("res://data/palette.json")));
         _terrainRules = GameDataLoader.ParseTerrain(rulesJson);
         var world = WorldState.CreateInitial(GameDataLoader.ParseWorldRules(rulesJson));
         _field = PotentialField.Build(TerrainClassifier.ClassifyTiles(world, _terrainRules), _rules.TileForces);

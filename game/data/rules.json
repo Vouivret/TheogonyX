@@ -64,8 +64,8 @@
   "ambience": {
     "cycleSeconds": 12.0,
     "cycleColors": ["#FFFFFF", "#D27D2C", "#30346D", "#DEEED6"],
-    "chaosColor": "#D04648",
-    "destroyedColor": "#442434"
+    "chaosColor": "red",
+    "destroyedColor": "blood"
   },
   "prophet": {
     "column": 16,
@@ -73,7 +73,7 @@
   },
   "campfire": {
     "column": 12,
-    "color": "#D27D2C",
+    "color": "ember",
     "energy": 1.2,
     "radiusTiles": 3.0,
     "flickerAmount": 0.2,
@@ -254,7 +254,7 @@
       "Scorched": -1.0
     },
     "dotSizePixels": 1,
-    "dotColor": "#D2AA99",
+    "dotColor": "skin",
     "useGpu": true
   },
   "oracle": {

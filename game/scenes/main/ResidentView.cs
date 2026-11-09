@@ -33,8 +33,8 @@ public sealed class ResidentView
     // 精神崩壊中の住人は、絵に色を掛けて見分ける（狂乱は赤く、自閉・絶望は灰色に）
     private static readonly Color RampageTint = new(1f, 0.45f, 0.45f);
     private static readonly Color CatatoniaTint = new(0.55f, 0.55f, 0.6f);
-    private static readonly Color Outline = Color.FromHtml("#140c1c");
-    private static readonly Color Stone = Color.FromHtml("#8595a1");
+    private static readonly Color Outline = GamePalette.Of("ink");
+    private static readonly Color Stone = GamePalette.Of("ash");
 
     private readonly TimeControl _timeControl;
     private readonly CivilizationRules _rules;
@@ -76,12 +76,12 @@ public sealed class ResidentView
         // 欲求の印（空腹・住居・SAN 値）。絵のファイルがあればそれを使い、無ければ仮の単色の絵
         _iconTextures =
         [
-            LoadIcon("hunger", new Color(0.93f, 0.55f, 0.15f)),
-            LoadIcon("shelter", new Color(0.55f, 0.35f, 0.2f)),
-            LoadIcon("sanity", new Color(0.6f, 0.3f, 0.8f)),
+            LoadIcon("hunger", GamePalette.Of("flame")),
+            LoadIcon("shelter", GamePalette.Of("clay")),
+            LoadIcon("sanity", GamePalette.Of("magic")),
         ];
-        _rampageIcon = LoadIcon("state_rampage", new Color(0.85f, 0.15f, 0.15f));
-        _catatoniaIcon = LoadIcon("state_catatonia", new Color(0.55f, 0.55f, 0.6f));
+        _rampageIcon = LoadIcon("state_rampage", GamePalette.Of("red"));
+        _catatoniaIcon = LoadIcon("state_catatonia", GamePalette.Of("ash"));
         _iconRow = new Node2D { Name = "NeedIcons", Visible = false, ZIndex = 1 };
         _layer.AddChild(_iconRow);
 

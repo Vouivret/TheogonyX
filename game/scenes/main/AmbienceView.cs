@@ -12,12 +12,12 @@ public sealed class AmbienceView
     private const string FallenTexturePath = "res://assets/sprites/prophet_fallen.png";
 
     // 仮の予言者の色（DB16 から選ぶ。docs/art-guide.md）。本番の絵が来たら使わなくなる。
-    private static readonly Color PlaceholderRobe = Color.FromHtml("#597dce");
-    private static readonly Color PlaceholderSkin = Color.FromHtml("#d2aa99");
-    private static readonly Color PlaceholderEye = Color.FromHtml("#140c1c");
-    private static readonly Color PlaceholderWood = Color.FromHtml("#854c30");
-    private static readonly Color PlaceholderFlameOuter = Color.FromHtml("#d27d2c");
-    private static readonly Color PlaceholderFlameInner = Color.FromHtml("#dad45e");
+    private static readonly Color PlaceholderRobe = GamePalette.Of("water");
+    private static readonly Color PlaceholderSkin = GamePalette.Of("skin");
+    private static readonly Color PlaceholderEye = GamePalette.Of("ink");
+    private static readonly Color PlaceholderWood = GamePalette.Of("clay");
+    private static readonly Color PlaceholderFlameOuter = GamePalette.Of("ember");
+    private static readonly Color PlaceholderFlameInner = GamePalette.Of("sun");
 
     // 明かりのテクスチャの一辺（px）。届く半径に合わせて TextureScale で拡大する。
     private const int LightTextureSize = 64;

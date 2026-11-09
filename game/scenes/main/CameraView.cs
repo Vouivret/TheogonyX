@@ -14,7 +14,10 @@ public sealed class CameraView
     private readonly Camera2D _camera;
     private readonly Vector2 _viewSize;
 
-    // 動かせる範囲（世界の px）。地表の広さ
+    // 地表の上に足す px。予言者（16 px）と焚き火の炎が、上の帯（地図の 12〜18 px ぶん）より下に映る高さ
+    private const float AboveTerrain = 48f;
+
+    // 動かせる範囲（世界の px）。地表の広さに、上へ AboveTerrain を足したもの
     private readonly Rect2 _bounds;
 
     private double _zoom;
@@ -44,14 +47,18 @@ public sealed class CameraView
         _settings = settings;
         var viewport = owner.GetNode<SubViewport>("%WorldViewport");
         _viewSize = viewport.Size;
-        // 動かせる範囲は地表の広さ（地表を描いた後に作る）。見えている幅がそれ以上のときは、地表の中央に置く
+        // 動かせる範囲は地表の広さに、上へ AboveTerrain px を足したもの（地表を描いた後に作る）。
+        // 予言者と焚き火は地表の上端に立つので、上の帯の下に頭まで映るよう、地表の上を少し見せる。
+        // 見えている幅がそれ以上のときは、範囲の中央に置く
         var terrain = owner.GetNode<TileMapLayer>("%Terrain");
         var used = terrain.GetUsedRect();
-        _bounds = new Rect2(terrain.Position + ((Vector2)used.Position * WorldScreen.TileSize), (Vector2)used.Size * WorldScreen.TileSize);
+        var terrainRect = new Rect2(terrain.Position + ((Vector2)used.Position * WorldScreen.TileSize), (Vector2)used.Size * WorldScreen.TileSize);
+        _bounds = new Rect2(terrainRect.Position - new Vector2(0, AboveTerrain), terrainRect.Size + new Vector2(0, AboveTerrain));
         _zoom = settings.StartZoom;
         _targetZoom = settings.StartZoom;
+        // 起動時は、範囲の上端に合わせて見せる（地表の上と、立っている予言者が映る）
         _centerX = _bounds.GetCenter().X;
-        _centerY = _bounds.GetCenter().Y;
+        _centerY = _bounds.Position.Y + (_viewSize.Y / 2f / (float)_zoom);
 
         _camera = new Camera2D { Name = "Camera" };
         viewport.AddChild(_camera);

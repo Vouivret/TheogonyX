@@ -1,0 +1,43 @@
+{
+  "_comment": "ゲーム全体の 32 色のパレット（docs/art-guide.md の「パレット」）。2026-11-10 に Claude Code が組んだ自前の色で、外部のパレットは使っていない。色の見た目は遊んで見直す。名前でコードから引く。",
+  "colors": [
+    { "name": "ink",         "hex": "#15121c" },
+    { "name": "night",       "hex": "#26223a" },
+    { "name": "slate",       "hex": "#3b3a52" },
+    { "name": "stone",       "hex": "#5c5a6a" },
+    { "name": "ash",         "hex": "#8a8896" },
+    { "name": "bone",        "hex": "#d8d2c4" },
+    { "name": "snow",        "hex": "#f1ede2" },
+
+    { "name": "soil",        "hex": "#3a2418" },
+    { "name": "bark",        "hex": "#5e3a26" },
+    { "name": "clay",        "hex": "#8c5a36" },
+    { "name": "sand",        "hex": "#c89a5e" },
+    { "name": "dune",        "hex": "#e0c488" },
+
+    { "name": "skin_shadow", "hex": "#b87a64" },
+    { "name": "skin",        "hex": "#e3b08e" },
+
+    { "name": "blood",       "hex": "#7a1f2e" },
+    { "name": "red",         "hex": "#b8343c" },
+    { "name": "ember",       "hex": "#e0652e" },
+    { "name": "flame",       "hex": "#f2a63a" },
+    { "name": "sun",         "hex": "#f0d65a" },
+
+    { "name": "deep_forest", "hex": "#1f3a2a" },
+    { "name": "forest",      "hex": "#2f5f35" },
+    { "name": "leaf",        "hex": "#4f8a3a" },
+    { "name": "grass",       "hex": "#7db84a" },
+    { "name": "meadow",      "hex": "#b4d86a" },
+
+    { "name": "deep_sea",    "hex": "#1d3350" },
+    { "name": "sea",         "hex": "#2f5f8f" },
+    { "name": "water",       "hex": "#4f8fd0" },
+    { "name": "sky",         "hex": "#8cc4ec" },
+    { "name": "ice",         "hex": "#cfe6ee" },
+    { "name": "lagoon",      "hex": "#3f9a94" },
+
+    { "name": "dusk",        "hex": "#5a3a6e" },
+    { "name": "magic",       "hex": "#9a6ac0" }
+  ]
+}

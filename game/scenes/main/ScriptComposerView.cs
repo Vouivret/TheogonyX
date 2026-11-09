@@ -36,7 +36,7 @@ public sealed class ScriptComposerView
         var header = new HBoxContainer();
         header.AddChild(new Label { Text = "COMPOSE_TITLE", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
         header.AddChild(close);
-        _hint = new Label { Name = "ComposeHint", AutowrapMode = TextServer.AutowrapMode.WordSmart, Modulate = new Color(1f, 0.85f, 0.3f) };
+        _hint = new Label { Name = "ComposeHint", AutowrapMode = TextServer.AutowrapMode.WordSmart, Modulate = GamePalette.Of("flame") };
 
         _crisis = new Label { Name = "ComposeCrisis" };
 
@@ -113,7 +113,7 @@ public sealed class ScriptComposerView
         for (var i = 0; i < _slots.Length; i++)
         {
             _slots[i].Show(script.Script, new Sentence(i < _words.Count ? [_words[i]] : []), script.Stage);
-            _slots[i].Outline = i <= _words.Count ? new Color(0.87f, 0.93f, 0.84f, 0.3f) : Colors.Transparent;
+            _slots[i].Outline = i <= _words.Count ? GamePalette.Of("snow", 0.3f) : Colors.Transparent;
         }
         _speakButton.Disabled = _words.Count == 0 || _prophet.SpeakRejection() is not null;
         _hint.Text = script.Notebook.Count == 0 ? Tr("COMPOSE_HINT_EMPTY")

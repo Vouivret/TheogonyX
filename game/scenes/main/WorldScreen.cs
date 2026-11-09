@@ -16,30 +16,17 @@ public sealed class WorldScreen
 {
     internal const int TileSize = 16;
 
-    // 仮のタイルの色（DB16 から選ぶ。docs/art-guide.md）。本番のタイル画像が来たら差し替える。
-    private static readonly Dictionary<TileType, Color> PlaceholderColors = new()
-    {
-        [TileType.Grassland] = Color.FromHtml("#6daa2c"),
-        [TileType.Jungle] = Color.FromHtml("#346524"),
-        [TileType.Desert] = Color.FromHtml("#dad45e"),
-        [TileType.Scorched] = Color.FromHtml("#442434"),
-        [TileType.Glacier] = Color.FromHtml("#deeed6"),
-        [TileType.Water] = Color.FromHtml("#597dce"),
-    };
+    private static readonly Color ResetAlertColor = GamePalette.Of("red");
 
-    private static readonly Color ResetAlertColor = Color.FromHtml("#d04648");
-
-    // 上の帯の世界の値: 指標、説明の文言のキー、仮のアイコンの色（DB16 から選ぶ。次の段で絵に替える）
-    private static readonly (WorldMetric Metric, string Key, Color Color)[] Meters =
+    // 上の帯の世界の値: 指標と、説明の文言のキー（アイコンは TerrainArt が描く）
+    private static readonly (WorldMetric Metric, string Key)[] Meters =
     [
-        (WorldMetric.ForestAmount, "HUD_FOREST", Color.FromHtml("#346524")),
-        (WorldMetric.WaterAmount, "HUD_WATER", Color.FromHtml("#597dce")),
-        (WorldMetric.Temperature, "HUD_TEMPERATURE", Color.FromHtml("#d27d2c")),
-        (WorldMetric.ChaosLevel, "HUD_CHAOS", Color.FromHtml("#d04648")),
-        (WorldMetric.HarmonyLevel, "HUD_HARMONY", Color.FromHtml("#dad45e")),
+        (WorldMetric.ForestAmount, "HUD_FOREST"),
+        (WorldMetric.WaterAmount, "HUD_WATER"),
+        (WorldMetric.Temperature, "HUD_TEMPERATURE"),
+        (WorldMetric.ChaosLevel, "HUD_CHAOS"),
+        (WorldMetric.HarmonyLevel, "HUD_HARMONY"),
     ];
-
-    private const int MeterIconSize = 10;
 
     private readonly Node _owner;
     private readonly TimeControl _timeControl;
@@ -100,7 +87,7 @@ public sealed class WorldScreen
         _menuButton = owner.GetNode<Button>("%MenuButton");
         _menu = owner.GetNode<Control>("%Menu");
 
-        _terrain.TileSet = CreatePlaceholderTileSet();
+        _terrain.TileSet = CreateTileSet();
         _jumpButton.Text = string.Format(CultureInfo.CurrentCulture, Tr("BUTTON_JUMP"), timeSettings.JumpYears);
 
         _jumpButton.Pressed += OnJumpPressed;
@@ -225,7 +212,7 @@ public sealed class WorldScreen
         {
             for (var y = 0; y < _terrainRules.Rows; y++)
             {
-                _terrain.SetCell(new Vector2I(x, y), 0, new Vector2I((int)tiles[x, y], 0));
+                _terrain.SetCell(new Vector2I(x, y), 0, new Vector2I(((int)tiles[x, y] * TerrainArt.Variants) + TerrainArt.VariantAt(x, y), 0));
             }
         }
         TerrainDrawn?.Invoke(tiles);
@@ -239,7 +226,7 @@ public sealed class WorldScreen
         // 目盛りは定義の下限から上限までの割合。数値はアイコンと目盛りの説明に出す
         for (var i = 0; i < Meters.Length; i++)
         {
-            var (metric, key, _) = Meters[i];
+            var (metric, key) = Meters[i];
             var min = ValueOf(_worldRules.Min, metric);
             var max = ValueOf(_worldRules.Max, metric);
             var value = world.ValueOf(metric);
@@ -267,12 +254,15 @@ public sealed class WorldScreen
         var meters = new ProgressBar[Meters.Length];
         for (var i = 0; i < Meters.Length; i++)
         {
-            var image = Image.CreateEmpty(MeterIconSize, MeterIconSize, false, Image.Format.Rgba8);
-            image.Fill(Meters[i].Color);
             icons[i] = new TextureRect
             {
-                Texture = ImageTexture.CreateFromImage(image),
-                StretchMode = TextureRect.StretchModeEnum.KeepCentered,
+                Texture = TerrainArt.CreateIcon(Meters[i].Metric),
+                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                // 10 × 10 px の絵を 2 倍（20 × 20）で出す
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.Scale,
+                CustomMinimumSize = new Vector2(20, 20),
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
                 MouseFilter = Control.MouseFilterEnum.Stop,
             };
             meters[i] = new ProgressBar
@@ -322,25 +312,18 @@ public sealed class WorldScreen
 
     private static string Tr(string key) => TranslationServer.Translate(key).ToString();
 
-    private static TileSet CreatePlaceholderTileSet()
+    private static TileSet CreateTileSet()
     {
-        var tileTypes = Enum.GetValues<TileType>();
-        var image = Image.CreateEmpty(TileSize * tileTypes.Length, TileSize, false, Image.Format.Rgba8);
-        foreach (var tileType in tileTypes)
-        {
-            image.FillRect(new Rect2I((int)tileType * TileSize, 0, TileSize, TileSize), PlaceholderColors[tileType]);
-        }
-
         var source = new TileSetAtlasSource
         {
-            Texture = ImageTexture.CreateFromImage(image),
+            Texture = ImageTexture.CreateFromImage(TerrainArt.CreateTileAtlas(TileSize)),
             TextureRegionSize = new Vector2I(TileSize, TileSize),
         };
         var tileSet = new TileSet { TileSize = new Vector2I(TileSize, TileSize) };
         tileSet.AddSource(source, 0);
-        foreach (var tileType in tileTypes)
+        for (var column = 0; column < Enum.GetValues<TileType>().Length * TerrainArt.Variants; column++)
         {
-            source.CreateTile(new Vector2I((int)tileType, 0));
+            source.CreateTile(new Vector2I(column, 0));
         }
         return tileSet;
     }

@@ -15,17 +15,17 @@ public sealed class MarkView
     private const int Size = 16;
 
     private static readonly Color Clear = new(0, 0, 0, 0);
-    private static readonly Color Outline = new("2b2b2b");
-    private static readonly Color StoneLight = new("a3a3a3");
-    private static readonly Color Stone = new("787878");
-    private static readonly Color StoneDark = new("535353");
-    private static readonly Color Wood = new("8a5a2b");
-    private static readonly Color WoodDark = new("5c3a1a");
-    private static readonly Color WoodRing = new("c99d5f");
-    private static readonly Color Flame = new("e8742a");
-    private static readonly Color FlameCore = new("f6d24a");
-    private static readonly Color Earth = new("7a5c3a");
-    private static readonly Color EarthDark = new("5e4630");
+    private static readonly Color Outline = GamePalette.Of("ink");
+    private static readonly Color StoneLight = GamePalette.Of("ash");
+    private static readonly Color Stone = GamePalette.Of("stone");
+    private static readonly Color StoneDark = GamePalette.Of("slate");
+    private static readonly Color Wood = GamePalette.Of("clay");
+    private static readonly Color WoodDark = GamePalette.Of("bark");
+    private static readonly Color WoodRing = GamePalette.Of("sand");
+    private static readonly Color Flame = GamePalette.Of("ember");
+    private static readonly Color FlameCore = GamePalette.Of("sun");
+    private static readonly Color Earth = GamePalette.Of("bark");
+    private static readonly Color EarthDark = GamePalette.Of("soil");
 
     private readonly TimeControl _timeControl;
     private readonly Node _actors;

@@ -79,10 +79,17 @@ public sealed class HudLayout
         _bubbles.Size = size;
         var sprite = _prophet as Sprite2D;
         var width = sprite?.Texture is { } texture ? texture.GetWidth() / Math.Max(1, sprite.Hframes) : 0;
-        var head = _map.GetTransform() * (_viewport.CanvasTransform * (_prophet.GlobalPosition + new Vector2(width / 2f, 0)));
+        var height = sprite?.Texture?.GetHeight() ?? 0;
+        // 足元（Position）から絵の高さの分だけ上が頭の上
+        var toScreen = _map.GetTransform() * _viewport.CanvasTransform;
+        var head = toScreen * (_prophet.GlobalPosition + new Vector2(width / 2f, -height));
+        var foot = toScreen * (_prophet.GlobalPosition + new Vector2(width / 2f, 0));
         var logical = _owner.GetViewport().GetVisibleRect().Size;
         var x = Math.Clamp(head.X - (size.X / 2), SideMargin, Math.Max(SideMargin, logical.X - size.X - SideMargin));
-        var y = Math.Clamp(head.Y - size.Y - 2, TopBarHeight, Math.Max(TopBarHeight, logical.Y - BottomBarHeight - size.Y));
+        // 頭の上に収まらないとき（地表の上端に立っているときなど）は、予言者を隠さないよう足元の下に出す
+        var above = head.Y - size.Y - 2;
+        var y = above >= TopBarHeight ? above : foot.Y + 2;
+        y = Math.Clamp(y, TopBarHeight, Math.Max(TopBarHeight, logical.Y - BottomBarHeight - size.Y));
         _bubbles.Position = new Vector2(x, y);
     }
 }
