@@ -469,6 +469,26 @@ public class ResidentsTests
     }
 
     [Fact]
+    [Trait("TS", "TS-agent-needs-022")]
+    public void AdvanceYear_つがいが同じ年に死ぬ_2人とも消え墓は1人に1つで次の年も増えない()
+    {
+        var residents = With(
+            Person(0, RegionA, age: 100, health: 2, partnerId: 1),
+            Person(1, RegionA, age: 100, health: 2, partnerId: 0),
+            Person(2, RegionA, age: 20));
+        var civilization = CivilizationWith(House(0, RegionA));
+        var world = WorldBefore();
+
+        Advance(residents, civilization, world);
+        Advance(residents, civilization, world);
+
+        // ほかの地域には移住者が来るので、死んだ 2 人がいないことだけを見る
+        Assert.DoesNotContain(residents.People, person => person.Id is 0 or 1);
+        Assert.Equal([0, 1], residents.Graves.Select(grave => grave.ResidentId).Order());
+        Assert.All(residents.Graves, grave => Assert.Equal(Year, grave.DeathYear));
+    }
+
+    [Fact]
     [Trait("TS", "TS-agent-needs-005")]
     public void AdvanceYear_SAN値50でカオス度30_平年は52飢饉は47死があれば42上限は100()
     {

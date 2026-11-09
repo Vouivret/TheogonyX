@@ -28,6 +28,7 @@
 | TS-agent-needs-018 | AC-agent-needs-034 | 見合いの年齢で低い区切りで組み、若い 2 人は区切りに届かず組まないこと | 受け入れ条件のとおり | 1 年進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-019 | AC-agent-needs-035 | 好感度の高い相手の死による悲しみと、死んだ人の組が消えること | 受け入れ条件のとおり | 1 年進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-020 | AC-agent-needs-036 | 広場でのうつりやすさの好感度による倍率 | 受け入れ条件のとおり | 倍率を求める・1 年ぶん広げる | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
+| TS-agent-needs-022 | AC-agent-needs-008, 009, 025 | つがいの 2 人が同じ年に死ぬと、2 人とも住人から消え、墓は 1 人に 1 つで、次の年に墓が増えない（2026-11-09 に見つかった不具合: 2 人目が消えずに残り、毎年墓が増えてセーブが読めなくなった） | 受け入れ条件のとおり | 2 年進める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ResidentsTests.cs` |
 | TS-agent-needs-021 | AC-agent-needs-037 | 好感度の保存と読み込み（版 18 を空で読む・定義に合わないものを拒む・続きの決定性） | 受け入れ条件のとおり | 読む・書き出して読み戻す | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SaveDataTests.cs` |
 | TS-agent-needs-011 | AC-agent-needs-021 | 住人の見た目・1 日の暮らし・情報の欄・墓と記録 | `game/` を Godot 4.7.2 で開く | 下の手順 | 下の手順のとおり | 手動 | — |
 

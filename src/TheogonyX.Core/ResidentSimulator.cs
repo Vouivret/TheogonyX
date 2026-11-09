@@ -115,7 +115,8 @@ public static class ResidentSimulator
         foreach (var dead in died)
         {
             MentalTransitions.Next(MentalTransitions.StateOf(dead), MentalTrigger.HealthZero);
-            people.Remove(dead);
+            // ID で消す（つがいが同じ年に死ぬと、先に死んだ側の処理で相手の記録が独身に書き換わり、値の一致では見つからない）
+            people.RemoveAll(person => person.Id == dead.Id);
             var partner = people.FindIndex(person => person.Id == dead.PartnerId);
             if (partner >= 0)
             {
