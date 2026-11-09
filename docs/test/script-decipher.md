@@ -31,7 +31,7 @@
 | TS-script-decipher-021 | AC-script-decipher-025 | 読み違いを信じる住人の数と決まり方・年表の行・セーブ | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/SteleTests.cs` |
 | TS-script-decipher-022 | AC-script-decipher-026 | 書きぶりは星と時代で決まり、揺れは場所と年で決まって上限を越えない | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStyleTests.cs` |
 | TS-script-decipher-023 | AC-script-decipher-027 | 3 回目に動詞の組が混ざると、文と碑が別の種別に読まれる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptTests.cs`・`SteleTests.cs` |
-| TS-script-decipher-024 | AC-script-decipher-028 | 版 19 のセーブを、崩れ 1 回分の形で読む | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/ScriptStateTests.cs` |
+| TS-script-decipher-024 | AC-script-decipher-028 | 版 19 のセーブを、崩れ 1 回分の形で読む | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 廃止 | — |
 | TS-script-decipher-025 | AC-script-decipher-029 | 危機は争い・欠乏・平時の順で先に当てはまるもの（疫病はまだ無い） | 困りごとの無い星 | 渇きを起こし、さらに混乱を起こす | 平時 → 欠乏 → 争い | 自動 | `tests/TheogonyX.Core.Tests/OracleReadingTests.cs` |
 | TS-script-decipher-026 | AC-script-decipher-030・031 | 字の神託の教えに、予言者のいる今の危機で読みが付く。読みの違う教えは別の教えとして並ぶ | 平時の星と争いの星 | 「木 壊せ」で神託を下す | 平時は切り開く、争いは武器と壁にする。年表の行にも読みが残る | 自動 | `tests/TheogonyX.Core.Tests/OracleReadingTests.cs` |
 | TS-script-decipher-027 | （9 の表） | 12 通りの表から読みを引く。血の教えには読みを付けない | 血の崇拝・水の禁忌 | 読みを付ける | 血はそのまま、水の禁忌 × 疫病は隔てる | 自動 | `tests/TheogonyX.Core.Tests/OracleReadingTests.cs` |

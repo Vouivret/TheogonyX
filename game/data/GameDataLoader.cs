@@ -228,33 +228,6 @@ public static class GameDataLoader
         return belief;
     }
 
-    /// <returns>方言の聞き違えの定義と、予言者の器の段（定義の中のもの）。</returns>
-    public static (DialectRules Rules, string VesselId) ParseDialect(string rulesJson)
-    {
-        var file = Parse<DialectSection>(rulesJson, "rules.json");
-        var section = file.Dialect ?? throw new InvalidDataException("方言の定義が無い: file=rules.json key=dialect");
-        DialectRules dialect;
-        try
-        {
-            dialect = section.Deserialize<DialectRules>(StrictOptions)
-                ?? throw new InvalidDataException("方言の定義が空: file=rules.json key=dialect");
-            dialect.Validate();
-        }
-        catch (JsonException ex)
-        {
-            throw new InvalidDataException("方言の定義を読めない: file=rules.json key=dialect", ex);
-        }
-        catch (ArgumentException ex)
-        {
-            throw new InvalidDataException("方言の定義の値が範囲外: file=rules.json key=dialect", ex);
-        }
-        if (file.DialectVessel is not { } vessel || dialect.Vessels.All(candidate => candidate.Id != vessel))
-        {
-            throw new InvalidDataException($"定義に無い予言者の器の段: file=rules.json key=dialectVessel value={file.DialectVessel}");
-        }
-        return (dialect, vessel);
-    }
-
     /// <returns>星の字の定義・地形の目印・禁忌の札を刻む信者の割合。</returns>
     public static (ScriptRules Rules, IReadOnlyList<ScriptLandmark> Landmarks, float TabooPlateShare) ParseScript(string rulesJson)
     {
@@ -267,7 +240,8 @@ public static class GameDataLoader
                 ?? throw new InvalidDataException("字の定義が空: file=rules.json key=script");
             var rules = new ScriptRules(
                 file.GridSize, file.MinStrokes, file.MaxStrokes, file.DecayYears, file.TeachingIntensity, file.MaxStelesPerRegion, file.MisreadShare,
-                file.StyleJitter, StrifeRequestIds: file.StrifeRequests, WantRequestIds: file.WantRequests);
+                file.StyleJitter, StrifeRequestIds: file.StrifeRequests, WantRequestIds: file.WantRequests,
+                PrayerMinWords: file.PrayerMinWords, PrayerMaxWords: file.PrayerMaxWords, DailyPrayerYears: file.DailyPrayerYears);
             rules.Validate();
             if (file.TabooPlateShare is <= 0f or > 1f || file.Landmarks is null)
             {
@@ -505,9 +479,8 @@ public static class GameDataLoader
 
     private sealed record ScriptFile(
         int GridSize, int MinStrokes, int MaxStrokes, int[] DecayYears, float TeachingIntensity, int MaxStelesPerRegion, float MisreadShare,
-        float StyleJitter, float TabooPlateShare, IReadOnlyList<ScriptLandmark> Landmarks, string[] StrifeRequests, string[] WantRequests);
-
-    private sealed record DialectSection(JsonElement? Dialect, string? DialectVessel);
+        float StyleJitter, float TabooPlateShare, IReadOnlyList<ScriptLandmark> Landmarks, string[] StrifeRequests, string[] WantRequests,
+        int PrayerMinWords, int PrayerMaxWords, int DailyPrayerYears);
 
     private sealed record HistorySection(JsonElement? History);
 

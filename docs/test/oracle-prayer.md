@@ -9,15 +9,15 @@
 
 | ID | 受け入れ条件 | 観点 | 前提 | 操作 | 期待結果 | 種別 | 実装場所 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| TS-oracle-prayer-001 | AC-oracle-pair-037 | 手札の記号の名詞だけで祈り、方言帳に知っている言葉として残る | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
+| TS-oracle-prayer-001 | AC-oracle-pair-037 | 手札の記号だけで祈る | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
 | TS-oracle-prayer-002 | AC-oracle-pair-038 | 新しい語が次の祈りに必ず入る | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
-| TS-oracle-prayer-003 | AC-oracle-pair-039 | 汚染ルーンの記号の語が祈りに混じる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
+| TS-oracle-prayer-003 | AC-oracle-pair-039 | 汚染ルーンの記号が祈りに混じる | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
 | TS-oracle-prayer-004 | AC-oracle-pair-040 | 日々の祈りは 20 年ごとで、自動進行を止めない | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
-| TS-oracle-prayer-005 | AC-oracle-pair-041 | 同じシード・同じ手札で同じ祈りの語になる（決定性） | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
-| TS-oracle-prayer-006 | AC-oracle-pair-042 | 次の祈りの年と知っている言葉がセーブで戻り、壊れた値は拒む | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
-| TS-oracle-prayer-007 | AC-oracle-pair-043 | 祈りの文の応答の検証と頼みの組み立て | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
-| TS-oracle-prayer-009 | AC-oracle-pair-045 | 引用符が「」」に崩れた応答（小さな LLM がよく出す）から、文字列の項目を拾って読める。入れる名詞が無ければ使わない | 受け入れ条件のとおり | 応答を読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
-| TS-oracle-prayer-008 | （仕様書の「祈りの言葉と語彙の見せ方」） | 依頼の吹き出しに祈りの文が出て、日々の祈りが予言者の吹き出しに出る。方言帳に知っている言葉が並ぶ | Godot 4.7.2 と Ollama が動く | 下の手順 | 下の手順のとおり | 手動 | — |
+| TS-oracle-prayer-005 | AC-oracle-pair-041 | 同じシード・同じ手札で同じ祈りの記号になる（決定性） | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
+| TS-oracle-prayer-006 | AC-oracle-pair-042 | 次の祈りの年がセーブ（字の状態）で戻り、負の年は拒む | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
+| TS-oracle-prayer-007 | AC-oracle-pair-043 | 祈りの文の応答の検証と頼みの組み立て | 受け入れ条件のとおり | 受け入れ条件のとおり | 受け入れ条件のとおり | 廃止 | — |
+| TS-oracle-prayer-009 | AC-oracle-pair-045 | 引用符が「」」に崩れた応答（小さな LLM がよく出す）から、文字列の項目を拾って読める（`AiText`） | 受け入れ条件のとおり | 応答を読む | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/OraclePrayerTests.cs` |
+| TS-oracle-prayer-008 | （仕様書の「祈りの言葉と語彙の見せ方」） | 依頼の吹き出しに祈りの文が出て、日々の祈りが予言者の吹き出しに出る。方言帳に知っている言葉が並ぶ | Godot 4.7.2 と Ollama が動く | 下の手順 | 下の手順のとおり | 廃止 | — |
 
 ## 手動テストの手順
 

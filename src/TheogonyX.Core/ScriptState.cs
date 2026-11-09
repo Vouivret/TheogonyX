@@ -41,9 +41,10 @@ public static class NotebookLabels
 }
 
 /// <summary>セーブに残す、星の字の状態。</summary>
+/// <param name="NextPrayerYear">次に日々の祈りをささやく年。まだ決めていなければ null。</param>
 public sealed record ScriptSave(
     IReadOnlyList<ScriptRadical> Radicals, WordOrder WordOrder, IReadOnlyList<(string A, string B)> SimilarPairs, int Stage,
-    IReadOnlyList<CarvedGlyph> Carvings, IReadOnlyDictionary<string, string> Notebook);
+    IReadOnlyList<CarvedGlyph> Carvings, IReadOnlyDictionary<string, string> Notebook, int? NextPrayerYear = null);
 
 /// <summary>
 /// 星の字の状態（docs/domain/script-decipher.md）。字のしくみ・崩れ・世界に刻まれた字・字の手帳を持つ。
@@ -242,8 +243,11 @@ public sealed class ScriptState
     /// <summary>手帳に書き込める意味か（語の字が表す意味のどれか、または「分からない」）。</summary>
     public bool IsLabel(string label) => label == NotebookLabels.Unknown || Script.Radicals.Any(radical => radical.Key == label);
 
+    /// <summary>次に日々の祈りをささやく年。まだ決めていなければ null（最初に時間が進んだときに決める）。世界再創生でも残す。</summary>
+    public int? NextPrayerYear { get; set; }
+
     public ScriptSave Capture() =>
-        new(Script.Radicals, Script.WordOrder, Script.SimilarPairs, Stage, [.. _carvings], new Dictionary<string, string>(_notebook));
+        new(Script.Radicals, Script.WordOrder, Script.SimilarPairs, Stage, [.. _carvings], new Dictionary<string, string>(_notebook), NextPrayerYear);
 
     /// <summary>セーブから読み込んだ状態に置き換える。検証を済ませてから置き換える。</summary>
     /// <exception cref="ArgumentException">定義に合わない値。</exception>
@@ -252,7 +256,7 @@ public sealed class ScriptState
         ArgumentNullException.ThrowIfNull(save);
         var script = PlanetScript.Restore(Rules, save.Radicals, save.WordOrder, save.SimilarPairs);
         bool InStages(int stage) => stage >= 0 && stage <= Rules.DecayYears.Count;
-        var valid = InStages(save.Stage) && save.Carvings.All(carving => InStages(carving.Stage) && carving.Sentence.Words.Count > 0 && carving.Sentence.Words.All(id => script.Find(id) is not null)
+        var valid = InStages(save.Stage) && save.NextPrayerYear is null or >= 0 && save.Carvings.All(carving => InStages(carving.Stage) && carving.Sentence.Words.Count > 0 && carving.Sentence.Words.All(id => script.Find(id) is not null)
                 && carving.Region >= 0 && carving.Region < Regions.Count && carving.Year >= 0 && Enum.IsDefined(carving.Kind))
             && save.Notebook.All(pair => script.Find(pair.Key) is not null
                 && (pair.Value == NotebookLabels.Unknown || script.Radicals.Any(radical => radical.Key == pair.Value)));
@@ -262,6 +266,7 @@ public sealed class ScriptState
         }
         Script = script;
         Stage = save.Stage;
+        NextPrayerYear = save.NextPrayerYear;
         _carvings.Clear();
         _carvings.AddRange(save.Carvings);
         _notebook.Clear();

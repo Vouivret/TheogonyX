@@ -14,9 +14,13 @@ namespace TheogonyX.Core;
 /// <param name="MaxAttempts">部品の形を作り直す回数の上限（越えたら定義が悪い）。</param>
 /// <param name="StrifeRequestIds">危機「争い」に当たる、予言者の依頼の困りごとの ID（docs/domain/script-decipher.md の 9）。無ければ空。</param>
 /// <param name="WantRequestIds">危機「欠乏」に当たる、予言者の依頼の困りごとの ID。無ければ空。</param>
+/// <param name="PrayerMinWords">祈りに入れる記号の数の下限。</param>
+/// <param name="PrayerMaxWords">祈りに入れる記号の数の上限。</param>
+/// <param name="DailyPrayerYears">依頼の無いときに、日々の祈りをささやく間隔（年）。</param>
 public sealed record ScriptRules(
     int GridSize, int MinStrokes, int MaxStrokes, IReadOnlyList<int> DecayYears, float TeachingIntensity, int MaxStelesPerRegion, float MisreadShare,
-    float StyleJitter, int MaxAttempts = 1000, IReadOnlyList<string>? StrifeRequestIds = null, IReadOnlyList<string>? WantRequestIds = null)
+    float StyleJitter, int MaxAttempts = 1000, IReadOnlyList<string>? StrifeRequestIds = null, IReadOnlyList<string>? WantRequestIds = null,
+    int PrayerMinWords = 2, int PrayerMaxWords = 3, int DailyPrayerYears = 20)
 {
     /// <summary>危機「争い」に当たる困りごとの ID。</summary>
     public IReadOnlyList<string> StrifeRequests => StrifeRequestIds ?? [];
@@ -34,7 +38,8 @@ public sealed record ScriptRules(
             || DecayYears is not { Count: > 0 } || DecayYears[0] < 1 || DecayYears.Zip(DecayYears.Skip(1)).Any(pair => pair.First >= pair.Second)
             || !float.IsFinite(TeachingIntensity) || TeachingIntensity is <= 0f or > 1f || MaxStelesPerRegion < 1
             || !float.IsFinite(MisreadShare) || MisreadShare is <= 0f or > 1f
-            || !float.IsFinite(StyleJitter) || StyleJitter is < 0f or > 0.25f || MaxAttempts < 1)
+            || !float.IsFinite(StyleJitter) || StyleJitter is < 0f or > 0.25f || MaxAttempts < 1
+            || PrayerMinWords < 1 || PrayerMaxWords < PrayerMinWords || DailyPrayerYears < 1)
         {
             throw new ArgumentException($"字の定義の値が範囲外: {this}");
         }

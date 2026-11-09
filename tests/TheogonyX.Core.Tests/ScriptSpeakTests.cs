@@ -6,16 +6,15 @@ public class ScriptSpeakTests
 {
     private const int Seed = 42;
 
-    // 手札は木と水だけ。方言の状態（記録に使う）と星の字を付ける
+    // 手札は木と水だけ。星の字を付ける
     private static (ProphetDreams Prophet, TimeControl Time, ScriptState Script) Create()
     {
         var time = new TimeControl(
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
         var deck = new OracleDeck(Seed, new DeckRules([new DeckRuneCount("SYM_TREE", 3), new DeckRuneCount("SYM_WATER", 3)], 4));
         var prophet = new ProphetDreams(time, TestRules.ProphetDreams, deck, TestRules.Oracle);
-        prophet.AttachDialect(new DialectState(OracleDialectTests.Rules, OracleDialectTests.Silent, Seed));
         var script = new ScriptState(ScriptTests.Rules, PlanetScript.Create(ScriptTests.Rules, ScriptTests.Symbols, Seed), TestRules.Civilization.Regions, [], 0.3f);
-        prophet.AttachScript(script);
+        prophet.AttachScript(script, Seed);
         return (prophet, time, script);
     }
 
@@ -34,7 +33,6 @@ public class ScriptSpeakTests
         Assert.Equal(new Dogma("SYM_TREE", DogmaType.Worship, 0.7f, OracleReading.Revere), Assert.Single(time.Dogmas));
         Assert.Equal(TravelDirection.East, time.Prophet!.Destination);
         Assert.Equal(2.0, prophet.Faith.Value, 3);
-        Assert.Equal(outcome.Result!.Record, Assert.Single(prophet.Dialect!.Records));
     }
 
     [Fact]
@@ -68,6 +66,6 @@ public class ScriptSpeakTests
         Assert.Equal("glyph_not_found", notFound.RejectedReason);
         Assert.Equal("not_enough_faith", noFaith.RejectedReason);
         Assert.Empty(time.Dogmas);
-        Assert.Empty(prophet.Dialect!.Records);
+        Assert.Equal(0.5, prophet.Faith.Value, 3); // 下せなかったので神威は使わない
     }
 }

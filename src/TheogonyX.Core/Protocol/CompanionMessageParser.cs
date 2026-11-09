@@ -18,8 +18,6 @@ public static class CompanionMessageParser
         [("RESUME", 1)] = (CompanionMessageType.Resume, "sessionToken"),
         [("START_STREAM", 1)] = (CompanionMessageType.StartStream, null),
         [("STOP_STREAM", 1)] = (CompanionMessageType.StopStream, null),
-        [("SPEAK", 1)] = (CompanionMessageType.Speak, null),
-        [("PRONOUNCE", 3)] = (CompanionMessageType.Pronounce, null),
     };
 
     /// <param name="message">成功したときのメッセージ。失敗したときは null。</param>
@@ -80,84 +78,10 @@ public static class CompanionMessageParser
                 token = value;
             }
 
-            if (definition.Type == CompanionMessageType.Speak)
-            {
-                // 神の言葉（長さと制御文字だけここで確かめる。文はファイルのパスやコマンドに使わない）
-                if (!root.TryGetProperty("text", out var textElement)
-                    || textElement.ValueKind != JsonValueKind.String
-                    || !OracleListening.IsValidGodText(textElement.GetString()))
-                {
-                    reason = "invalid_speak";
-                    return false;
-                }
-
-                message = new CompanionMessage(definition.Type, Text: textElement.GetString()!);
-            }
-            else if (definition.Type == CompanionMessageType.Pronounce)
-            {
-                // 名詞・動詞の ID（語の一覧にあるかは、ゲームの側で確かめる）と行き先。3 つとも「なし」の語りかけは捨てる
-                if (!TryReadWordId(root, "noun", out var noun) || !TryReadWordId(root, "verb", out var verb)
-                    || !TryReadDestination(root, out var destination)
-                    || (noun is null && verb is null && destination == HeardDestination.None))
-                {
-                    reason = "invalid_pronounce";
-                    return false;
-                }
-
-                message = new CompanionMessage(definition.Type, NounId: noun, VerbId: verb, Destination: destination);
-            }
-            else
-            {
-                message = new CompanionMessage(definition.Type, token);
-            }
+            message = new CompanionMessage(definition.Type, token);
         }
 
         reason = string.Empty;
         return true;
-    }
-
-    /// <summary>語の ID として受け付ける最大の文字数。</summary>
-    public const int MaxWordIdLength = 64;
-
-    // 文字列か null。空の文字列・長すぎる文字列・制御文字を含む文字列・ほかの型は失敗
-    private static bool TryReadWordId(JsonElement root, string name, out string? id)
-    {
-        id = null;
-        if (!root.TryGetProperty(name, out var element))
-        {
-            return false;
-        }
-        if (element.ValueKind == JsonValueKind.Null)
-        {
-            return true;
-        }
-        if (element.ValueKind != JsonValueKind.String || !AiText.IsPlain(element.GetString(), MaxWordIdLength))
-        {
-            return false;
-        }
-        id = element.GetString();
-        return true;
-    }
-
-    private static bool TryReadDestination(JsonElement root, out HeardDestination destination)
-    {
-        destination = HeardDestination.None;
-        if (!root.TryGetProperty("destination", out var element) || element.ValueKind != JsonValueKind.String)
-        {
-            return false;
-        }
-        switch (element.GetString())
-        {
-            case "NONE":
-                return true;
-            case "EAST":
-                destination = HeardDestination.East;
-                return true;
-            case "WEST":
-                destination = HeardDestination.West;
-                return true;
-            default:
-                return false;
-        }
     }
 }

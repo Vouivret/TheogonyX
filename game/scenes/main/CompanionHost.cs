@@ -17,7 +17,7 @@ namespace TheogonyX.Scenes.Main;
 /// <summary>
 /// コンパニオンとの通信（docs/domain/companion-pairing.md・frame-stream.md）。
 /// HTTP で HTML/JS を配り、WebSocket でペアリングと画面の配信を行い、ペアリング用の QR コードを HUD に出す。
-/// ペアリングした接続には夢と依頼の状態を送り、スマホからの改ざん・神託を <see cref="DreamView"/> に渡す（dream-tampering.md）。
+/// ペアリングした接続には夢と依頼の状態を送り、スマホは状態を見るだけで、神託は PC で字を組んで下す。
 /// HUD には、QR コードの IP の切り替えボタン（候補が 2 つ以上のとき）と「全セッションリセット」のボタンも出す。
 /// <see cref="WorldCore"/> が作り、<c>_Process</c> から <see cref="Process"/> を呼ぶ。トークンの値はログに出さない。
 /// </summary>
@@ -267,27 +267,10 @@ public sealed class CompanionHost : IDisposable
             case PairingOutcome.Ignored:
                 WarnMessageRejected(client, "already_paired");
                 break;
-            case PairingOutcome.Accepted when message.Type is CompanionMessageType.Speak:
-                RejectDreamOperation(client, _dreams.TrySpeak(message.Text));
-                break;
-            case PairingOutcome.Accepted when message.Type is CompanionMessageType.Pronounce:
-                RejectDreamOperation(client, _dreams.TryChoose(message.NounId, message.VerbId, message.Destination));
-                break;
             case PairingOutcome.Accepted:
                 HandleStreamMessage(client, message.Type);
                 break;
         }
-    }
-
-    // PC かほかのスマホが先に操作したなど、今はできない操作は捨て、その接続に今の状態を送り直す
-    private void RejectDreamOperation(Client client, string? reason)
-    {
-        if (reason is null)
-        {
-            return;
-        }
-        WarnMessageRejected(client, reason);
-        SendText(client, _dreams.StateMessage());
     }
 
     /// <summary>夢と依頼の状態が前に送ったものと変わっていたら、ペアリングしたすべての接続に送る。</summary>

@@ -156,16 +156,17 @@ public class ScriptStateTests
 
     [Fact]
     [Trait("TS", "TS-script-decipher-014")]
-    public void RoundTrip_字と刻まれた字と手帳_シードの違う星に読み戻しても同じに戻る()
+    public void RoundTrip_字と刻まれた字と手帳と次に祈る年_シードの違う星に読み戻しても同じに戻る()
     {
         var time = new TimeControl(
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
         var prophet = new ProphetDreams(time, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
         var state = Create();
-        prophet.AttachScript(state);
+        prophet.AttachScript(state, Seed);
         state.Update(400, [new Building(1, BuildingType.Workshop, 3, 6, 0, 900)], null);
         state.Discover(state.Carvings[0].Sentence);
         state.Label(state.Carvings[0].Sentence.Words[0], "SYM_WATER");
+        state.NextPrayerYear = 420;
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
             [AutoPlaySpeed.X1] = 600.0,
@@ -182,7 +183,7 @@ public class ScriptStateTests
         var loadedProphet = new ProphetDreams(loadedTime, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
         var loaded = new ScriptState(
             ScriptTests.Rules, PlanetScript.Create(ScriptTests.Rules, ScriptTests.Symbols, 7), TestRules.Civilization.Regions, Landmarks, 0.3f);
-        loadedProphet.AttachScript(loaded);
+        loadedProphet.AttachScript(loaded, Seed);
 
         SaveGame.Apply(data!, loadedTime, loadedProphet, clock);
 
@@ -194,55 +195,11 @@ public class ScriptStateTests
         Assert.Equal(1, loaded.Stage);
         Assert.Equal(state.Carvings, loaded.Carvings);
         Assert.Equal(state.Notebook, loaded.Notebook);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-script-decipher-024")]
-    public void TryParse_版19のセーブ_崩れは1回分の形で読み込める()
-    {
-        var time = new TimeControl(
-            TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
-        var prophet = new ProphetDreams(time, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
-        var state = Create();
-        prophet.AttachScript(state);
-        state.Update(400, [], null);
-        var firstPair = state.Script.SimilarPairs[0];
-        var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
-        {
-            [AutoPlaySpeed.X1] = 600.0,
-            [AutoPlaySpeed.X2] = 300.0,
-            [AutoPlaySpeed.X3] = 200.0,
-        });
-        time.World.Year = 400;
-
-        // 版 20 のセーブを、版 19 の形に戻す
-        var root = JsonNode.Parse(SaveDataSerializer.Write(SaveGame.Capture(time, prophet, Seed, clock)))!.AsObject();
-        root["saveVersion"] = 19;
-        var script = root["script"]!.AsObject();
-        script.Remove("similarPairs");
-        script["similarPair"] = new JsonArray(firstPair.A, firstPair.B);
-        script.Remove("stage");
-        script["decayed"] = true;
-        foreach (var radical in script["radicals"]!.AsArray())
-        {
-            radical!.AsObject().Remove("decayStage");
-        }
-        foreach (var carving in script["carvings"]!.AsArray())
-        {
-            carving!.AsObject().Remove("stage");
-            carving.AsObject()["decayed"] = false;
-        }
-
-        Assert.True(
-            SaveDataSerializer.TryParse(root.ToJsonString(), TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var data, out var reason),
-            reason);
-        var loaded = Create();
-        loaded.Restore(data!.Script!);
-
-        Assert.Equal(1, loaded.Stage);
-        Assert.Equal([firstPair], loaded.Script.SimilarPairs);
-        Assert.All(loaded.Script.Radicals, radical => Assert.Equal(1, radical.DecayStage));
-        Assert.All(loaded.Carvings, carving => Assert.Equal(0, carving.Stage));
+        Assert.Equal(420, loaded.NextPrayerYear);
+        Assert.False(SaveDataSerializer.TryParse(
+            json.Replace("\"nextPrayerYear\":420", "\"nextPrayerYear\":-1", StringComparison.Ordinal),
+            TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out _, out var badReason));
+        Assert.Equal("invalid_script", badReason);
     }
 
     [Fact]

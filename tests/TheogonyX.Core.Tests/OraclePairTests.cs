@@ -45,7 +45,7 @@ public class OraclePairTests
             var (prophet, time, deck) = Create();
             for (var i = 0; i < 4; i++)
             {
-                if (prophet.Dialect is null || prophet.SpeakRejection() is null)
+                if (prophet.SpeakRejection() is null)
                 {
                     prophet.SpeakFirst();
                 }
@@ -168,30 +168,5 @@ public class OraclePairTests
 
         Assert.Equal(3.0, prophet.Faith!.Value, 3);
         Assert.Empty(prophet.Faith.RecentYears);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-pair-009")]
-    public void SubmitSpeak_命令で下す_直接下したのと同じ結果で番号が続く()
-    {
-        var (prophet, time, deck) = Create();
-        var queue = new OracleCommandQueue(prophet, time);
-        prophet.SpeakFirst();
-        var before = prophet.Faith.Value;
-        var noun = prophet.Dialect!.Rules.Nouns.First(candidate => candidate.SymbolId == prophet.SymbolOf(prophet.Hand[0]));
-        var hearing = prophet.Hear(new HeardAnswer(noun.Id, "VERB_PROTECT", HeardDestination.None, null, [])).Hearing!;
-        time.World.IsDestroyed = true;
-        var rejected = queue.SubmitSpeak(hearing, "森を守れ");
-        time.World.IsDestroyed = false;
-
-        var outcome = queue.SubmitSpeak(hearing, "森を守れ");
-
-        Assert.Equal("star_destroyed", rejected.RejectedReason);
-        Assert.Null(outcome.RejectedReason);
-        Assert.Equal(2, time.Dogmas.Count);
-        Assert.Equal(before - 1, prophet.Faith.Value, 3);
-        Assert.Equal(1, rejected.Sequence);
-        Assert.Equal(2, outcome.Sequence);
-        Assert.NotEmpty(deck.DiscardPile);
     }
 }

@@ -29,7 +29,6 @@ public partial class WorldCore : Node2D
     private CarvingView? _carvings;
     private NotebookView? _notebook;
     private ScriptComposerView? _composer;
-    private DialectBookView? _dialectBook;
     private CrowdView? _crowd;
     private DreamView? _dreams;
     private OracleView? _oracle;
@@ -81,7 +80,6 @@ public partial class WorldCore : Node2D
         var beliefRules = GameDataLoader.ParseBelief(rulesJson);
         var journeyRules = GameDataLoader.ParseJourney(rulesJson);
         var oracleAiRules = GameDataLoader.ParseOracleAi(rulesJson);
-        var (dialectRules, dialectVessel) = GameDataLoader.ParseDialect(rulesJson);
         var (scriptRules, scriptLandmarks, tabooPlateShare) = GameDataLoader.ParseScript(rulesJson);
         var markRules = GameDataLoader.ParseStructures(ReadText("res://data/structures.json"));
 
@@ -89,11 +87,10 @@ public partial class WorldCore : Node2D
         _saveStore = new SaveStore("user://save", TimeProvider.System);
         var oracleRules = GameDataLoader.ParseOracleRules(rulesJson, dreamRules);
         var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, needsRules, oracleRules, out var loadFailed, out var outdated);
-        // 方言の状態が定義に合わないセーブは、何も当てはめる前に壊れたセーブとして扱う
-        if ((saved?.Dialect is { } savedDialect && !FitsDialect(dialectRules, dialectVessel, savedDialect))
-            || (saved?.Script is { } savedScript && !FitsScript(scriptRules, civilizationRules.Regions, savedScript)))
+        // 字の状態が定義に合わないセーブは、何も当てはめる前に壊れたセーブとして扱う
+        if (saved?.Script is { } savedScript && !FitsScript(scriptRules, civilizationRules.Regions, savedScript))
         {
-            GD.PushWarning("event=save_load_failed reason=invalid_dialect_or_script");
+            GD.PushWarning("event=save_load_failed reason=invalid_script");
             loadFailed = true;
             _saveStore.KeepBroken();
             saved = null;
@@ -113,10 +110,9 @@ public partial class WorldCore : Node2D
         });
         var deck = new OracleDeck(seed, GameDataLoader.ParseDeck(rulesJson, dreamRules));
         var prophet = new ProphetDreams(timeControl, prophetDreamRules, deck, oracleRules);
-        prophet.AttachDialect(new DialectState(dialectRules, dialectVessel, seed));
         var symbolIds = dreamRules.Symbols.Select(symbol => symbol.Id).ToList();
         prophet.AttachScript(new ScriptState(
-            scriptRules, PlanetScript.Create(scriptRules, symbolIds, seed), civilizationRules.Regions, scriptLandmarks, tabooPlateShare));
+            scriptRules, PlanetScript.Create(scriptRules, symbolIds, seed), civilizationRules.Regions, scriptLandmarks, tabooPlateShare), seed);
         if (saved is not null)
         {
             SaveGame.Apply(saved, timeControl, prophet, clock);
@@ -143,7 +139,6 @@ public partial class WorldCore : Node2D
         _carvings = new CarvingView(this, prophet);
         _screen.TerrainDrawn += _carvings.Refresh;
         _carvings.Discovered += Save;
-        _dialectBook = new DialectBookView(this, prophet);
         _screen.TimeAdvanced += () => LogResidentEvents(timeControl.ResidentEvents);
         _screen.TimeAdvanced += () => LogForgottenDogmas(timeControl);
         _screen.TimeAdvanced += () => LogProphetMoves(timeControl);
@@ -159,20 +154,18 @@ public partial class WorldCore : Node2D
         _camera.DetailBlendChanged += blend;
         blend(_camera.DetailBlend);
         _screen.WorldReset += _crowd.OnWorldReset;
-        var commands = new OracleCommandQueue(prophet, timeControl);
-        _dreams = new DreamView(this, prophet, commands, timeControl);
+        _dreams = new DreamView(this, prophet, timeControl);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;
         _screen.WorldReset += _dreams.OnWorldReset;
-        // 予言者の誤解と歴史の神話化で、ローカルの LLM への通信を 1 つ共有する
+        // 歴史の神話化で、ローカルの LLM に頼む
         _ollama = new OllamaClient(oracleAiRules);
-        _oracle = new OracleView(this, timeControl, _dreams, oracleAiRules, _ollama, prophet, commands);
+        _oracle = new OracleView(this, timeControl, _dreams, oracleAiRules, prophet);
         _oracle.Spoken += Save;
         _oracle.StateChanged += _screen.Refresh;
         _screen.TimeAdvanced += _oracle.HidePrayerGlyphsIfAnswered;
-        // 字の神託: 入力欄の代わりに「字を組む」ボタンを出し、手帳の字で文を書いて下す
+        // 字の神託: 「字を組む」ボタンで、手帳の字で文を書いて下す
         _notebook = new NotebookView(this, prophet);
         _composer = new ScriptComposerView(this, prophet);
-        _dreams.ScriptMode = prophet.Script is not null;
         _dreams.ComposeRequested += _composer.Toggle;
         var oracle = _oracle;
         var composer = _composer;
@@ -215,7 +208,6 @@ public partial class WorldCore : Node2D
         _residents?.Process(delta);
         _history?.Process();
         _notebook?.Process();
-        _dialectBook?.Process();
         _oracle?.Process(delta);
         _myth?.Process(delta);
         _crowd?.Process(delta);
@@ -281,20 +273,6 @@ public partial class WorldCore : Node2D
         {
             var probe = PlanetScript.Restore(rules, save.Radicals, save.WordOrder, save.SimilarPairs);
             new ScriptState(rules, probe, regions, [], 0.3f).Restore(save);
-            return true;
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-    }
-
-    // 保存した方言の状態が、今の定義に合うか（合わなければ読み込まない）
-    private static bool FitsDialect(DialectRules rules, string vesselId, DialectSave save)
-    {
-        try
-        {
-            new DialectState(rules, vesselId, 0).Restore(save);
             return true;
         }
         catch (ArgumentException)

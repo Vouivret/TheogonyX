@@ -28,7 +28,6 @@ public sealed class ProphetDreams
 
     // 建物・住人・信仰・旅の乱数と同じ並びにならないよう、シードに別の値を混ぜる
     private const uint PrayerSalt = 0x50524159; // "PRAY"
-    private const uint HearSalt = 0x48454152; // "HEAR"
 
     private readonly TimeControl _timeControl;
     private readonly ProphetDreamRules _rules;
@@ -38,6 +37,7 @@ public sealed class ProphetDreams
     // 祈りに入れたことのある記号（まだ入れていない記号は「新しい語」として、次の祈りに入れる）
     private readonly HashSet<string> _prayedSymbols = [];
     private int _faithYear;
+    private int _seed;
 
     // 依頼のために自動進行を止めたか。神託を下したときに再開するのに使う。
     private bool _pausedForRequest;
@@ -133,9 +133,9 @@ public sealed class ProphetDreams
         {
             return new ProphetUpdate(null, false, corrupted, gained, ScriptDecayed: scriptDecayed, SteleMisreadings: misread);
         }
-        if (Dialect is { } dialect)
+        if (Script is { } script)
         {
-            dialect.NextPrayerYear ??= world.Year + dialect.Rules.DailyPrayerYears;
+            script.NextPrayerYear ??= world.Year + script.Rules.DailyPrayerYears;
         }
 
         // 依頼のあいだにプレイヤーが自動進行を再開したら、神託のときに再開し直す必要は無い
@@ -159,29 +159,28 @@ public sealed class ProphetDreams
             paused = true;
         }
         Prayer? prayer = null;
-        if (Dialect is { } prayerDialect)
+        if (Script is { } prayerScript)
         {
-            var dailyDue = newRequest is null && ActiveRequest is null && world.Year >= prayerDialect.NextPrayerYear;
+            var dailyDue = newRequest is null && ActiveRequest is null && world.Year >= prayerScript.NextPrayerYear;
             if (newRequest is not null || dailyDue)
             {
-                prayer = ComposePrayer(prayerDialect, newRequest, world.Year);
-                prayerDialect.NextPrayerYear = world.Year + prayerDialect.Rules.DailyPrayerYears;
+                prayer = ComposePrayer(prayerScript.Rules, newRequest, world.Year);
+                prayerScript.NextPrayerYear = world.Year + prayerScript.Rules.DailyPrayerYears;
             }
         }
         return new ProphetUpdate(newRequest, paused, corrupted, gained, prayer, scriptDecayed, misread);
     }
 
-    // 祈りに入れる名詞を選ぶ。手札の記号の名詞だけ。汚染ルーンの記号の語を 1 つ混ぜ、まだ祈りに入れていない記号（新しい語）を必ず入れ、
-    // 残りは乱数で選ぶ。入れた名詞は、方言帳に「知っている言葉」として残す
-    private Prayer? ComposePrayer(DialectState dialect, ProphetRequestRule? request, int year)
+    // 祈りに入れる記号を選ぶ。手札の記号だけ。汚染ルーンの記号を 1 つ混ぜ、まだ祈りに入れていない記号（新しい語）を必ず入れ、
+    // 残りは乱数で選ぶ
+    private Prayer? ComposePrayer(ScriptRules rules, ProphetRequestRule? request, int year)
     {
-        var rules = dialect.Rules;
         var handSymbols = Deck.Hand.Select(_oracleRules.SymbolOf).Distinct().ToList();
         if (handSymbols.Count == 0)
         {
             return null;
         }
-        var random = new Random(unchecked((int)CrowdHash.Hash((uint)dialect.Seed ^ PrayerSalt, (uint)year, request is null ? 0u : 1u)));
+        var random = new Random(unchecked((int)CrowdHash.Hash((uint)_seed ^ PrayerSalt, (uint)year, request is null ? 0u : 1u)));
         var corrupted = Deck.Hand.Where(_oracleRules.IsCorrupted).Select(_oracleRules.SymbolOf).Distinct().Take(1).ToList();
         var fresh = handSymbols.Where(symbol => !_prayedSymbols.Contains(symbol) && !corrupted.Contains(symbol));
         var count = random.Next(rules.PrayerMinWords, rules.PrayerMaxWords + 1);
@@ -193,22 +192,8 @@ public sealed class ProphetDreams
             chosen.Add(others[index]);
             others.RemoveAt(index);
         }
-
-        var nouns = new List<string>();
-        foreach (var symbol in chosen)
-        {
-            var candidates = rules.Nouns.Where(noun => noun.SymbolId == symbol).ToList();
-            if (candidates.Count > 0)
-            {
-                nouns.Add(candidates[random.Next(candidates.Count)].Id);
-                _prayedSymbols.Add(symbol);
-            }
-        }
-        foreach (var noun in nouns)
-        {
-            dialect.Book.Add(new DialectEntry(noun, null, DialectReason.Known));
-        }
-        return nouns.Count == 0 ? null : new Prayer(request, nouns);
+        _prayedSymbols.UnionWith(chosen);
+        return new Prayer(request, chosen);
     }
 
     /// <summary>手札のカードが指す記号。</summary>
@@ -217,55 +202,35 @@ public sealed class ProphetDreams
     /// <summary>星の字の状態。文字の神託を使わないなら null。</summary>
     public ScriptState? Script { get; private set; }
 
-    /// <summary>文字の神託（星の字・刻まれた字・手帳）を使えるようにする。</summary>
-    public void AttachScript(ScriptState script)
+    /// <summary>文字の神託（星の字・刻まれた字・手帳）と祈りを使えるようにする。</summary>
+    /// <param name="seed">星のシード。祈りに入れる記号を選ぶ乱数を作るのに使う。</param>
+    public void AttachScript(ScriptState script, int seed)
     {
         ArgumentNullException.ThrowIfNull(script);
         Script = script;
-    }
-
-    /// <summary>方言の状態。自由文の神託を使わないなら null。</summary>
-    public DialectState? Dialect { get; private set; }
-
-    /// <summary>自由文の神託（方言の聞き違え）を使えるようにする。</summary>
-    public void AttachDialect(DialectState dialect)
-    {
-        ArgumentNullException.ThrowIfNull(dialect);
-        Dialect = dialect;
+        _seed = seed;
     }
 
     /// <summary>神の文を語りかけられない理由（<c>star_destroyed</c>・<c>not_enough_faith</c>）。語りかけられるなら null。</summary>
     public string? SpeakRejection() =>
         _timeControl.World.IsDestroyed ? "star_destroyed" : Faith.CanAfford ? null : "not_enough_faith";
 
-    /// <summary>聞き取りの答えを、予言者の語彙（手札の記号）と方言で聞き違える。聞き違え先を選ぶ乱数は、星のシードと年で決める。</summary>
-    /// <exception cref="InvalidOperationException">方言の状態を付けていない。</exception>
-    public HearOutcome Hear(HeardAnswer answer)
-    {
-        var dialect = Dialect ?? throw new InvalidOperationException("方言の状態が無い");
-        var random = new Random(unchecked((int)CrowdHash.Hash((uint)dialect.Seed ^ HearSalt, (uint)_timeControl.World.Year, 0u)));
-        return OracleHearer.Hear(dialect.Rules, dialect.Table, [.. Deck.Hand.Select(_oracleRules.SymbolOf).Distinct()], answer, random);
-    }
-
     /// <summary>
-    /// 聞き違えた結果で神託を下す（docs/domain/oracle-pair.md の「自由文の神託」）。教えを一覧に加え、神威を使い、短い年数に重ねすぎたら
-    /// 歪みを起こし、教えの記号のルーンが手札にあれば 1 枚を捨札へ移して 1 枚を補う。行き先があれば予言者の行き先にし、
-    /// 方言帳と神託の記録に残す。依頼は済み、止めていた自動進行は再開する。
+    /// 人が読んだ教えと行き先で神託を下す。教えを一覧に加え、神威を使い、短い年数に重ねすぎたら歪みを起こし、
+    /// 教えの記号のルーンが手札にあれば 1 枚を捨札へ移して 1 枚を補う。行き先があれば予言者の行き先にする。
+    /// 依頼は済み、止めていた自動進行は再開する。字の神託（<see cref="SpeakScript"/>）はこれを通す。
     /// </summary>
-    /// <exception cref="InvalidOperationException">方言の状態が無い、または語りかけられない（<see cref="SpeakRejection"/> が null でない）。</exception>
-    public SpeakResult Speak(Hearing hearing, string godText)
+    /// <param name="teaching">人が読んだ教え。読めた組が無ければ null（神威は使う）。</param>
+    /// <exception cref="InvalidOperationException">語りかけられない（<see cref="SpeakRejection"/> が null でない）。</exception>
+    public SpeakResult Pronounce(Dogma? teaching, TravelDirection destination)
     {
-        ArgumentNullException.ThrowIfNull(hearing);
-        ArgumentNullException.ThrowIfNull(godText);
-        var dialect = Dialect ?? throw new InvalidOperationException("方言の状態が無い");
         if (SpeakRejection() is { } reason)
         {
             throw new InvalidOperationException($"神託を下せない: reason={reason}");
         }
 
-        var year = _timeControl.World.Year;
         var corruptedCount = 0;
-        if (hearing.Teaching is { } teaching)
+        if (teaching is not null)
         {
             _timeControl.AddDogma(teaching);
             var index = Deck.Hand.ToList().FindIndex(card => _oracleRules.SymbolOf(card) == teaching.TargetSymbolId);
@@ -275,28 +240,21 @@ public sealed class ProphetDreams
                 Deck.SpendOne(index);
             }
         }
-        if (hearing.Destination != TravelDirection.None)
+        if (destination != TravelDirection.None)
         {
-            _timeControl.SetDestination(hearing.Destination);
+            _timeControl.SetDestination(destination);
         }
-        foreach (var entry in hearing.BookEntries)
-        {
-            dialect.Book.Add(entry);
-        }
-        var record = new OracleRecord(
-            year, godText, hearing.HeardNounId, hearing.HeardVerbId, hearing.Teaching, hearing.Destination, hearing.MysteryWords);
-        dialect.AddRecord(record);
 
         var (overload, answered, resumed) = CompletePronouncement(corruptedCount);
-        return new SpeakResult(hearing.Teaching, answered, resumed, overload, corruptedCount, record);
+        return new SpeakResult(teaching, answered, resumed, overload, corruptedCount);
     }
 
     /// <summary>
     /// 神が書いた文で神託を下す（docs/domain/script-decipher.md の「7. 語の字と神託の碑」）。人（予言者）が星の語順で文を読み、
-    /// 読めた組から教えと行き先を作って <see cref="Speak"/> と同じく下す。読めた組が無くても神威は使う（神は語った）。
+    /// 読めた組から教えと行き先を作って <see cref="Pronounce"/> で下す。読めた組が無くても神威は使う（神は語った）。
     /// 語りかけられない（<see cref="SpeakRejection"/>）・文が書けていない（<see cref="ScriptReader.Read"/> の理由）ときは、何も変えずに理由を返す。
     /// </summary>
-    /// <exception cref="InvalidOperationException">星の字の状態か方言の状態が無い。</exception>
+    /// <exception cref="InvalidOperationException">星の字の状態が無い。</exception>
     public ScriptSpeakOutcome SpeakScript(Sentence sentence)
     {
         ArgumentNullException.ThrowIfNull(sentence);
@@ -315,9 +273,7 @@ public sealed class ProphetDreams
         var crisis = CurrentCrisis();
         var teaching = reading.Teaching is { } read ? OracleReadings.WithReading(read, crisis) : null;
         reading = reading with { Teaching = teaching };
-        var hearing = new Hearing(teaching, null, null, reading.Destination, false, [], []);
-        // 神託の記録には、神が書いた文を語の字の ID で残す（経典の元）
-        var result = Speak(hearing, sentence.ToString());
+        var result = Pronounce(teaching, reading.Destination);
         // 神が書いた文を、予言者のいる地域に碑として刻む
         if (_timeControl.Prophet is { } prophet)
         {
@@ -392,7 +348,6 @@ public sealed class ProphetDreams
     public void Reset()
     {
         Faith.Reset();
-        Dialect?.ClearRecords();
         Script?.Reset();
         Deck.ResetCorruption();
         Deck.GrantPruneCharges();

@@ -7,19 +7,21 @@ public class OraclePrayerTests
 {
     private const int Seed = 42;
 
-    private static readonly DialectRules TwoWords = OracleDialectTests.Rules with { PrayerMinWords = 2, PrayerMaxWords = 2 };
+    private static readonly ScriptRules TwoWords = ScriptTests.Rules with { PrayerMinWords = 2, PrayerMaxWords = 2 };
 
-    // 手札を決めて作る（山札・捨札は空）。祈りに入れる語を選ぶのに必要な部分だけ
-    private static (ProphetDreams Prophet, TimeControl Time, DialectState Dialect) Create(string[] hand, DialectRules? rules = null)
+    // 手札を決めて作る（山札・捨札は空）。祈りに入れる記号を選ぶのに必要な部分だけ
+    private static (ProphetDreams Prophet, TimeControl Time, ScriptState Script) Create(string[] hand, ScriptRules? rules = null)
     {
         var time = new TimeControl(
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
         var deck = new OracleDeck(Seed, TestRules.Deck);
         deck.Restore(new OracleDeckState([], hand, [], 0, 0, -1, 0));
         var prophet = new ProphetDreams(time, TestRules.ProphetDreams, deck, TestRules.Oracle);
-        var dialect = new DialectState(rules ?? TwoWords, OracleDialectTests.Silent, Seed);
-        prophet.AttachDialect(dialect);
-        return (prophet, time, dialect);
+        var scriptRules = rules ?? TwoWords;
+        var script = new ScriptState(
+            scriptRules, PlanetScript.Create(scriptRules, ScriptTests.Symbols, Seed), TestRules.Civilization.Regions, [], 0.3f);
+        prophet.AttachScript(script, Seed);
+        return (prophet, time, script);
     }
 
     // 水が足りない星にして、最初の依頼（渇き）を出させる
@@ -31,17 +33,14 @@ public class OraclePrayerTests
 
     [Fact]
     [Trait("TS", "TS-oracle-prayer-001")]
-    public void OnTimeAdvanced_依頼が出る_手札の記号の名詞だけで祈り方言帳に知っている言葉として残る()
+    public void OnTimeAdvanced_依頼が出る_手札の記号だけで祈る()
     {
-        var (prophet, time, dialect) = Create(["SYM_TREE", "SYM_WATER", "SYM_TREE"]);
+        var (prophet, time, _) = Create(["SYM_TREE", "SYM_WATER", "SYM_TREE"]);
 
         var prayer = Thirst(prophet, time).Prayer;
 
         Assert.Equal("THIRST", prayer!.Request!.Id);
-        Assert.Equal(["NOUN_FOREST", "NOUN_RIVER"], prayer.NounIds.Order());
-        Assert.Equal(
-            [new DialectEntry("NOUN_FOREST", null, DialectReason.Known), new DialectEntry("NOUN_RIVER", null, DialectReason.Known)],
-            dialect.Book.Entries.OrderBy(entry => entry.GodWord));
+        Assert.Equal(["SYM_TREE", "SYM_WATER"], prayer.SymbolIds.Order());
     }
 
     [Fact]
@@ -57,20 +56,20 @@ public class OraclePrayerTests
         time.World.Year = 40;
         var second = prophet.OnTimeAdvanced().Prayer!;
 
-        Assert.Equal(["NOUN_FOREST", "NOUN_RIVER"], first.NounIds.Order());
-        Assert.Contains("NOUN_FLAME", second.NounIds);
+        Assert.Equal(["SYM_TREE", "SYM_WATER"], first.SymbolIds.Order());
+        Assert.Contains("SYM_FIRE", second.SymbolIds);
     }
 
     [Fact]
     [Trait("TS", "TS-oracle-prayer-003")]
-    public void OnTimeAdvanced_手札に汚染ルーン_その記号の語が祈りに混じる()
+    public void OnTimeAdvanced_手札に汚染ルーン_その記号が祈りに混じる()
     {
         var (prophet, time, _) = Create(["SYM_TREE", "RUNE_MADNESS", "SYM_WATER"]);
 
         var prayer = Thirst(prophet, time).Prayer!;
 
-        Assert.Contains("NOUN_BLOOD", prayer.NounIds);
-        Assert.Equal(2, prayer.NounIds.Count);
+        Assert.Contains("SYM_BLOOD", prayer.SymbolIds);
+        Assert.Equal(2, prayer.SymbolIds.Count);
     }
 
     [Fact]
@@ -90,67 +89,50 @@ public class OraclePrayerTests
         Assert.Null(start.Prayer);
         Assert.Null(early.Prayer);
         Assert.Null(due.Prayer!.Request);
-        Assert.Equal(2, due.Prayer.NounIds.Count);
+        Assert.Equal(2, due.Prayer.SymbolIds.Count);
         Assert.Null(afterward.Prayer);
         Assert.False(due.PausedAutoPlay);
     }
 
     [Fact]
     [Trait("TS", "TS-oracle-prayer-005")]
-    public void OnTimeAdvanced_同じシードと同じ手札_同じ祈りの語になる()
+    public void OnTimeAdvanced_同じシードと同じ手札_同じ祈りの記号になる()
     {
         string[] hand = ["SYM_TREE", "SYM_WATER", "SYM_FIRE", "SYM_TREE"];
-        var rules = OracleDialectTests.Rules with { PrayerMinWords = 2, PrayerMaxWords = 3 };
+        var rules = ScriptTests.Rules with { PrayerMinWords = 2, PrayerMaxWords = 3 };
 
         var (firstProphet, firstTime, _) = Create(hand, rules);
         var (secondProphet, secondTime, _) = Create(hand, rules);
 
-        Assert.Equal(Thirst(firstProphet, firstTime).Prayer!.NounIds, Thirst(secondProphet, secondTime).Prayer!.NounIds);
+        Assert.Equal(Thirst(firstProphet, firstTime).Prayer!.SymbolIds, Thirst(secondProphet, secondTime).Prayer!.SymbolIds);
     }
 
     [Fact]
     [Trait("TS", "TS-oracle-prayer-006")]
-    public void Restore_次の祈りの年と知っている言葉_セーブで戻り定義に無い語は拒む()
+    public void Restore_次の祈りの年_セーブで戻り負の年は拒む()
     {
-        var (prophet, time, dialect) = Create(["SYM_TREE", "SYM_WATER"]);
+        var (prophet, time, script) = Create(["SYM_TREE", "SYM_WATER"]);
         Thirst(prophet, time);
-        var save = dialect.Capture();
+        var save = script.Capture();
         var (_, _, target) = Create(["SYM_TREE"]);
 
         target.Restore(save);
 
+        Assert.Equal(20, save.NextPrayerYear);
         Assert.Equal(save.NextPrayerYear, target.NextPrayerYear);
-        Assert.Equal(dialect.Book.Entries, target.Book.Entries);
-        Assert.Throws<ArgumentException>(() => target.Restore(save with { Book = [new DialectEntry("NOUN_UNKNOWN", null, DialectReason.Known)] }));
         Assert.Throws<ArgumentException>(() => target.Restore(save with { NextPrayerYear = -1 }));
     }
 
     [Fact]
-    [Trait("TS", "TS-oracle-prayer-007")]
-    public void ParseResponse_祈りの文_入れる名詞が入っていなければ使わない()
-    {
-        static string Response(string inner) => JsonSerializer.Serialize(new { model = "gemma2:9b", response = inner, done = true });
-        var good = Response("""{"prayer": "神よ、森は痩せ、川も細りました"}""");
-        var missing = Response("""{"prayer": "神よ、森は痩せました"}""");
-        var tooLong = Response(JsonSerializer.Serialize(new { prayer = "森川" + new string('あ', PrayerWriter.MaxPrayerLength) }));
-
-        Assert.Equal("神よ、森は痩せ、川も細りました", PrayerWriter.ParseResponse(good, ["森", "川"]));
-        Assert.Null(PrayerWriter.ParseResponse(missing, ["森", "川"]));
-        Assert.Null(PrayerWriter.ParseResponse(tooLong, ["森", "川"]));
-        Assert.Contains("使う名詞: 森, 川", PrayerWriter.BuildPrompt("渇き", ["森", "川"], "ja"));
-        Assert.Contains("困りごとは無い", PrayerWriter.BuildPrompt(null, ["森", "川"], "ja"));
-    }
-
-    [Fact]
     [Trait("TS", "TS-oracle-prayer-009")]
-    public void ParseResponse_引用符が崩れたJSON_文字列の項目を拾って読める()
+    public void ReadObject_引用符が崩れたJSON_文字列の項目を拾って読める()
     {
         static string Response(string inner) => JsonSerializer.Serialize(new { model = "gemma2:9b", response = inner, done = true });
+        static string? Prayer(string body) => AiText.ReadObject(body, root =>
+            root.TryGetProperty("prayer", out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null);
         var broken = Response("{\"prayer\": \"森の実り、川の恵み。渇きを癒したまえ。」} Praying that the forest and the river");
-        var brokenWithoutWord = Response("{\"prayer\": \"森の実りを。」} extra");
 
-        Assert.Equal("森の実り、川の恵み。渇きを癒したまえ。", PrayerWriter.ParseResponse(broken, ["森", "川"]));
-        Assert.Null(PrayerWriter.ParseResponse(brokenWithoutWord, ["森", "川"]));
-        Assert.Null(PrayerWriter.ParseResponse(Response("これはJSONではない"), ["森"]));
+        Assert.Equal("森の実り、川の恵み。渇きを癒したまえ。", Prayer(broken));
+        Assert.Null(Prayer(Response("これはJSONではない")));
     }
 }

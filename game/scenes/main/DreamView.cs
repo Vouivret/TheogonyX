@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using Godot;
 using TheogonyX.Core;
 using TheogonyX.Core.Protocol;
@@ -9,142 +7,52 @@ using TheogonyX.Core.Protocol;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// 神託の欄と依頼の吹き出しを描く（docs/domain/oracle-pair.md の「画面と通信」、prophet-request.md）。
-/// 地表の下の帯の 1 段目に今の状態の案内と神威、2 段目に「語りかける」ボタンと、神の言葉を書く入力欄を出す。
-/// 手札（予言者の語彙）は見せない。LLM が使えないときは、入力欄の代わりに、予言者の知っている名詞と動詞と行き先を選ぶ欄を出す。
-/// 語りかける操作は <see cref="SpeakRequested"/>・<see cref="WordsChosen"/> で知らせ、聞き取りと実行は <see cref="OracleView"/> が受け持つ。
-/// スマホ（<see cref="CompanionHost"/>）からの語りかけも、<see cref="TrySpeak"/>・<see cref="TryChoose"/> でここを通す。
+/// 神託の欄と依頼の吹き出しを描く（docs/domain/script-decipher.md、prophet-request.md）。
+/// 地表の下の帯の 1 段目に今の状態の案内と神威、2 段目に「字を組む」ボタンを出す。手札（予言者の語彙）は見せない。
+/// 字を組んで下すのは <see cref="ScriptComposerView"/> と <see cref="OracleView"/> が受け持つ。
 /// </summary>
 public sealed class DreamView
 {
     private readonly ProphetDreams _prophet;
-    private readonly OracleCommandQueue _commands;
     private readonly TimeControl _timeControl;
     private readonly Label _dreamGuide;
-    private readonly Button _oracleButton;
-    private readonly HBoxContainer _dreamCards;
     private readonly Label _requestBubble;
-    private readonly LineEdit _input;
-    private readonly OptionButton _nounChoice;
-    private readonly OptionButton _verbChoice;
-    private readonly OptionButton _directionChoice;
-    private readonly List<string?> _nounIds = [];
-    private string _handShown = string.Empty;
-    private readonly Button _composeButton;
-    private bool _listening;
-    private bool _choiceMode;
-    private bool _scriptMode;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public DreamView(Node owner, ProphetDreams prophet, OracleCommandQueue commands, TimeControl timeControl)
+    public DreamView(Node owner, ProphetDreams prophet, TimeControl timeControl)
     {
         _prophet = prophet;
-        _commands = commands;
         _timeControl = timeControl;
         _dreamGuide = owner.GetNode<Label>("%DreamGuide");
-        _oracleButton = owner.GetNode<Button>("%OracleButton");
-        _dreamCards = owner.GetNode<HBoxContainer>("%DreamCards");
         _requestBubble = owner.GetNode<Label>("%RequestBubble");
+        var dreamCards = owner.GetNode<HBoxContainer>("%DreamCards");
 
-        // 夢のコマは無い。コマの段は使わず、下の帯の 1 行（入力欄・語りかける）に収める
+        // 夢のコマは無い。コマの段は使わず、下の帯の 1 行（字を組む）に収める
         owner.GetNode<HBoxContainer>("%DreamNodes").Visible = false;
         owner.GetNode<HBoxContainer>("%DreamRow").Visible = false;
-        _dreamCards.Visible = true;
+        owner.GetNode<Button>("%OracleButton").Visible = false;
+        dreamCards.Visible = true;
         _dreamGuide.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _dreamGuide.CustomMinimumSize = new Vector2(440, 0);
 
-        _input = new LineEdit
-        {
-            Name = "OracleInput",
-            MaxLength = OracleListening.MaxGodTextLength,
-            PlaceholderText = Tr("SPEAK_PLACEHOLDER"),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-        };
-        _nounChoice = new OptionButton { Name = "NounChoice", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = false };
-        _verbChoice = new OptionButton { Name = "VerbChoice", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = false };
-        _directionChoice = new OptionButton { Name = "DirectionChoice", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = false };
-        foreach (var control in new Control[] { _input, _nounChoice, _verbChoice, _directionChoice })
-        {
-            _dreamCards.AddChild(control);
-        }
-        _composeButton = new Button { Name = "ComposeButton", Text = "BUTTON_COMPOSE", Visible = false, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        _composeButton.Pressed += () => ComposeRequested?.Invoke();
-        _dreamCards.AddChild(_composeButton);
-        _oracleButton.Reparent(_dreamCards);
-        _oracleButton.Text = "BUTTON_SPEAK";
-        _oracleButton.Pressed += OnOracleButtonPressed;
-        _input.TextChanged += _ => UpdateControls();
-        _input.TextSubmitted += _ => OnOracleButtonPressed();
-        foreach (var choice in new[] { _nounChoice, _verbChoice, _directionChoice })
-        {
-            choice.ItemSelected += _ => UpdateControls();
-        }
-        BuildVerbAndDirectionChoices();
+        var composeButton = new Button { Name = "ComposeButton", Text = "BUTTON_COMPOSE", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        composeButton.Pressed += () => ComposeRequested?.Invoke();
+        dreamCards.AddChild(composeButton);
 
         Redraw();
     }
 
-    /// <summary>予言者が祈った（新しい依頼の祈りか、日々の祈り）。祈りの文を作って <see cref="PrayerText"/> や吹き出しに出すのに使う。</summary>
+    /// <summary>予言者が祈った（新しい依頼の祈りか、日々の祈り）。祈りの字を出すのに使う。</summary>
     public event Action<Prayer>? Prayed;
 
-    /// <summary>依頼中の吹き出しに出す祈りの文。無ければ（依頼の定型文を出す）null。依頼が済むと消える。</summary>
-    public string? PrayerText { get; set; }
-
-    /// <summary>神の言葉を書いて「語りかける」を押した（LLM が使えるとき）。</summary>
-    public event Action<string>? SpeakRequested;
-
-    /// <summary>名詞・動詞・行き先を選んで「語りかける」を押した（LLM が使えないとき）。選んだ神の言葉の代わりの文も渡す。</summary>
-    public event Action<string?, string?, HeardDestination, string>? WordsChosen;
-
-    /// <summary>描き直したとき。手札・神威・依頼・できる操作が変わったかもしれない。</summary>
+    /// <summary>描き直したとき。手札・神威・依頼が変わったかもしれない。</summary>
     public event Action? Changed;
 
-    /// <summary>予言者が聞いている途中か。入力欄とボタンを使えなくする。</summary>
-    public bool Listening
-    {
-        get => _listening;
-        set
-        {
-            _listening = value;
-            Redraw();
-        }
-    }
-
-    /// <summary>入力欄の代わりに、言葉を選ぶ欄を出すか（LLM が使えないとき）。</summary>
-    public bool ChoiceMode
-    {
-        get => _choiceMode;
-        set
-        {
-            _choiceMode = value;
-            Redraw();
-        }
-    }
-
-    /// <summary>「字を組む」を押した（字の神託の形のとき）。</summary>
+    /// <summary>「字を組む」を押した。</summary>
     public event Action? ComposeRequested;
 
-    /// <summary>字の神託の形か（入力欄・言葉を選ぶ欄の代わりに「字を組む」ボタンを出す）。</summary>
-    public bool ScriptMode
-    {
-        get => _scriptMode;
-        set
-        {
-            _scriptMode = value;
-            Redraw();
-        }
-    }
-
-    /// <summary>入力欄の文。聞き取りに失敗したときも、書いた文を残す。</summary>
-    public string InputText
-    {
-        get => _input.Text;
-        set => _input.Text = value;
-    }
-
     /// <summary>スマホに送る、今の神託の状態（<c>ORACLE_STATE</c>）。</summary>
-    public string StateMessage() =>
-        HostMessageWriter.OracleState(_prophet, _timeControl.World.IsDestroyed, _listening, _choiceMode, PrayerText, _scriptMode);
+    public string StateMessage() => HostMessageWriter.OracleState(_prophet, _timeControl.World.IsDestroyed);
 
     /// <summary>100 年跳躍の後と、自動進行の 1 年ごとに呼ぶ。</summary>
     public void OnTimeAdvanced()
@@ -175,7 +83,6 @@ public sealed class DreamView
         {
             GD.Print(FormattableString.Invariant($"event=stele_misread year={year} count={update.SteleMisreadings}"));
         }
-        PrayerText = null;
         if (update.Prayer is { } prayer)
         {
             Prayed?.Invoke(prayer);
@@ -190,163 +97,23 @@ public sealed class DreamView
         Redraw();
     }
 
-    /// <summary>スマホから文で語りかける（<c>SPEAK</c>）。今は語りかけられないなら、理由を返す。</summary>
-    /// <returns>語りかけられなかったときの理由（ログの <c>reason</c>）。受け付けたら null。</returns>
-    public string? TrySpeak(string text)
-    {
-        var rejected = RemoteRejection(wantChoiceMode: false);
-        if (rejected is null && !OracleListening.IsValidGodText(text))
-        {
-            rejected = "invalid_text";
-        }
-        if (rejected is null)
-        {
-            SpeakRequested?.Invoke(text.Trim());
-        }
-        return rejected;
-    }
-
-    /// <summary>スマホから言葉を選んで語りかける（<c>PRONOUNCE</c>）。今は語りかけられないなら、理由を返す。</summary>
-    /// <returns>語りかけられなかったときの理由。受け付けたら null。</returns>
-    public string? TryChoose(string? nounId, string? verbId, HeardDestination destination)
-    {
-        var rejected = RemoteRejection(wantChoiceMode: true);
-        if (rejected is null)
-        {
-            WordsChosen?.Invoke(nounId, verbId, destination, ChoiceSentence(nounId, verbId, destination));
-        }
-        return rejected;
-    }
-
-    // スマホの操作を受け付けられない理由。PC と同時に操作できるので、先に届いた操作が勝つ
-    private string? RemoteRejection(bool wantChoiceMode) =>
-        _timeControl.World.IsDestroyed ? "star_destroyed"
-        : _prophet.Dialect is null ? "no_dialect"
-        : _scriptMode ? "script_mode"
-        : _listening ? "listening"
-        : !_prophet.Faith.CanAfford ? "not_enough_faith"
-        : _choiceMode != wantChoiceMode ? (wantChoiceMode ? "voice_mode" : "words_mode")
-        : null;
-
-    /// <summary>語りかけを終えた後（成功しても失敗しても）に、欄を描き直す。</summary>
+    /// <summary>神託を下した後に、欄を描き直す。</summary>
     public void Refresh() => Redraw();
-
-    private void OnOracleButtonPressed()
-    {
-        if (_oracleButton.Disabled)
-        {
-            return;
-        }
-        if (_choiceMode)
-        {
-            var noun = _nounChoice.Selected >= 0 && _nounChoice.Selected < _nounIds.Count ? _nounIds[_nounChoice.Selected] : null;
-            var verb = _verbChoice.Selected > 0 ? _prophet.Dialect!.Rules.Verbs[_verbChoice.Selected - 1].Id : null;
-            var destination = _directionChoice.Selected switch
-            {
-                1 => HeardDestination.East,
-                2 => HeardDestination.West,
-                _ => HeardDestination.None,
-            };
-            WordsChosen?.Invoke(noun, verb, destination, ChoiceSentence(noun, verb, destination));
-        }
-        else
-        {
-            SpeakRequested?.Invoke(_input.Text.Trim());
-        }
-    }
-
-    // 選んだ言葉を並べた、神の文の代わりの文（記録に残す）
-    private static string ChoiceSentence(string? noun, string? verb, HeardDestination destination)
-    {
-        var parts = new List<string>();
-        if (noun is not null)
-        {
-            parts.Add(Tr($"WORD_{noun}"));
-        }
-        if (verb is not null)
-        {
-            parts.Add(Tr($"WORD_{verb}"));
-        }
-        if (destination != HeardDestination.None)
-        {
-            parts.Add(Tr(destination == HeardDestination.East ? "DIRECTION_EAST" : "DIRECTION_WEST"));
-        }
-        return string.Join(' ', parts);
-    }
-
-    // 動詞は全部知っている。行き先は東・西・なし。名詞は手札の記号のものだけなので、手札が変わるたびに作り直す
-    private void BuildVerbAndDirectionChoices()
-    {
-        _verbChoice.Clear();
-        _verbChoice.AddItem(Tr("CHOICE_NONE"));
-        foreach (var verb in _prophet.Dialect?.Rules.Verbs ?? [])
-        {
-            _verbChoice.AddItem(Tr($"WORD_{verb.Id}"));
-        }
-        _directionChoice.Clear();
-        _directionChoice.AddItem(Tr("DIRECTION_NONE"));
-        _directionChoice.AddItem(Tr("DIRECTION_EAST"));
-        _directionChoice.AddItem(Tr("DIRECTION_WEST"));
-    }
-
-    private void RebuildNounChoice()
-    {
-        var symbols = _prophet.Hand.Select(card => _prophet.SymbolOf(card)).ToHashSet();
-        var signature = string.Join(',', symbols.Order());
-        if (signature == _handShown)
-        {
-            return;
-        }
-        _handShown = signature;
-        _nounChoice.Clear();
-        _nounIds.Clear();
-        _nounChoice.AddItem(Tr("CHOICE_NONE"));
-        _nounIds.Add(null);
-        foreach (var noun in (_prophet.Dialect?.Rules.Nouns ?? []).Where(noun => symbols.Contains(noun.SymbolId)))
-        {
-            _nounChoice.AddItem(Tr($"WORD_{noun.Id}"));
-            _nounIds.Add(noun.Id);
-        }
-    }
 
     private void Redraw()
     {
-        RebuildNounChoice();
-        _input.Visible = !_choiceMode && !_scriptMode;
-        _nounChoice.Visible = _directionChoice.Visible = _verbChoice.Visible = _choiceMode && !_scriptMode;
-        _oracleButton.Visible = !_scriptMode;
-        _composeButton.Visible = _scriptMode;
-        UpdateControls();
         _dreamGuide.Text = GuideText();
-
         if (_prophet.ActiveRequest is { } request)
         {
-            _requestBubble.Text = PrayerText ?? string.Format(
+            _requestBubble.Text = string.Format(
                 CultureInfo.CurrentCulture, Tr("REQUEST_BUBBLE"), Tr($"TROUBLE_{request.Id}"), Tr($"SYMBOL_{request.SymbolId}"));
             _requestBubble.Visible = true;
         }
         else
         {
-            PrayerText = null;
             _requestBubble.Visible = false;
         }
-
         Changed?.Invoke();
-    }
-
-    // 入力欄・選ぶ欄とボタンの、使えるかどうか
-    private void UpdateControls()
-    {
-        var canSpeak = !_timeControl.World.IsDestroyed && !_listening && _prophet.Faith.CanAfford && _prophet.Dialect is not null;
-        _input.Editable = !_listening;
-        foreach (var choice in new[] { _nounChoice, _verbChoice, _directionChoice })
-        {
-            choice.Disabled = _listening;
-        }
-        var hasContent = _choiceMode
-            ? _nounChoice.Selected > 0 || _verbChoice.Selected > 0 || _directionChoice.Selected > 0
-            : OracleListening.IsValidGodText(_input.Text.Trim());
-        _oracleButton.Disabled = !(canSpeak && hasContent);
     }
 
     // 今の状態の案内と、神威（今の量 / 上限）
@@ -356,13 +123,8 @@ public sealed class DreamView
         {
             return Tr("ORACLE_GUIDE_DESTROYED");
         }
-
         var faith = _prophet.Faith;
-        var key = _listening ? "ORACLE_GUIDE_LISTENING"
-            : !faith.CanAfford ? "ORACLE_GUIDE_NO_FAITH"
-            : _scriptMode ? "ORACLE_GUIDE_COMPOSE"
-            : _choiceMode ? "ORACLE_GUIDE_CHOOSE_WORDS"
-            : "ORACLE_GUIDE_SPEAK";
+        var key = faith.CanAfford ? "ORACLE_GUIDE_COMPOSE" : "ORACLE_GUIDE_NO_FAITH";
         return string.Format(CultureInfo.CurrentCulture, Tr("ORACLE_GUIDE_FAITH"), Tr(key), faith.Value, faith.Max);
     }
 

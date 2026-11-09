@@ -21,9 +21,8 @@ public class OracleReadingTests
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
         var deck = new OracleDeck(Seed, new DeckRules([new DeckRuneCount("SYM_TREE", 3), new DeckRuneCount("SYM_WATER", 3)], 4));
         var prophet = new ProphetDreams(time, TestRules.ProphetDreams, deck, TestRules.Oracle);
-        prophet.AttachDialect(new DialectState(OracleDialectTests.Rules, OracleDialectTests.Silent, Seed));
         var script = new ScriptState(Rules, PlanetScript.Create(Rules, ScriptTests.Symbols, Seed), TestRules.Civilization.Regions, [], 0.3f);
-        prophet.AttachScript(script);
+        prophet.AttachScript(script, Seed);
         // 困りごとの無い星にしてから、テストごとに危機を起こす
         time.World.WaterAmount = 80f;
         time.World.ForestAmount = 80f;

@@ -17,4 +17,4 @@ public sealed record ProphetUpdate(
 /// </summary>
 /// <param name="Request">祈りの元の依頼。日々の祈りなら null。</param>
 /// <param name="NounIds">祈りに入れる名詞（概念の ID。手札の記号のものだけ）。</param>
-public sealed record Prayer(ProphetRequestRule? Request, IReadOnlyList<string> NounIds);
+public sealed record Prayer(ProphetRequestRule? Request, IReadOnlyList<string> SymbolIds);

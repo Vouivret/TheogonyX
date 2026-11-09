@@ -69,9 +69,8 @@ public class SteleTests
             TestRules.World, TestRules.JumpYears, new CivilizationSetup(TestRules.Civilization, TestRules.Terrain, Seed, TestRules.Needs), TestRules.History);
         var deck = new OracleDeck(Seed, new DeckRules([new DeckRuneCount("SYM_TREE", 3), new DeckRuneCount("SYM_WATER", 3)], 4));
         var prophet = new ProphetDreams(time, TestRules.ProphetDreams, deck, TestRules.Oracle);
-        prophet.AttachDialect(new DialectState(OracleDialectTests.Rules, OracleDialectTests.Silent, Seed));
         var state = CreateScript();
-        prophet.AttachScript(state);
+        prophet.AttachScript(state, Seed);
         var region = time.Prophet!.Region;
         time.World.Year = 120;
         var sentence = state.Script.SentenceFor("SYM_FIRE", DogmaType.Worship); // 予言者の知らない記号でも碑は刻む
@@ -179,7 +178,7 @@ public class SteleTests
         var time = CreateTime();
         var prophet = new ProphetDreams(time, TestRules.ProphetDreams, new OracleDeck(Seed, TestRules.Deck), TestRules.Oracle);
         var state = CreateScript();
-        prophet.AttachScript(state);
+        prophet.AttachScript(state, Seed);
         var (larger, smaller) = Twins(state.Script);
         state.CarveStele(state.Script.SentenceFor(larger, DogmaType.Worship), 5, 40);
         time.World.Year = 300;

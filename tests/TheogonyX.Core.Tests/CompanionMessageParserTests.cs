@@ -76,74 +76,17 @@ public class CompanionMessageParserTests
         Assert.Equal("invalid_token", reason);
     }
 
-    [Fact]
-    [Trait("TS", "TS-oracle-pair-010")]
-    public void TryParse_SPEAK_神の言葉が取り出せる()
-    {
-        var ok = CompanionMessageParser.TryParse("""{ "type": "SPEAK", "version": 1, "text": "森を守れ" }""", out var message, out _);
-
-        Assert.True(ok);
-        Assert.Equal(new CompanionMessage(CompanionMessageType.Speak, Text: "森を守れ"), message);
-    }
-
     [Theory]
     [Trait("TS", "TS-oracle-pair-010")]
-    [InlineData("""{ "type": "SPEAK", "version": 1 }""")]
-    [InlineData("""{ "type": "SPEAK", "version": 1, "text": 3 }""")]
-    [InlineData("""{ "type": "SPEAK", "version": 1, "text": null }""")]
-    [InlineData("""{ "type": "SPEAK", "version": 1, "text": "   " }""")]
-    [InlineData("""{ "type": "SPEAK", "version": 1, "text": "森を\n守れ" }""")]
-    public void TryParse_SPEAKの文がおかしい_失敗する(string text)
+    [InlineData("""{ "type": "SPEAK", "version": 1, "text": "森を守れ" }""")]
+    [InlineData("""{ "type": "PRONOUNCE", "version": 3, "noun": "NOUN_FOREST", "verb": null, "destination": "EAST" }""")]
+    public void TryParse_自由文の神託のSPEAKとPRONOUNCE_知らない種類として失敗する(string text)
     {
         var ok = CompanionMessageParser.TryParse(text, out var message, out var reason);
 
         Assert.False(ok);
         Assert.Null(message);
-        Assert.Equal("invalid_speak", reason);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-pair-010")]
-    public void TryParse_SPEAKの文が上限を超える_失敗する()
-    {
-        var atLimit = new string('あ', OracleListening.MaxGodTextLength);
-        var okAtLimit = CompanionMessageParser.TryParse($$"""{ "type": "SPEAK", "version": 1, "text": "{{atLimit}}" }""", out _, out _);
-        var okOverLimit = CompanionMessageParser.TryParse($$"""{ "type": "SPEAK", "version": 1, "text": "{{atLimit}}あ" }""", out _, out var reason);
-
-        Assert.True(okAtLimit);
-        Assert.False(okOverLimit);
-        Assert.Equal("invalid_speak", reason);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-oracle-pair-010")]
-    public void TryParse_PRONOUNCE_名詞と動詞と行き先が取り出せる()
-    {
-        var ok = CompanionMessageParser.TryParse(
-            """{ "type": "PRONOUNCE", "version": 3, "noun": "NOUN_FOREST", "verb": null, "destination": "EAST" }""", out var message, out _);
-
-        Assert.True(ok);
-        Assert.Equal(
-            new CompanionMessage(CompanionMessageType.Pronounce, NounId: "NOUN_FOREST", VerbId: null, Destination: HeardDestination.East), message);
-    }
-
-    [Theory]
-    [Trait("TS", "TS-oracle-pair-010")]
-    [InlineData("""{ "type": "PRONOUNCE", "version": 3 }""")]
-    [InlineData("""{ "type": "PRONOUNCE", "version": 3, "noun": "NOUN_FOREST", "verb": null }""")]
-    [InlineData("""{ "type": "PRONOUNCE", "version": 3, "noun": null, "verb": null, "destination": "NONE" }""")]
-    [InlineData("""{ "type": "PRONOUNCE", "version": 3, "noun": 1, "verb": null, "destination": "NONE" }""")]
-    [InlineData("""{ "type": "PRONOUNCE", "version": 3, "noun": "", "verb": null, "destination": "EAST" }""")]
-    [InlineData("""{ "type": "PRONOUNCE", "version": 3, "noun": "N\nX", "verb": null, "destination": "EAST" }""")]
-    [InlineData("""{ "type": "PRONOUNCE", "version": 3, "noun": "NOUN_FOREST", "verb": null, "destination": "NORTH" }""")]
-    [InlineData("""{ "type": "PRONOUNCE", "version": 3, "noun": "NOUN_FOREST", "verb": null, "destination": 1 }""")]
-    public void TryParse_PRONOUNCEの中身がおかしい_失敗する(string text)
-    {
-        var ok = CompanionMessageParser.TryParse(text, out var message, out var reason);
-
-        Assert.False(ok);
-        Assert.Null(message);
-        Assert.Equal("invalid_pronounce", reason);
+        Assert.Equal("unknown_type_or_version", reason);
     }
 
     [Theory]

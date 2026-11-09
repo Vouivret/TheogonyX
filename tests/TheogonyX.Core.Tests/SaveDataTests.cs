@@ -9,7 +9,7 @@ public class SaveDataTests
     // docs/domain/save-data.md の形の、正しいセーブデータ
     private const string ValidSave = """
         {
-          "saveVersion": 18, "seed": 42,
+          "saveVersion": 23, "seed": 42,
           "world": { "year": 312, "forestAmount": 50, "waterAmount": 10, "temperature": 18,
                      "chaosLevel": 22, "harmonyLevel": 70, "isDestroyed": false },
           "dogmas": [{ "targetSymbolId": "SYM_TREE", "dogmaType": "Taboo", "intensity": 0.74 }],
@@ -413,8 +413,8 @@ public class SaveDataTests
     [Theory]
     [Trait("TS", "TS-save-data-004")]
     [InlineData("{", "", "invalid_json")]
-    [InlineData("\"saveVersion\": 18", "\"saveVersion\": 14", "unsupported_save_version")]
-    [InlineData("\"saveVersion\": 18, ", "", "invalid_field")]
+    [InlineData("\"saveVersion\": 23", "\"saveVersion\": 22", "unsupported_save_version")]
+    [InlineData("\"saveVersion\": 23, ", "", "invalid_field")]
     [InlineData("\"seed\": 42", "\"seed\": \"42\"", "invalid_field")]
     [InlineData("\"year\": 312", "\"year\": -1", "invalid_year")]
     [InlineData("\"forestAmount\": 50", "\"forestAmount\": 1e999", "invalid_number")]
@@ -506,15 +506,14 @@ public class SaveDataTests
         Assert.Equal(expectedReason, reason);
     }
 
-    // 版 19: 住人 3・4（同じ地域 3）の好感度を足したセーブ。版 18 のセーブ（ValidSave）は好感度が空として読む
+    // 住人 3・4（同じ地域 3）の好感度を足したセーブ。好感度の無いセーブ（ValidSave）は好感度が空として読む
     private static string WithAffinities(string affinities) =>
         ValidSave
-            .Replace("\"saveVersion\": 18", "\"saveVersion\": 19", StringComparison.Ordinal)
             .Replace("\"nextResidentId\": 5", "\"nextResidentId\": 5, \"affinities\": [" + affinities + "]", StringComparison.Ordinal);
 
     [Fact]
     [Trait("TS", "TS-agent-needs-021")]
-    public void TryParse_版18と版19の好感度_版18は空で版19は読める()
+    public void TryParse_好感度の無いセーブとあるセーブ_無ければ空であれば読める()
     {
         Assert.True(SaveDataSerializer.TryParse(ValidSave, TestRules.Dream, TestRules.ProphetDreams, TestRules.Civilization, TestRules.Needs, TestRules.Oracle, out var old, out var oldReason), oldReason);
         Assert.Empty(old!.Residents.Affinities);

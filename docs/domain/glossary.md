@@ -37,7 +37,7 @@
 | 神の声 | `SPEAK`（通信） | （廃止予定。字の神託に置き換わる）プレイヤーが自由な文で書いて予言者に語りかける神託（[神託の作り方](oracle-pair.md)の「自由文の神託」） | Divine voice | |
 | 予言者の語彙 | `OracleDeck` | （廃止予定。字の神託では「知っている字」＝手帳の字に置き換わる）予言者が知っている言葉。手札のルーンの記号の名詞と、すべての動詞。画面には見せない（[神託の作り方](oracle-pair.md)） | Prophet vocabulary | |
 | 語義のずれ表 | `DialectTable` | （廃止予定）星のシードと器の段から作る「神の言葉 → 予言者に聞こえる意味」の表（[神託の作り方](oracle-pair.md)） | Dialect table | |
-| 方言帳 | `DialectBook` | （廃止予定）神託と祈りで分かった聞き違えと知っている言葉を、自動で書き留める欄（[神託の作り方](oracle-pair.md)） | Dialect book | |
+| 方言帳 | `DialectBook` | （2026-11-09 にコードから消した）神託と祈りで分かった聞き違えと知っている言葉を、自動で書き留める欄（[神託の作り方](oracle-pair.md)） | Dialect book | |
 | 謎の言葉 | `MysteryWords` | （廃止予定。碑の読み違いに置き換わる）神の文のうち、どの記号にも当たらない言葉。教えにならず、経典にだけ残る（[神託の作り方](oracle-pair.md)） | Mystery word | |
 | 危機 | `Crisis` | 文を読んだときの地域の状態。争い・疫病・欠乏・平時のどれか 1 つ（[神と人の文字](script-decipher.md)の 9） | Crisis | 危機ステート |
 | 読み | `OracleReading` | 危機で決まる、教えの行い方（祀る・切り開く など 12 通り。[神と人の文字](script-decipher.md)の 9） | Reading | 解釈 |

@@ -7,6 +7,4 @@ public enum CompanionMessageType
     Resume,
     StartStream,
     StopStream,
-    Speak,
-    Pronounce,
 }

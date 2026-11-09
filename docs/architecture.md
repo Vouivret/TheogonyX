@@ -2,7 +2,7 @@
 
 システムの今の姿を書く。常に最新に書き換え、各項目から根拠のADRへリンクする。経緯はADRに任せ、ここには書かない。
 
-> 現在あるのは、コアループ（ルーン 2 枚の神託の解釈 `WuxingInterpreter`・時代跳躍）、地表の判定と時間の進め方（`TimeControl`）、それを描く Godot のメインシーン（`game/scenes/main/`。仮の単色タイル・HUD・操作ボタン・昼夜の環境光・予言者）、予言者の依頼と神託（コアの `ProphetDreams`、画面の `DreamView`。PC の画面とスマホから、手札のルーンを 2 枚選んで神託を下す。神威を使い、短い間に重ねると歪みが起きる。操作はすべてコアの `OracleCommandQueue` に命令として積み、積んだ順に実行する。使えるカードはコアの `OracleDeck`（山札・手札・捨札。[仕様書](domain/oracle-deck.md)）の手札だけ。[仕様書](domain/multiplayer.md)）である。コンパニオンとの通信（`CompanionHost`。HTTP で HTML/JS を配り、WebSocket でペアリング・画面の配信・神託の状態の送信と神託の受け付けを行う）と、コンパニオンの画面（`companion/`。映像・依頼の吹き出し・手札の欄）もある。セーブ・ロード（コアの `Persistence/` が形と検証、`SaveStore` が `user://save/world.json` の読み書き。[仕様書](domain/save-data.md)）もある。住人（コアの `ResidentSimulator` が 1 年ごとに欲求・体力・SAN 値・精神崩壊・死を計算し、`TimeControl` が文明の計算の後に呼ぶ。`ResidentView` が仮の人形と墓を描く。[仕様書](domain/agent-needs.md)）もある。星の年表（コアの `History` を `TimeControl` が持ち、ドグマ・住人の出来事・崩壊・再創生と、100 年ごとの章の終わりを積む。`HistoryView` が HUD の欄に出し、行の文は `ChronicleText` が組み立てる。[仕様書](domain/history.md)）もある。予言者の誤解（コアの `OracleProphecy` が LLM への頼みの文を組み立てて応答を検証し、Godot 側の `OracleView` がローカルの Ollama に頼んで吹き出しに出し、年表に添える。Ollama への通信は `OllamaClient` が受け持つ。[仕様書](domain/ai-presentation.md)）もある。歴史の神話化（コアの `MythChronicle` が章の神話の頼みの文を組み立てて応答を検証し、Godot 側の `MythView` が `OllamaClient` で頼んで年表の章の行に添える。応答の検証の共通部分は `AiText`。[仕様書](domain/ai-presentation.md)）もある。群衆（`GpuCrowd` が Compute Shader の `crowd_step.glsl` で計算して読み戻し、使えなければコアの `Crowd` が CPU で計算する。`PotentialField` は地表から作る力の場。`CrowdView` が `MultiMeshInstance2D` で点を描く。見た目だけ。乱数は [ADR 0004](adr/0004-crowd-counter-based-hash-random.md)。[仕様書](domain/crowd.md)）もある。開発用に、起動の引数 `-- --crowd-bench`（計測）・`-- --crowd-check`（GPU 版と CPU 版の突き合わせ）で、`WorldCore` がゲームの代わりに `game/scenes/bench/` のノードを動かす。
+> 現在あるのは、コアループ（ルーン 2 枚の神託の解釈 `WuxingInterpreter`・時代跳躍）、地表の判定と時間の進め方（`TimeControl`）、それを描く Godot のメインシーン（`game/scenes/main/`。仮の単色タイル・HUD・操作ボタン・昼夜の環境光・予言者）、予言者の依頼と神託（コアの `ProphetDreams`、画面の `DreamView`。PC の画面とスマホから、手札のルーンを 2 枚選んで神託を下す。神威を使い、短い間に重ねると歪みが起きる。使えるカードはコアの `OracleDeck`（山札・手札・捨札。[仕様書](domain/oracle-deck.md)）の手札だけ。[仕様書](domain/multiplayer.md)）である。コンパニオンとの通信（`CompanionHost`。HTTP で HTML/JS を配り、WebSocket でペアリング・画面の配信・神託の状態の送信と神託の受け付けを行う）と、コンパニオンの画面（`companion/`。映像・依頼の吹き出し・手札の欄）もある。セーブ・ロード（コアの `Persistence/` が形と検証、`SaveStore` が `user://save/world.json` の読み書き。[仕様書](domain/save-data.md)）もある。住人（コアの `ResidentSimulator` が 1 年ごとに欲求・体力・SAN 値・精神崩壊・死を計算し、`TimeControl` が文明の計算の後に呼ぶ。`ResidentView` が仮の人形と墓を描く。[仕様書](domain/agent-needs.md)）もある。星の年表（コアの `History` を `TimeControl` が持ち、ドグマ・住人の出来事・崩壊・再創生と、100 年ごとの章の終わりを積む。`HistoryView` が HUD の欄に出し、行の文は `ChronicleText` が組み立てる。[仕様書](domain/history.md)）もある。予言者の誤解（コアの `OracleProphecy` が LLM への頼みの文を組み立てて応答を検証し、Godot 側の `OracleView` がローカルの Ollama に頼んで吹き出しに出し、年表に添える。Ollama への通信は `OllamaClient` が受け持つ。[仕様書](domain/ai-presentation.md)）もある。歴史の神話化（コアの `MythChronicle` が章の神話の頼みの文を組み立てて応答を検証し、Godot 側の `MythView` が `OllamaClient` で頼んで年表の章の行に添える。応答の検証の共通部分は `AiText`。[仕様書](domain/ai-presentation.md)）もある。群衆（`GpuCrowd` が Compute Shader の `crowd_step.glsl` で計算して読み戻し、使えなければコアの `Crowd` が CPU で計算する。`PotentialField` は地表から作る力の場。`CrowdView` が `MultiMeshInstance2D` で点を描く。見た目だけ。乱数は [ADR 0004](adr/0004-crowd-counter-based-hash-random.md)。[仕様書](domain/crowd.md)）もある。開発用に、起動の引数 `-- --crowd-bench`（計測）・`-- --crowd-check`（GPU 版と CPU 版の突き合わせ）で、`WorldCore` がゲームの代わりに `game/scenes/bench/` のノードを動かす。
 
 ## 全体構成
 
@@ -30,10 +30,10 @@ sequenceDiagram
     participant P as プレイヤー
     participant G as game/（Godot）
     participant C as Core
-    P->>G: 手札のルーンを 2 枚選んで神託を下す
-    G->>C: OracleCommandQueue.SubmitPronouncePair(1枚目, 2枚目)
-    C->>C: WuxingInterpreter.Interpret(1枚目, 2枚目, OracleRules)
-    C-->>G: Dogma（強度が 0 なら加えない）
+    P->>G: 手帳の字で文を組んで神託を下す（ScriptComposerView）
+    G->>C: ProphetDreams.SpeakScript(文)
+    C->>C: ScriptReader.Read（人が星の語順で読む）→ 危機の読みを付ける → Pronounce（教えを加え、神威を使う）
+    C-->>G: 人の読みと教え（読めた組が無ければ教えなし）
     P->>G: 時代跳躍（N年）
     G->>C: TimeControl.Jump() → WorldSimulator.SimulateTimeSkip(WorldState, ドグマの一覧, N, WorldRules)
     C-->>G: 書き換えた WorldState

@@ -27,66 +27,22 @@ public static class HostMessageWriter
     }
 
     /// <summary>
-    /// 神託の今の状態（<c>ORACLE_STATE</c> version 2）。神威・語りかけられるか・崩壊・語りかけ方・依頼と祈り・選べる言葉・告げた神託・方言帳。
+    /// 神託の今の状態（<c>ORACLE_STATE</c> version 4）。神威・崩壊・依頼。神託は PC で字を組んで下すので、スマホからは語りかけられない。
     /// 手札（予言者の語彙）は送らない。
     /// </summary>
-    /// <param name="listening">予言者が聞いている途中か。</param>
-    /// <param name="choiceMode">言葉を選んで語りかける形（<c>WORDS</c>）か。</param>
-    /// <param name="prayerText">依頼中の祈りの文。無ければ null。</param>
-    /// <param name="scriptMode">字の神託（<c>SCRIPT</c>）か。字は PC で組むので、スマホからは語りかけられない。</param>
-    public static string OracleState(ProphetDreams prophet, bool isDestroyed, bool listening, bool choiceMode, string? prayerText, bool scriptMode = false)
+    public static string OracleState(ProphetDreams prophet, bool isDestroyed)
     {
         ArgumentNullException.ThrowIfNull(prophet);
         var faith = prophet.Faith;
-        var dialect = prophet.Dialect;
-        var request = prophet.ActiveRequest is { } active
-            ? new { requestType = active.Id, symbolId = active.SymbolId, prayer = prayerText }
-            : null;
-
-        // 言葉を選ぶ形のときだけ、選べる言葉を送る。名詞は、手札の記号の名詞だけ
-        var knownSymbols = prophet.Hand.Select(prophet.SymbolOf).ToHashSet();
-        var nouns = choiceMode && !scriptMode && dialect is not null
-            ? dialect.Rules.Nouns.Where(noun => knownSymbols.Contains(noun.SymbolId)).Select(noun => noun.Id).ToList()
-            : [];
-        var verbs = choiceMode && !scriptMode && dialect is not null ? dialect.Rules.Verbs.Select(verb => verb.Id).ToList() : [];
-
-        var told = dialect?.Records.Count > 0
-            ? dialect.Records[^1] is { } record
-                ? new
-                {
-                    year = record.Year,
-                    teaching = record.Teaching is { } teaching
-                        ? new { symbolId = teaching.TargetSymbolId, dogmaType = teaching.Type.ToString().ToUpperInvariant() }
-                        : null,
-                    heardNounId = record.HeardNounId,
-                    heardVerbId = record.HeardVerbId,
-                    destination = record.Destination.ToString().ToUpperInvariant(),
-                    mysteryWords = record.MysteryWords,
-                    heardText = record.HeardText,
-                    narration = record.Narration,
-                }
-                : null
-            : null;
-        var book = (dialect?.Book.Entries ?? []).Select(entry => new
-        {
-            godWord = entry.GodWord,
-            heardWordId = entry.HeardWordId,
-            reason = entry.Reason.ToString().ToUpperInvariant(),
-        });
+        var request = prophet.ActiveRequest is { } active ? new { requestType = active.Id, symbolId = active.SymbolId } : null;
         return JsonSerializer.Serialize(new
         {
             type = "ORACLE_STATE",
-            version = 3,
+            version = 4,
             faith = new { value = faith.Value, max = faith.Max, cost = faith.Cost },
-            canSpeak = !scriptMode && !isDestroyed && !listening && dialect is not null && faith.CanAfford,
             isDestroyed,
-            mode = scriptMode ? "SCRIPT" : choiceMode ? "WORDS" : "VOICE",
-            listening,
+            mode = "SCRIPT",
             request,
-            nouns,
-            verbs,
-            told,
-            book,
         });
     }
 }
