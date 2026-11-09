@@ -32,15 +32,32 @@ public sealed class OracleView
         _dreams = dreams;
         _rules = rules;
         _prophet = prophet;
-        _label = new Label { Name = "OracleText", AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(200, 0) };
-        // 地表の上の真ん中寄りに重ねて出す（依頼の吹き出し・年表の欄より手前）
-        _bubble = new PanelContainer { Name = "OracleBubble", Visible = false, Position = new Vector2(60, 64), MouseFilter = Control.MouseFilterEnum.Ignore };
+        _label = new Label { Name = "OracleText", AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(240, 0) };
+        // 予言者の頭の上に、上から神託の吹き出し・祈りの字・依頼の吹き出しの順に積む（置き場所は HudLayout）
+        var bubbles = owner.GetNode<Container>("%ProphetBubbles");
+        _bubble = new PanelContainer
+        {
+            Name = "OracleBubble",
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            ThemeTypeVariation = "Bubble",
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+        };
         _bubble.AddChild(_label);
-        owner.GetNode<Node>("Hud").AddChild(_bubble);
+        bubbles.AddChild(_bubble);
+        bubbles.MoveChild(_bubble, 0);
         _prayerGlyphs = new HBoxContainer { Name = "PrayerGlyphs" };
-        _prayerPanel = new PanelContainer { Name = "PrayerGlyphPanel", Visible = false, Position = new Vector2(150, 92), MouseFilter = Control.MouseFilterEnum.Ignore };
+        _prayerPanel = new PanelContainer
+        {
+            Name = "PrayerGlyphPanel",
+            Visible = false,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            ThemeTypeVariation = "Bubble",
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+        };
         _prayerPanel.AddChild(_prayerGlyphs);
-        owner.GetNode<Node>("Hud").AddChild(_prayerPanel);
+        bubbles.AddChild(_prayerPanel);
+        bubbles.MoveChild(_prayerPanel, 1);
         dreams.Prayed += OnPrayed;
     }
 

@@ -14,7 +14,7 @@ public sealed class CameraView
     private readonly Camera2D _camera;
     private readonly Vector2 _viewSize;
 
-    // 動かせる範囲（世界の px）。起動したときの倍率で画面に映る広さ
+    // 動かせる範囲（世界の px）。地表の広さ
     private readonly Rect2 _bounds;
 
     private double _zoom;
@@ -44,7 +44,10 @@ public sealed class CameraView
         _settings = settings;
         var viewport = owner.GetNode<SubViewport>("%WorldViewport");
         _viewSize = viewport.Size;
-        _bounds = new Rect2(Vector2.Zero, _viewSize / (float)settings.StartZoom);
+        // 動かせる範囲は地表の広さ（地表を描いた後に作る）。見えている幅がそれ以上のときは、地表の中央に置く
+        var terrain = owner.GetNode<TileMapLayer>("%Terrain");
+        var used = terrain.GetUsedRect();
+        _bounds = new Rect2(terrain.Position + ((Vector2)used.Position * WorldScreen.TileSize), (Vector2)used.Size * WorldScreen.TileSize);
         _zoom = settings.StartZoom;
         _targetZoom = settings.StartZoom;
         _centerX = _bounds.GetCenter().X;
@@ -69,6 +72,10 @@ public sealed class CameraView
             case InputEventMouseButton { ButtonIndex: MouseButton.Left or MouseButton.Middle } button:
                 _dragging = button.Pressed;
                 return true;
+            // ボタンを帯・引き出しの上で離すと、離したことが届かない。押しているボタンが無くなっていたら、ドラッグを終える
+            case InputEventMouseMotion motion when _dragging && (motion.ButtonMask & (MouseButtonMask.Left | MouseButtonMask.Middle)) == 0:
+                _dragging = false;
+                return false;
             case InputEventMouseMotion motion when _dragging:
                 _centerX -= motion.Relative.X / _zoom;
                 _centerY -= motion.Relative.Y / _zoom;

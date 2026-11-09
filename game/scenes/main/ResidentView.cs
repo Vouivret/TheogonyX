@@ -90,8 +90,10 @@ public sealed class ResidentView
         {
             Name = "ResidentPanel",
             Visible = false,
-            Position = new Vector2(16, 60),
+            // 左上（上の帯の下）
+            Position = new Vector2(8, HudLayout.TopBarHeight),
             MouseFilter = Control.MouseFilterEnum.Ignore,
+            ThemeTypeVariation = "Bubble",
         };
         _infoPanel.AddChild(_infoLabel);
         owner.GetNode<Node>("Hud").AddChild(_infoPanel);
@@ -288,6 +290,8 @@ public sealed class ResidentView
             string.Format(culture, Tr("RESIDENT_INFO_BODY"), person.Health, person.Sanity),
         }.OfType<string>());
         _infoPanel.Visible = true;
+        // 年表の引き出しを開いていても見えるように、引き出しより手前に出す
+        _infoPanel.MoveToFront();
     }
 
     // 住人が信じる読みの教えの印で、同じ地域にあるもの。2 つ以上なら、教えの一覧で先にある教えの印

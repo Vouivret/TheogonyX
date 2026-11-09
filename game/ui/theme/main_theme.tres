@@ -1,4 +1,62 @@
 [gd_resource type="Theme" format=3]
 
+[sub_resource type="StyleBoxFlat" id="HudBarStyle"]
+bg_color = Color(0.05, 0.04, 0.05, 0.62)
+content_margin_left = 8.0
+content_margin_top = 3.0
+content_margin_right = 8.0
+content_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="DrawerStyle"]
+bg_color = Color(0.08, 0.07, 0.07, 0.92)
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="SheetStyle"]
+bg_color = Color(0.12, 0.1, 0.1, 0.97)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.45, 0.38, 0.3, 1)
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="BubbleStyle"]
+bg_color = Color(0.1, 0.08, 0.08, 0.88)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 6.0
+content_margin_top = 3.0
+content_margin_right = 6.0
+content_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="MeterBackground"]
+bg_color = Color(0, 0, 0, 0.55)
+
+[sub_resource type="StyleBoxFlat" id="MeterFill"]
+bg_color = Color(0.86, 0.82, 0.7, 1)
+
 [resource]
-default_font_size = 12
+default_font_size = 14
+HudBar/base_type = &"PanelContainer"
+HudBar/styles/panel = SubResource("HudBarStyle")
+Drawer/base_type = &"PanelContainer"
+Drawer/styles/panel = SubResource("DrawerStyle")
+Sheet/base_type = &"PanelContainer"
+Sheet/styles/panel = SubResource("SheetStyle")
+Bubble/base_type = &"PanelContainer"
+Bubble/styles/panel = SubResource("BubbleStyle")
+TickerLabel/base_type = &"Label"
+TickerLabel/colors/font_outline_color = Color(0, 0, 0, 1)
+TickerLabel/constants/outline_size = 4
+TickerLabel/font_sizes/font_size = 13
+ValueMeter/base_type = &"ProgressBar"
+ValueMeter/styles/background = SubResource("MeterBackground")
+ValueMeter/styles/fill = SubResource("MeterFill")

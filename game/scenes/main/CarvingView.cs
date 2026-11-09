@@ -51,18 +51,13 @@ public sealed class CarvingView
         column.AddChild(_readings);
         column.AddChild(_found);
         column.AddChild(close);
-        // 吹き出しより手前に出し、重なっても読めるように背景を塗る（字を組む欄と同じ色）
-        _panel = new PanelContainer { Name = "RubbingPanel", Visible = false, Position = new Vector2(8, 40), ZIndex = 1 };
-        _panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.12f, 0.1f, 0.1f, 0.97f),
-            ContentMarginLeft = 6,
-            ContentMarginRight = 6,
-            ContentMarginTop = 4,
-            ContentMarginBottom = 4,
-        });
+        // 画面の中央に、吹き出し・引き出しより手前に出す（字を組む板と同じ板）
+        _panel = new PanelContainer { Name = "RubbingPanel", Visible = false, ZIndex = 1, ThemeTypeVariation = "Sheet" };
         _panel.AddChild(column);
         owner.GetNode<Node>("Hud").AddChild(_panel);
+        _panel.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _panel.GrowHorizontal = Control.GrowDirection.Both;
+        _panel.GrowVertical = Control.GrowDirection.Both;
         close.Pressed += () => _panel.Visible = false;
     }
 

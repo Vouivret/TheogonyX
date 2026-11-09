@@ -2,6 +2,10 @@ keys,ja,en
 HUD_YEAR,創世紀 {0} 年,Genesis Year {0}
 HUD_CHAOS,カオス度 {0:F1}%,Chaos {0:F1}%
 HUD_HARMONY,調和度 {0:F1}%,Harmony {0:F1}%
+HUD_FOREST,森 {0:F1}%,Forest {0:F1}%
+HUD_WATER,水 {0:F1}%,Water {0:F1}%
+HUD_TEMPERATURE,気温 {0:F1}℃,Temperature {0:F1}°C
+BUTTON_MENU,☰,☰
 HUD_DOGMAS,ドグマ,Dogmas
 HUD_NO_DOGMA,（なし）,(none)
 DOGMA_ENTRY,{0}の{1},{1} of {0}
@@ -89,7 +93,8 @@ SYMBOL_RUNE_GREAT_METAL,神鉄,Divine Iron
 SYMBOL_RUNE_GREAT_WATER,霊泉,Sacred Spring
 PRUNE_FUSE,融合: {0}×2 → {1},Fuse: {0} x2 → {1}
 ORACLE_GUIDE_DESTROYED,星は滅びた,The planet has perished.
-ORACLE_GUIDE_FAITH,{0}　神威 {1:F1} / {2:F1},{0}  Faith {1:F1} / {2:F1}
+HUD_FAITH,神威 {0:F1} / {1:F1},Faith {0:F1} / {1:F1}
+HUD_FAITH_WARNING,{0}　神威 {1:F1} / {2:F1},{0}  Faith {1:F1} / {2:F1}
 REQUEST_BUBBLE,{0}に苦しんでいます。{1}をお恵みください,We suffer from {0}. Please grant us {1}.
 TROUBLE_THIRST,渇き,thirst
 TROUBLE_FAMINE,飢え,famine

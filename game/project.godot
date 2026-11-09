@@ -16,12 +16,12 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
 [display]
 
-window/size/viewport_width=480
-window/size/viewport_height=336
+window/size/viewport_width=960
+window/size/viewport_height=540
 window/size/window_width_override=1440
-window/size/window_height_override=1008
-window/stretch/mode="viewport"
-window/stretch/scale_mode="integer"
+window/size/window_height_override=810
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [dotnet]
 

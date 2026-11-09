@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using Godot;
 using TheogonyX.Core;
 using TheogonyX.Data;
@@ -9,7 +8,7 @@ using TheogonyX.Data;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// 星の地表と HUD を描き、時間の進め方のボタンをコアの <see cref="TimeControl"/> につなぐ
+/// 星の地表と上の帯（年と世界の 5 つの値の目盛り）を描き、時間の進め方のボタンとメニューをコアの <see cref="TimeControl"/> につなぐ
 /// （docs/domain/planet-display.md、docs/domain/time-control.md）。
 /// 自動進行は、<see cref="WorldCore"/> が毎フレーム呼ぶ <see cref="Process"/> で <see cref="AutoPlayClock"/> を進めて行う。
 /// </summary>
@@ -30,23 +29,36 @@ public sealed class WorldScreen
 
     private static readonly Color ResetAlertColor = Color.FromHtml("#d04648");
 
+    // 上の帯の世界の値: 指標、説明の文言のキー、仮のアイコンの色（DB16 から選ぶ。次の段で絵に替える）
+    private static readonly (WorldMetric Metric, string Key, Color Color)[] Meters =
+    [
+        (WorldMetric.ForestAmount, "HUD_FOREST", Color.FromHtml("#346524")),
+        (WorldMetric.WaterAmount, "HUD_WATER", Color.FromHtml("#597dce")),
+        (WorldMetric.Temperature, "HUD_TEMPERATURE", Color.FromHtml("#d27d2c")),
+        (WorldMetric.ChaosLevel, "HUD_CHAOS", Color.FromHtml("#d04648")),
+        (WorldMetric.HarmonyLevel, "HUD_HARMONY", Color.FromHtml("#dad45e")),
+    ];
+
+    private const int MeterIconSize = 10;
+
     private readonly Node _owner;
     private readonly TimeControl _timeControl;
     private readonly TerrainRules _terrainRules;
     private readonly TimeControlSettings _timeSettings;
     private readonly AutoPlayClock _clock;
+    private readonly WorldRules _worldRules;
 
     private readonly TileMapLayer _terrain;
     private readonly Label _yearLabel;
     private readonly Label _nextYearLabel;
-    private readonly Label _chaosLabel;
-    private readonly Label _harmonyLabel;
-    private readonly Label _dogmaList;
+    private readonly ProgressBar[] _meters;
+    private readonly TextureRect[] _meterIcons;
     private readonly Button _jumpButton;
     private readonly Button _autoPlayButton;
-    private readonly Button _pauseButton;
     private readonly Button _speedButton;
     private readonly Button _resetButton;
+    private readonly Button _menuButton;
+    private readonly Control _menu;
 
     private Tween? _resetBlink;
 
@@ -66,40 +78,41 @@ public sealed class WorldScreen
     public event Action<TileType[,]>? TerrainDrawn;
 
     /// <param name="owner">ノードを探し、Tween を作るためのシーンの根。</param>
+    /// <param name="worldRules">世界の値の目盛りの下限と上限に使う。</param>
     public WorldScreen(
-        Node owner, TimeControl timeControl, AutoPlayClock clock, TerrainRules terrainRules, TimeControlSettings timeSettings)
+        Node owner, TimeControl timeControl, AutoPlayClock clock, TerrainRules terrainRules, TimeControlSettings timeSettings, WorldRules worldRules)
     {
         _clock = clock;
         _owner = owner;
         _timeControl = timeControl;
         _terrainRules = terrainRules;
         _timeSettings = timeSettings;
+        _worldRules = worldRules;
 
         _terrain = owner.GetNode<TileMapLayer>("%Terrain");
         _yearLabel = owner.GetNode<Label>("%YearLabel");
         _nextYearLabel = owner.GetNode<Label>("%NextYearLabel");
-        _chaosLabel = owner.GetNode<Label>("%ChaosLabel");
-        _harmonyLabel = owner.GetNode<Label>("%HarmonyLabel");
-        _dogmaList = owner.GetNode<Label>("%DogmaList");
-        // ドグマが増えて欄に収まらなくなったら、ボタンを押し下げずにスクロールさせ、いちばん新しいドグマ（いちばん下）を見せる
-        var dogmaScroll = (ScrollContainer)_dogmaList.GetParent();
-        var dogmaScrollBar = dogmaScroll.GetVScrollBar();
-        // 範囲が変わった直後はスクロールの幅（page）がまだ古いので、並べ終わってから合わせる
-        dogmaScrollBar.Changed += () => Callable.From(() => dogmaScroll.ScrollVertical = (int)dogmaScrollBar.MaxValue).CallDeferred();
+        (_meterIcons, _meters) = CreateMeters(owner.GetNode<Container>("%WorldValues"));
         _jumpButton = owner.GetNode<Button>("%JumpButton");
         _autoPlayButton = owner.GetNode<Button>("%AutoPlayButton");
-        _pauseButton = owner.GetNode<Button>("%PauseButton");
         _speedButton = owner.GetNode<Button>("%SpeedButton");
         _resetButton = owner.GetNode<Button>("%ResetButton");
+        _menuButton = owner.GetNode<Button>("%MenuButton");
+        _menu = owner.GetNode<Control>("%Menu");
 
         _terrain.TileSet = CreatePlaceholderTileSet();
         _jumpButton.Text = string.Format(CultureInfo.CurrentCulture, Tr("BUTTON_JUMP"), timeSettings.JumpYears);
 
         _jumpButton.Pressed += OnJumpPressed;
         _autoPlayButton.Pressed += OnAutoPlayPressed;
-        _pauseButton.Pressed += OnPausePressed;
         _speedButton.Pressed += OnSpeedPressed;
         _resetButton.Pressed += OnResetPressed;
+        _menuButton.Pressed += () =>
+        {
+            _menu.Visible = !_menu.Visible;
+            // 後から足した引き出し・板より手前に出す（描く順と、クリックを受ける順）
+            _menu.MoveToFront();
+        };
 
         DrawSpeed();
         Refresh();
@@ -136,15 +149,17 @@ public sealed class WorldScreen
         Refresh();
     }
 
+    // 自動進行と一時停止を 1 つのボタンで切り替える（押せるかどうかは状態遷移表のまま）
     private void OnAutoPlayPressed()
     {
-        _timeControl.StartAutoPlay();
-        Refresh();
-    }
-
-    private void OnPausePressed()
-    {
-        _timeControl.Pause();
+        if (_timeControl.State == TimeControlState.AutoPlaying)
+        {
+            _timeControl.Pause();
+        }
+        else
+        {
+            _timeControl.StartAutoPlay();
+        }
         Refresh();
     }
 
@@ -158,6 +173,7 @@ public sealed class WorldScreen
     {
         _timeControl.Reset();
         _clock.Reset();
+        _menu.Visible = false;
         GD.Print("event=world_reset year=0");
         WorldReset?.Invoke();
         Refresh();
@@ -194,7 +210,7 @@ public sealed class WorldScreen
         _nextYearLabel.Text = string.Format(CultureInfo.CurrentCulture, Tr("HUD_NEXT_YEAR"), remaining);
     }
 
-    /// <summary>地表・HUD・ボタンを描き直す（ドグマが増えたときなど）。</summary>
+    /// <summary>地表・上の帯・ボタンを描き直す（ドグマが増えたときなど）。</summary>
     public void Refresh()
     {
         DrawTerrain();
@@ -220,35 +236,86 @@ public sealed class WorldScreen
         var world = _timeControl.World;
         var culture = CultureInfo.CurrentCulture;
         _yearLabel.Text = string.Format(culture, Tr("HUD_YEAR"), world.Year);
-        _chaosLabel.Text = string.Format(culture, Tr("HUD_CHAOS"), world.ChaosLevel);
-        _harmonyLabel.Text = string.Format(culture, Tr("HUD_HARMONY"), world.HarmonyLevel);
-        _dogmaList.Text = _timeControl.Dogmas.Count == 0
-            ? Tr("HUD_NO_DOGMA")
-            : string.Join("\n", _timeControl.Dogmas.Select(dogma => string.Format(
-                culture,
-                Tr("DOGMA_ENTRY_BELIEVERS"),
-                ChronicleText.TeachingOf(dogma.TargetSymbolId, dogma.Type, dogma.Reading),
-                _timeControl.BelieversOf(dogma))));
+        // 目盛りは定義の下限から上限までの割合。数値はアイコンと目盛りの説明に出す
+        for (var i = 0; i < Meters.Length; i++)
+        {
+            var (metric, key, _) = Meters[i];
+            var min = ValueOf(_worldRules.Min, metric);
+            var max = ValueOf(_worldRules.Max, metric);
+            var value = world.ValueOf(metric);
+            _meters[i].Value = max > min ? (value - min) / (max - min) : 0;
+            var tooltip = string.Format(culture, Tr(key), value);
+            _meters[i].TooltipText = tooltip;
+            _meterIcons[i].TooltipText = tooltip;
+        }
+    }
+
+    private static float ValueOf(EnvironmentValues values, WorldMetric metric) => metric switch
+    {
+        WorldMetric.ForestAmount => values.ForestAmount,
+        WorldMetric.WaterAmount => values.WaterAmount,
+        WorldMetric.Temperature => values.Temperature,
+        WorldMetric.ChaosLevel => values.ChaosLevel,
+        WorldMetric.HarmonyLevel => values.HarmonyLevel,
+        _ => throw new ArgumentOutOfRangeException(nameof(metric), metric, null),
+    };
+
+    // 値ごとに、仮のアイコン（単色の四角）と短い目盛りを並べる
+    private static (TextureRect[] Icons, ProgressBar[] Meters) CreateMeters(Container parent)
+    {
+        var icons = new TextureRect[Meters.Length];
+        var meters = new ProgressBar[Meters.Length];
+        for (var i = 0; i < Meters.Length; i++)
+        {
+            var image = Image.CreateEmpty(MeterIconSize, MeterIconSize, false, Image.Format.Rgba8);
+            image.Fill(Meters[i].Color);
+            icons[i] = new TextureRect
+            {
+                Texture = ImageTexture.CreateFromImage(image),
+                StretchMode = TextureRect.StretchModeEnum.KeepCentered,
+                MouseFilter = Control.MouseFilterEnum.Stop,
+            };
+            meters[i] = new ProgressBar
+            {
+                ThemeTypeVariation = "ValueMeter",
+                MinValue = 0,
+                MaxValue = 1,
+                Step = 0,
+                ShowPercentage = false,
+                CustomMinimumSize = new Vector2(48, 6),
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+            };
+            var pair = new HBoxContainer { Name = Meters[i].Metric.ToString() };
+            pair.AddChild(icons[i]);
+            pair.AddChild(meters[i]);
+            parent.AddChild(pair);
+        }
+        return (icons, meters);
     }
 
     private void UpdateButtons()
     {
         _jumpButton.Disabled = !_timeControl.CanDo(TimeControlAction.Jump);
-        _autoPlayButton.Disabled = !_timeControl.CanDo(TimeControlAction.StartAutoPlay);
-        _pauseButton.Disabled = !_timeControl.CanDo(TimeControlAction.Pause);
+        var autoPlaying = _timeControl.State == TimeControlState.AutoPlaying;
+        _autoPlayButton.Text = autoPlaying ? "BUTTON_PAUSE" : "BUTTON_AUTO_PLAY";
+        _autoPlayButton.Disabled = !_timeControl.CanDo(autoPlaying ? TimeControlAction.Pause : TimeControlAction.StartAutoPlay);
         _resetButton.Disabled = !_timeControl.CanDo(TimeControlAction.Reset);
 
+        // 崩壊したら、メニューのボタンと、メニューの中の世界再創生を赤く点滅させる
         var destroyed = _timeControl.State == TimeControlState.Destroyed;
         if (destroyed && _resetBlink is null)
         {
-            _resetBlink = _owner.CreateTween().SetLoops();
+            _resetBlink = _owner.CreateTween().SetLoops().SetParallel();
+            _resetBlink.TweenProperty(_menuButton, "modulate", ResetAlertColor, 0.4);
             _resetBlink.TweenProperty(_resetButton, "modulate", ResetAlertColor, 0.4);
+            _resetBlink.Chain().TweenProperty(_menuButton, "modulate", Colors.White, 0.4);
             _resetBlink.TweenProperty(_resetButton, "modulate", Colors.White, 0.4);
         }
         else if (!destroyed && _resetBlink is not null)
         {
             _resetBlink.Kill();
             _resetBlink = null;
+            _menuButton.Modulate = Colors.White;
             _resetButton.Modulate = Colors.White;
         }
     }

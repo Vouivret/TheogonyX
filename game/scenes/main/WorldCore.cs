@@ -21,6 +21,8 @@ public partial class WorldCore : Node2D
     private AmbienceView? _ambience;
     private SkyView? _sky;
     private CameraView? _camera;
+    private HudLayout? _layout;
+    private EventTicker? _ticker;
     private BuildingView? _buildings;
     private MarkView? _marks;
     private StrataView? _strata;
@@ -41,7 +43,7 @@ public partial class WorldCore : Node2D
     private double _secondsSinceSave;
     private TimeControl? _timeControl;
 
-    // 読めなかったことを HUD に出しておく秒数
+    // 読めなかったことを出来事の行に出しておく秒数
     private const double SaveNoticeSeconds = 10.0;
 
     public override void _Ready()
@@ -123,10 +125,11 @@ public partial class WorldCore : Node2D
             GD.Print($"event=game_started seed={seed}");
         }
         _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, seed, clock));
-        _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings);
+        _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings, worldRules);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings, lightingSettings, civilizationRules);
         _sky = new SkyView(this, _ambience, civilizationRules, seed);
         _camera = new CameraView(this, cameraSettings);
+        _layout = new HudLayout(this);
         _buildings = new BuildingView(this, timeControl, lightingSettings);
         _screen.TerrainDrawn += _buildings.Refresh;
         _marks = new MarkView(this, timeControl);
@@ -136,6 +139,7 @@ public partial class WorldCore : Node2D
         _residents = new ResidentView(this, timeControl, civilizationRules, needsRules, _ambience, seed, cameraSettings.ResidentIcons);
         _screen.TerrainDrawn += _residents.Refresh;
         _history = new HistoryView(this, timeControl);
+        _ticker = new EventTicker(this, timeControl);
         _carvings = new CarvingView(this, prophet);
         _screen.TerrainDrawn += _carvings.Refresh;
         _carvings.Discovered += Save;
@@ -167,6 +171,7 @@ public partial class WorldCore : Node2D
         _notebook = new NotebookView(this, prophet);
         _composer = new ScriptComposerView(this, prophet);
         _dreams.ComposeRequested += _composer.Toggle;
+        _dreams.ComposeRequested += _history.Close;
         var oracle = _oracle;
         var composer = _composer;
         _composer.Submitted += sentence =>
@@ -205,6 +210,8 @@ public partial class WorldCore : Node2D
         _ambience?.Process(delta);
         _sky?.Process(delta);
         _camera?.Process(delta);
+        _layout?.Process();
+        _ticker?.Process();
         _residents?.Process(delta);
         _history?.Process();
         _notebook?.Process();
@@ -216,7 +223,9 @@ public partial class WorldCore : Node2D
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (_carvings?.HandleInput(@event) == true || _residents?.HandleInput(@event) == true || _camera?.HandleInput(@event) == true)
+        // HUD が受け取らなかった入力は地図の上の入力なので、地図（SubViewport）の座標に直して渡す
+        var onMap = _layout?.ToMap(@event) ?? @event;
+        if (_carvings?.HandleInput(onMap) == true || _residents?.HandleInput(onMap) == true || _camera?.HandleInput(onMap) == true)
         {
             GetViewport().SetInputAsHandled();
         }
@@ -352,13 +361,7 @@ public partial class WorldCore : Node2D
         }
     }
 
-    private void ShowSaveNotice(string key)
-    {
-        var notice = GetNode<Label>("%SaveNotice");
-        notice.Text = TranslationServer.Translate(key).ToString();
-        notice.Visible = true;
-        GetTree().CreateTimer(SaveNoticeSeconds).Timeout += () => notice.Visible = false;
-    }
+    private void ShowSaveNotice(string key) => _ticker?.Show(TranslationServer.Translate(key).ToString(), SaveNoticeSeconds);
 
     // 書き出した後は実行ファイル（.exe）の横の companion/、無ければエディタから実行したときのリポジトリ直下の companion/。
     // AppDomain の BaseDirectory は、書き出した後は .exe の横の data_ フォルダを指すため使わない。

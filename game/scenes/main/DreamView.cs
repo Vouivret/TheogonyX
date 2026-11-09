@@ -8,36 +8,29 @@ namespace TheogonyX.Scenes.Main;
 
 /// <summary>
 /// 神託の欄と依頼の吹き出しを描く（docs/domain/script-decipher.md、prophet-request.md）。
-/// 地表の下の帯の 1 段目に今の状態の案内と神威、2 段目に「字を組む」ボタンを出す。手札（予言者の語彙）は見せない。
+/// 下の帯の左に神威を出し、今の状態の案内は「文を書く」ボタンの説明に出す。手札（予言者の語彙）は見せない。
+/// 依頼の吹き出しは予言者の頭の上に出す（置き場所は <see cref="HudLayout"/>）。
 /// 字を組んで下すのは <see cref="ScriptComposerView"/> と <see cref="OracleView"/> が受け持つ。
 /// </summary>
 public sealed class DreamView
 {
     private readonly ProphetDreams _prophet;
     private readonly TimeControl _timeControl;
-    private readonly Label _dreamGuide;
+    private readonly Label _faith;
+    private readonly Button _composeButton;
     private readonly Label _requestBubble;
+    private readonly Control _requestPanel;
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
     public DreamView(Node owner, ProphetDreams prophet, TimeControl timeControl)
     {
         _prophet = prophet;
         _timeControl = timeControl;
-        _dreamGuide = owner.GetNode<Label>("%DreamGuide");
+        _faith = owner.GetNode<Label>("%DreamGuide");
         _requestBubble = owner.GetNode<Label>("%RequestBubble");
-        var dreamCards = owner.GetNode<HBoxContainer>("%DreamCards");
-
-        // 夢のコマは無い。コマの段は使わず、下の帯の 1 行（字を組む）に収める
-        owner.GetNode<HBoxContainer>("%DreamNodes").Visible = false;
-        owner.GetNode<HBoxContainer>("%DreamRow").Visible = false;
-        owner.GetNode<Button>("%OracleButton").Visible = false;
-        dreamCards.Visible = true;
-        _dreamGuide.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        _dreamGuide.CustomMinimumSize = new Vector2(440, 0);
-
-        var composeButton = new Button { Name = "ComposeButton", Text = "BUTTON_COMPOSE", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        composeButton.Pressed += () => ComposeRequested?.Invoke();
-        dreamCards.AddChild(composeButton);
+        _requestPanel = owner.GetNode<Control>("%RequestPanel");
+        _composeButton = owner.GetNode<Button>("%ComposeButton");
+        _composeButton.Pressed += () => ComposeRequested?.Invoke();
 
         Redraw();
     }
@@ -102,31 +95,31 @@ public sealed class DreamView
 
     private void Redraw()
     {
-        _dreamGuide.Text = GuideText();
+        // 語りかけられないとき（崩壊・神威が足りない）は、案内を神威の横に出して見えるようにする
+        var faith = _prophet.Faith;
+        var guide = GuideKey();
+        _faith.Text = guide == "ORACLE_GUIDE_COMPOSE"
+            ? string.Format(CultureInfo.CurrentCulture, Tr("HUD_FAITH"), faith.Value, faith.Max)
+            : string.Format(CultureInfo.CurrentCulture, Tr("HUD_FAITH_WARNING"), Tr(guide), faith.Value, faith.Max);
+        _composeButton.TooltipText = Tr(guide);
         if (_prophet.ActiveRequest is { } request)
         {
             _requestBubble.Text = string.Format(
                 CultureInfo.CurrentCulture, Tr("REQUEST_BUBBLE"), Tr($"TROUBLE_{request.Id}"), Tr($"SYMBOL_{request.SymbolId}"));
-            _requestBubble.Visible = true;
+            _requestPanel.Visible = true;
         }
         else
         {
-            _requestBubble.Visible = false;
+            _requestPanel.Visible = false;
         }
         Changed?.Invoke();
     }
 
-    // 今の状態の案内と、神威（今の量 / 上限）
-    private string GuideText()
-    {
-        if (_timeControl.World.IsDestroyed)
-        {
-            return Tr("ORACLE_GUIDE_DESTROYED");
-        }
-        var faith = _prophet.Faith;
-        var key = faith.CanAfford ? "ORACLE_GUIDE_COMPOSE" : "ORACLE_GUIDE_NO_FAITH";
-        return string.Format(CultureInfo.CurrentCulture, Tr("ORACLE_GUIDE_FAITH"), Tr(key), faith.Value, faith.Max);
-    }
+    // 今の状態の案内
+    private string GuideKey() =>
+        _timeControl.World.IsDestroyed ? "ORACLE_GUIDE_DESTROYED"
+        : _prophet.Faith.CanAfford ? "ORACLE_GUIDE_COMPOSE"
+        : "ORACLE_GUIDE_NO_FAITH";
 
     private static string Tr(string key) => TranslationServer.Translate(key).ToString();
 }

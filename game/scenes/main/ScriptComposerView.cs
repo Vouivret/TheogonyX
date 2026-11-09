@@ -15,6 +15,8 @@ namespace TheogonyX.Scenes.Main;
 /// </summary>
 public sealed class ScriptComposerView
 {
+    private const float PanelWidth = 560;
+
     private readonly ProphetDreams _prophet;
     private readonly PanelContainer _panel;
     private readonly Label _hint;
@@ -69,17 +71,16 @@ public sealed class ScriptComposerView
         column.AddChild(_palette);
         column.AddChild(new HSeparator());
         column.AddChild(bottom);
-        _panel = new PanelContainer { Name = "ComposerPanel", Visible = false, Position = new Vector2(8, 40), CustomMinimumSize = new Vector2(464, 0) };
-        _panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
-        {
-            BgColor = new Color(0.12f, 0.1f, 0.1f, 0.97f),
-            ContentMarginLeft = 6,
-            ContentMarginRight = 6,
-            ContentMarginTop = 4,
-            ContentMarginBottom = 4,
-        });
+        // 下の帯のすぐ上に、下から出す板（右の手帳の引き出しと重ならない幅）
+        _panel = new PanelContainer { Name = "ComposerPanel", Visible = false, ThemeTypeVariation = "Sheet" };
         _panel.AddChild(column);
         owner.GetNode<Node>("Hud").AddChild(_panel);
+        _panel.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
+        _panel.GrowVertical = Control.GrowDirection.Begin;
+        _panel.OffsetLeft = 8;
+        _panel.OffsetRight = 8 + PanelWidth;
+        _panel.OffsetBottom = -HudLayout.BottomBarHeight;
+        _panel.OffsetTop = -HudLayout.BottomBarHeight;
         Redraw();
     }
 

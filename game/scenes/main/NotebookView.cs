@@ -11,6 +11,8 @@ namespace TheogonyX.Scenes.Main;
 /// </summary>
 public sealed class NotebookView
 {
+    private const float DrawerWidth = 240;
+
     // 手帳に書き込める意味（記号・種別・方角）と「分からない」。表示の順
     private static readonly string[] Labels =
     [
@@ -27,26 +29,26 @@ public sealed class NotebookView
     public NotebookView(Node owner, ProphetDreams prophet)
     {
         _prophet = prophet;
-        var button = new Button { Name = "NotebookButton", Text = "BUTTON_NOTEBOOK", Visible = prophet.Script is not null };
-        owner.GetNode<Node>("Hud/Panel/Buttons").AddChild(button);
+        var button = owner.GetNode<Button>("%NotebookButton");
+        button.Visible = prophet.Script is not null;
         _rows = new VBoxContainer { Name = "NotebookList", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         var scroll = new ScrollContainer
         {
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(176, 180),
         };
         scroll.AddChild(_rows);
         var column = new VBoxContainer();
         column.AddChild(new Label { Text = "NOTEBOOK_TITLE" });
         column.AddChild(scroll);
-        _panel = new PanelContainer { Name = "NotebookPanel", Visible = false, Position = new Vector2(288, 16) };
-        _panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0.12f, 0.1f, 0.1f), ContentMarginLeft = 4, ContentMarginRight = 4 });
+        // 右の引き出し: 開いている間だけ、上の帯と下の帯の間に地図に重ねて出す
+        _panel = new PanelContainer { Name = "NotebookPanel", Visible = false, ThemeTypeVariation = "Drawer" };
         _panel.AddChild(column);
         owner.GetNode<Node>("Hud").AddChild(_panel);
-        button.Pressed += () =>
+        HudLayout.PlaceDrawer(_panel, right: true, DrawerWidth);
+        button.Toggled += open =>
         {
-            _panel.Visible = !_panel.Visible;
+            _panel.Visible = open;
             Refresh();
         };
     }

@@ -10,7 +10,6 @@ texture_filter = 1
 offset_right = 480.0
 offset_bottom = 270.0
 mouse_filter = 2
-stretch = true
 
 [node name="WorldViewport" type="SubViewport" parent="WorldView" unique_id=183511841]
 unique_name_in_owner = true
@@ -39,136 +38,164 @@ centered = false
 
 [node name="Hud" type="CanvasLayer" parent="." unique_id=341956898]
 
-[node name="PairingQr" type="TextureRect" parent="Hud" unique_id=507616185]
+[node name="ProphetBubbles" type="VBoxContainer" parent="Hud"]
 unique_name_in_owner = true
-texture_filter = 1
-offset_left = 8.0
-offset_top = 8.0
-offset_right = 53.0
-offset_bottom = 53.0
+offset_right = 240.0
+offset_bottom = 40.0
 mouse_filter = 2
+alignment = 2
 
-[node name="HostAddressButton" type="Button" parent="Hud" unique_id=1013904577]
-unique_name_in_owner = true
-offset_left = 56.0
-offset_top = 8.0
-
-[node name="RequestBubble" type="Label" parent="Hud" unique_id=1100430842]
+[node name="RequestPanel" type="PanelContainer" parent="Hud/ProphetBubbles"]
 unique_name_in_owner = true
 visible = false
-offset_left = 150.0
-offset_top = 30.0
-offset_right = 280.0
-offset_bottom = 90.0
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+theme_type_variation = &"Bubble"
+
+[node name="RequestBubble" type="Label" parent="Hud/ProphetBubbles/RequestPanel" unique_id=1100430842]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
 autowrap_mode = 3
 
-[node name="SaveNotice" type="Label" parent="Hud" unique_id=2023725111]
+[node name="Ticker" type="VBoxContainer" parent="Hud"]
 unique_name_in_owner = true
-visible = false
-offset_left = 16.0
-offset_top = 184.0
-offset_right = 280.0
-offset_bottom = 206.0
-autowrap_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -140.0
+offset_right = 520.0
+offset_bottom = -40.0
+grow_vertical = 0
+mouse_filter = 2
+alignment = 2
 
-[node name="DreamPanel" type="VBoxContainer" parent="Hud" unique_id=745983899]
-offset_left = 16.0
-offset_top = 280.0
-offset_right = 464.0
-offset_bottom = 332.0
+[node name="TopBar" type="PanelContainer" parent="Hud"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 36.0
+grow_horizontal = 2
+theme_type_variation = &"HudBar"
 
-[node name="DreamGuide" type="Label" parent="Hud/DreamPanel" unique_id=2090383597]
+[node name="TopRow" type="HBoxContainer" parent="Hud/TopBar"]
+layout_mode = 2
+
+[node name="YearLabel" type="Label" parent="Hud/TopBar/TopRow" unique_id=1466526891]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="DreamRow" type="HBoxContainer" parent="Hud/DreamPanel" unique_id=1151324713]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="DreamNodes" type="HBoxContainer" parent="Hud/DreamPanel/DreamRow" unique_id=1222824893]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="OracleButton" type="Button" parent="Hud/DreamPanel/DreamRow" unique_id=275136756]
-unique_name_in_owner = true
-layout_mode = 2
-text = "BUTTON_ORACLE"
-
-[node name="DreamCards" type="HBoxContainer" parent="Hud/DreamPanel" unique_id=1594695030]
+[node name="NextYearLabel" type="Label" parent="Hud/TopBar/TopRow" unique_id=547968912]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 
-[node name="Panel" type="VBoxContainer" parent="Hud" unique_id=684590511]
-offset_left = 288.0
-offset_top = 16.0
-offset_right = 464.0
-offset_bottom = 254.0
-
-[node name="YearLabel" type="Label" parent="Hud/Panel" unique_id=1466526891]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="NextYearLabel" type="Label" parent="Hud/Panel" unique_id=547968912]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-
-[node name="ChaosLabel" type="Label" parent="Hud/Panel" unique_id=1040149012]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="HarmonyLabel" type="Label" parent="Hud/Panel" unique_id=278938667]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="DogmaHeader" type="Label" parent="Hud/Panel" unique_id=2007951632]
-layout_mode = 2
-text = "HUD_DOGMAS"
-
-[node name="DogmaScroll" type="ScrollContainer" parent="Hud/Panel" unique_id=1084403660]
-layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="DogmaList" type="Label" parent="Hud/Panel/DogmaScroll" unique_id=2145796082]
+[node name="WorldValues" type="HBoxContainer" parent="Hud/TopBar/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+alignment = 1
 
-[node name="Buttons" type="GridContainer" parent="Hud/Panel" unique_id=1995477256]
-layout_mode = 2
-columns = 2
-
-[node name="JumpButton" type="Button" parent="Hud/Panel/Buttons" unique_id=880300390]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="AutoPlayButton" type="Button" parent="Hud/Panel/Buttons" unique_id=1248966362]
+[node name="AutoPlayButton" type="Button" parent="Hud/TopBar/TopRow" unique_id=1248966362]
 unique_name_in_owner = true
 layout_mode = 2
 text = "BUTTON_AUTO_PLAY"
 
-[node name="PauseButton" type="Button" parent="Hud/Panel/Buttons" unique_id=1747718723]
-unique_name_in_owner = true
-layout_mode = 2
-text = "BUTTON_PAUSE"
-
-[node name="SpeedButton" type="Button" parent="Hud/Panel/Buttons" unique_id=436145611]
+[node name="SpeedButton" type="Button" parent="Hud/TopBar/TopRow" unique_id=436145611]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="ResetButton" type="Button" parent="Hud/Panel/Buttons" unique_id=49770663]
+[node name="JumpButton" type="Button" parent="Hud/TopBar/TopRow" unique_id=880300390]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="MenuButton" type="Button" parent="Hud/TopBar/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BUTTON_MENU"
+
+[node name="BottomBar" type="PanelContainer" parent="Hud"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -36.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"HudBar"
+
+[node name="BottomRow" type="HBoxContainer" parent="Hud/BottomBar"]
+layout_mode = 2
+
+[node name="DreamGuide" type="Label" parent="Hud/BottomBar/BottomRow" unique_id=2090383597]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ComposeButton" type="Button" parent="Hud/BottomBar/BottomRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "BUTTON_COMPOSE"
+
+[node name="BottomRight" type="HBoxContainer" parent="Hud/BottomBar/BottomRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="NotebookButton" type="Button" parent="Hud/BottomBar/BottomRow/BottomRight"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "BUTTON_NOTEBOOK"
+
+[node name="HistoryButton" type="Button" parent="Hud/BottomBar/BottomRow/BottomRight"]
+unique_name_in_owner = true
+layout_mode = 2
+toggle_mode = true
+text = "BUTTON_HISTORY"
+
+[node name="Menu" type="PanelContainer" parent="Hud"]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -208.0
+offset_top = 40.0
+offset_right = -8.0
+offset_bottom = 80.0
+grow_horizontal = 0
+theme_type_variation = &"Sheet"
+
+[node name="MenuList" type="VBoxContainer" parent="Hud/Menu"]
+layout_mode = 2
+
+[node name="ResetButton" type="Button" parent="Hud/Menu/MenuList" unique_id=49770663]
 unique_name_in_owner = true
 layout_mode = 2
 text = "BUTTON_RESET"
 
-[node name="ResetSessionsButton" type="Button" parent="Hud/Panel/Buttons" unique_id=567700276]
+[node name="LayerButton" type="Button" parent="Hud/Menu/MenuList" unique_id=765322327]
+unique_name_in_owner = true
+layout_mode = 2
+text = "BUTTON_LAYER_SURFACE"
+
+[node name="ResetSessionsButton" type="Button" parent="Hud/Menu/MenuList" unique_id=567700276]
 unique_name_in_owner = true
 layout_mode = 2
 text = "BUTTON_RESET_SESSIONS"
 
-[node name="LayerButton" type="Button" parent="Hud/Panel/Buttons" unique_id=765322327]
+[node name="HostAddressButton" type="Button" parent="Hud/Menu/MenuList" unique_id=1013904577]
 unique_name_in_owner = true
 layout_mode = 2
-text = "BUTTON_LAYER_SURFACE"
+
+[node name="PairingQr" type="TextureRect" parent="Hud/Menu/MenuList" unique_id=507616185]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
