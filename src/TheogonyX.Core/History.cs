@@ -32,6 +32,9 @@ public enum HistoryEventType
     /// <summary>教えの対立で、住人が地域を追われた（docs/domain/script-decipher.md の 9）。</summary>
     Exiled,
 
+    /// <summary>読みの教えの信者が、読みの跡の印を建てた（docs/domain/script-decipher.md の 9、docs/domain/structures.md）。</summary>
+    MarkBuilt,
+
     /// <summary>章が終わった（100 年ごと・崩壊・再創生）。始まりの年とカオス度を持つ（docs/domain/history.md）。</summary>
     ChapterEnded,
 }
@@ -42,7 +45,8 @@ public enum HistoryEventType
 /// 称号を持つ住人の死: <paramref name="Name"/>・<paramref name="Epithet"/>。
 /// 碑の読み違い: <paramref name="SymbolId"/>・<paramref name="DogmaType"/>（今の人の読み）・<paramref name="FromYear"/>（碑を刻んだ年）・
 /// <paramref name="WrittenSymbolId"/>・<paramref name="WrittenDogmaType"/>（崩れる前の読み）。
-/// 追放: <paramref name="SymbolId"/>・<paramref name="DogmaType"/>（追われた側の教え）・<paramref name="Region"/>・<paramref name="ToRegion"/>・<paramref name="Count"/>。章の終わり: <paramref name="FromYear"/>・<paramref name="ChaosFrom"/>・<paramref name="ChaosTo"/>・<paramref name="Myth"/>（AI が神話の文を作れたときだけ）。星の崩壊・世界再創生: なし。
+/// 追放: <paramref name="SymbolId"/>・<paramref name="DogmaType"/>（追われた側の教え）・<paramref name="Region"/>・<paramref name="ToRegion"/>・<paramref name="Count"/>。
+/// 印: <paramref name="SymbolId"/>・<paramref name="DogmaType"/>・<paramref name="Reading"/>・<paramref name="Region"/>。章の終わり: <paramref name="FromYear"/>・<paramref name="ChaosFrom"/>・<paramref name="ChaosTo"/>・<paramref name="Myth"/>（AI が神話の文を作れたときだけ）。星の崩壊・世界再創生: なし。
 /// </summary>
 /// <param name="Year">出来事が起きた年（世界再創生では、再創生する前の年。章の終わりでは、章の最後の年）。</param>
 /// <param name="Oracle">予言者が誤解して語った神託の文（docs/domain/ai-presentation.md）。ドグマの行だけが持ち、後から添える。</param>

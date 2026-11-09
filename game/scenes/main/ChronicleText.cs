@@ -30,6 +30,8 @@ public static class ChronicleText
                 string.Format(culture, Tr("DOGMA_ENTRY"), Tr($"SYMBOL_{entry.WrittenSymbolId}"), Tr($"DOGMA_TYPE_{entry.WrittenDogmaType.ToString()!.ToUpperInvariant()}"))),
             HistoryEventType.Exiled => string.Format(
                 culture, Tr("HISTORY_EXILED"), entry.Year, entry.Count, TeachingOf(entry.SymbolId, entry.DogmaType, null), entry.Region, entry.ToRegion),
+            HistoryEventType.MarkBuilt => string.Format(
+                culture, Tr($"HISTORY_MARK_{entry.Reading.ToString()!.ToUpperInvariant()}"), entry.Year, entry.Region, Tr($"SYMBOL_{entry.SymbolId}")),
             HistoryEventType.ResidentBrokeDown => string.Format(
                 culture, Tr(entry.Breakdown == BreakdownKind.Rampage ? "HISTORY_RAMPAGE" : "HISTORY_CATATONIA"), entry.Year, Who()),
             HistoryEventType.NotableDied => string.Format(culture, Tr("HISTORY_NOTABLE_DIED"), entry.Year, Who()),

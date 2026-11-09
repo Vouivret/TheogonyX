@@ -9,7 +9,7 @@ namespace TheogonyX.Core.Persistence;
 public static class SaveDataSerializer
 {
     /// <summary>今の形式のバージョン。形を変えたら上げる（.agent/rules/save-data.md）。</summary>
-    public const int SaveVersion = 21;
+    public const int SaveVersion = 22;
 
     // 版 19 は住人の好感度を足しただけなので、版 18 のセーブは好感度が空として読む
     private const int OldestReadableVersion = 18;
@@ -43,6 +43,7 @@ public static class SaveDataSerializer
         [HistoryEventType.ScriptDecayed] = "SCRIPT_DECAYED",
         [HistoryEventType.SteleMisread] = "STELE_MISREAD",
         [HistoryEventType.Exiled] = "EXILED",
+        [HistoryEventType.MarkBuilt] = "MARK_BUILT",
         [HistoryEventType.ResidentBrokeDown] = "RESIDENT_BROKE_DOWN",
         [HistoryEventType.NotableDied] = "NOTABLE_DIED",
         [HistoryEventType.WorldDestroyed] = "WORLD_DESTROYED",
@@ -133,6 +134,16 @@ public static class SaveDataSerializer
                     dogmas = relic.Dogmas.Select(WriteDogma),
                 }),
                 nextBuildingId = data.Civilization.NextBuildingId,
+                marks = data.Civilization.Marks.Select(mark => new
+                {
+                    reading = mark.Reading.ToString(),
+                    symbolId = mark.SymbolId,
+                    region = mark.Region,
+                    column = mark.Column,
+                    row = mark.Row,
+                    builtYear = mark.BuiltYear,
+                    tendedYear = mark.TendedYear,
+                }),
             },
             residents = new
             {
@@ -654,7 +665,8 @@ public static class SaveDataSerializer
             }
             return (id, Enum.Parse<DogmaType>(typeName));
         }
-        if (type.Key is HistoryEventType.DogmaFormed or HistoryEventType.DogmaForgotten or HistoryEventType.SteleMisread or HistoryEventType.Exiled)
+        if (type.Key is HistoryEventType.DogmaFormed or HistoryEventType.DogmaForgotten or HistoryEventType.SteleMisread or HistoryEventType.Exiled
+            or HistoryEventType.MarkBuilt)
         {
             (symbolId, var teachingType) = ReadTeaching(symbolElement, dogmaTypeElement);
             dogmaType = teachingType;
@@ -766,25 +778,32 @@ public static class SaveDataSerializer
         {
             throw new InvalidSaveDataException("invalid_history");
         }
-        // 読みは、教えが生まれた行と碑の読み違いの行だけが持つ
+        // 読みは、教えが生まれた行と碑の読み違いの行と印の行だけが持つ。印の行には必ずある
         OracleReading? reading = null;
-        if (type.Key is HistoryEventType.DogmaFormed or HistoryEventType.SteleMisread)
+        if (type.Key is HistoryEventType.DogmaFormed or HistoryEventType.SteleMisread or HistoryEventType.MarkBuilt)
         {
             reading = ReadReading(element, dogmaType!.Value, "invalid_history");
+            if (type.Key == HistoryEventType.MarkBuilt && reading is null)
+            {
+                throw new InvalidSaveDataException("invalid_history");
+            }
         }
         else if (element.TryGetProperty("reading", out var readingElement) && readingElement.ValueKind != JsonValueKind.Null)
         {
             throw new InvalidSaveDataException("invalid_history");
         }
-        // 追放の行だけが、元の地域・移った地域（東西の隣）・人数を持つ（版 21 で足した）
+        // 追放の行だけが、元の地域・移った地域（東西の隣）・人数を持つ（版 21 で足した）。印の行は地域だけを持つ（版 22 で足した）
         int? Optional(string key) =>
             !element.TryGetProperty(key, out var value) || value.ValueKind == JsonValueKind.Null ? null
             : value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number) ? number
             : throw new InvalidSaveDataException("invalid_history");
         var (region, toRegion, count) = (Optional("region"), Optional("toRegion"), Optional("count"));
-        if (type.Key == HistoryEventType.Exiled
-            ? region is not >= 0 || toRegion is not >= 0 || Math.Abs(region.Value - toRegion.Value) != 1 || count is not >= 1
-            : region is not null || toRegion is not null || count is not null)
+        if (type.Key switch
+        {
+            HistoryEventType.Exiled => region is not >= 0 || toRegion is not >= 0 || Math.Abs(region.Value - toRegion.Value) != 1 || count is not >= 1,
+            HistoryEventType.MarkBuilt => region is not >= 0 || toRegion is not null || count is not null,
+            _ => region is not null || toRegion is not null || count is not null,
+        })
         {
             throw new InvalidSaveDataException("invalid_history");
         }
@@ -1087,7 +1106,48 @@ public static class SaveDataSerializer
             }
             relics.Add(new Relic(id, type, region, column, row, depth, buriedYear, tech, culture, chaos, dogmas));
         }
-        return new Civilization(regions, buildings, ruins, relics, nextBuildingId);
+        return new Civilization(regions, buildings, ruins, relics, nextBuildingId, ReadMarks(element, rules, year, symbolIds));
+    }
+
+    // 読みの跡の印（版 22 で足した。それより前のセーブには無いので 0 個）。読み × 記号は地域ごとに 1 つ、マスは地域の中、建った年 ≤ 修繕した年 ≤ 今の年
+    private static List<Mark> ReadMarks(JsonElement civilization, CivilizationRules rules, int year, HashSet<string> symbolIds)
+    {
+        var marks = new List<Mark>();
+        if (!civilization.TryGetProperty("marks", out var element))
+        {
+            return marks;
+        }
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            throw new InvalidSaveDataException("invalid_civilization");
+        }
+        foreach (var item in element.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                throw new InvalidSaveDataException("invalid_field");
+            }
+            var readingName = ReadString(item, "reading");
+            var symbolId = ReadString(item, "symbolId");
+            var region = ReadInt(item, "region");
+            var column = ReadInt(item, "column");
+            var row = ReadInt(item, "row");
+            var builtYear = ReadInt(item, "builtYear");
+            var tendedYear = ReadInt(item, "tendedYear");
+            if (!Enum.GetNames<OracleReading>().Contains(readingName) || !symbolIds.Contains(symbolId)
+                || region < 0 || region >= rules.Regions.Count || column < 0 || column >= rules.Regions.Columns || rules.Regions.RegionOf(column) != region
+                || row < 0 || row >= rules.Rows || builtYear < 0 || builtYear > tendedYear || tendedYear > year)
+            {
+                throw new InvalidSaveDataException("invalid_civilization");
+            }
+            var reading = Enum.Parse<OracleReading>(readingName);
+            if (marks.Exists(mark => mark.Region == region && mark.Reading == reading && mark.SymbolId == symbolId))
+            {
+                throw new InvalidSaveDataException("invalid_civilization");
+            }
+            marks.Add(new Mark(reading, symbolId, region, column, row, builtYear, tendedYear));
+        }
+        return marks;
     }
 
     private static RegionCivilization ReadRegion(JsonElement element, CivilizationRules rules)

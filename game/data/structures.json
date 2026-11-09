@@ -1,0 +1,11 @@
+{
+  "marks": {
+    "believersAtOrAbove": 2,
+    "types": [
+      { "id": "STRUCT_ALTAR", "reading": "Revere", "material": "STONE", "lifespanYears": 300, "place": "SymbolOrCenter" },
+      { "id": "STRUCT_FENCE", "reading": "Seal", "material": "WOOD", "lifespanYears": 60, "place": "Border" },
+      { "id": "STRUCT_STUMP", "reading": "Clear", "material": "WOOD", "lifespanYears": 40, "place": "SymbolOrAnywhere" },
+      { "id": "STRUCT_WALL", "reading": "Arm", "material": "STONE", "lifespanYears": 300, "place": "Border" }
+    ]
+  }
+}

@@ -423,6 +423,23 @@ public static class GameDataLoader
         return settings;
     }
 
+    /// <summary>構造物の型の定義（game/data/structures.json。docs/domain/structures.md）。今は読みの跡の印だけ。</summary>
+    public static MarkRules ParseStructures(string structuresJson)
+    {
+        var marks = Parse<StructuresFile>(structuresJson, "structures.json").Marks
+            ?? throw new InvalidDataException("読みの跡の印の定義が無い: file=structures.json key=marks");
+        try
+        {
+            var rules = new MarkRules(marks.BelieversAtOrAbove, marks.Types ?? []);
+            rules.Validate();
+            return rules;
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("読みの跡の印の定義の値が範囲外: file=structures.json key=marks", ex);
+        }
+    }
+
     private static bool IsPort(int port) => port is >= 1 and <= ushort.MaxValue;
 
     /// <param name="hex"><c>#RRGGBB</c> の形の色。</param>
@@ -450,6 +467,10 @@ public static class GameDataLoader
     }
 
     private sealed record SymbolsFile(IReadOnlyList<Symbol> Symbols);
+
+    private sealed record MarksFile(int BelieversAtOrAbove, IReadOnlyList<MarkType>? Types);
+
+    private sealed record StructuresFile(MarksFile? Marks);
 
     private sealed record LakeFile(IReadOnlyList<TerrainCell> Cells);
 

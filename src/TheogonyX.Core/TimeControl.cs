@@ -26,15 +26,17 @@ public sealed class TimeControl
     private readonly CivilizationSetup? _civilizationSetup;
     private readonly BeliefRules? _belief;
     private readonly JourneyRules? _journey;
+    private readonly MarkSetup? _marks;
 
     /// <param name="jumpYears">100年跳躍ボタンで進める年数。</param>
     /// <param name="civilization">地域の文明の計算に使う定義。null なら文明の計算をしない。</param>
     /// <param name="history">年表の定義。null なら年表を残さない。</param>
     /// <param name="belief">住人の信仰の定義。null なら信仰を使わず、ドグマはいつも全員に効く。住人の計算をしないときは無視する。</param>
     /// <param name="journey">予言者の旅の定義。null なら予言者は動かない。住人の計算をしないときは無視する。</param>
+    /// <param name="marks">読みの跡の印の定義。null なら印を建てない。信仰を使わないときは無視する。</param>
     public TimeControl(
         WorldRules worldRules, int jumpYears, CivilizationSetup? civilization = null, HistoryRules? history = null, BeliefRules? belief = null,
-        JourneyRules? journey = null)
+        JourneyRules? journey = null, MarkSetup? marks = null)
     {
         ArgumentNullException.ThrowIfNull(worldRules);
         ArgumentOutOfRangeException.ThrowIfNegative(jumpYears);
@@ -44,6 +46,7 @@ public sealed class TimeControl
         _civilizationSetup = civilization;
         _belief = civilization?.Needs is null ? null : belief;
         _journey = civilization?.Needs is null ? null : journey;
+        _marks = _belief is null ? null : marks;
         Prophet = InitialProphet();
         World = WorldState.CreateInitial(worldRules);
         Civilization = civilization is null ? null : Civilization.CreateInitial(civilization.Rules);
@@ -269,6 +272,14 @@ public sealed class TimeControl
                                     history?.Add(new HistoryEntry(
                                         exile.Year, HistoryEventType.Exiled, exile.SymbolId, exile.Type, Region: exile.From, ToRegion: exile.To,
                                         Count: exile.ResidentIds.Count));
+                                }
+                            }
+                            if (_marks is { } marks)
+                            {
+                                foreach (var mark in MarkSimulator.AdvanceYear(civilization, residents, World.Year, setup.Seed, marks, setup.Rules))
+                                {
+                                    history?.Add(new HistoryEntry(
+                                        mark.BuiltYear, HistoryEventType.MarkBuilt, mark.SymbolId, mark.Type, Reading: mark.Reading, Region: mark.Region));
                                 }
                             }
                         }

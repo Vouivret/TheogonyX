@@ -22,6 +22,7 @@ public partial class WorldCore : Node2D
     private SkyView? _sky;
     private CameraView? _camera;
     private BuildingView? _buildings;
+    private MarkView? _marks;
     private StrataView? _strata;
     private ResidentView? _residents;
     private HistoryView? _history;
@@ -82,6 +83,7 @@ public partial class WorldCore : Node2D
         var oracleAiRules = GameDataLoader.ParseOracleAi(rulesJson);
         var (dialectRules, dialectVessel) = GameDataLoader.ParseDialect(rulesJson);
         var (scriptRules, scriptLandmarks, tabooPlateShare) = GameDataLoader.ParseScript(rulesJson);
+        var markRules = GameDataLoader.ParseStructures(ReadText("res://data/structures.json"));
 
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
         _saveStore = new SaveStore("user://save", TimeProvider.System);
@@ -100,7 +102,8 @@ public partial class WorldCore : Node2D
         // シードはセーブのもの、無ければ起動時の時刻から作り、記録する（同じシードで同じデッキの並びを再現できる）
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
         var timeControl = new TimeControl(
-            worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules), historyRules, beliefRules, journeyRules);
+            worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules), historyRules, beliefRules, journeyRules,
+            new MarkSetup(markRules, scriptLandmarks));
         _timeControl = timeControl;
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
@@ -130,6 +133,8 @@ public partial class WorldCore : Node2D
         _camera = new CameraView(this, cameraSettings);
         _buildings = new BuildingView(this, timeControl, lightingSettings);
         _screen.TerrainDrawn += _buildings.Refresh;
+        _marks = new MarkView(this, timeControl);
+        _screen.TerrainDrawn += _marks.Refresh;
         _strata = new StrataView(this, timeControl, civilizationRules);
         _screen.TerrainDrawn += _strata.Refresh;
         _residents = new ResidentView(this, timeControl, civilizationRules, needsRules, _ambience, seed, cameraSettings.ResidentIcons);

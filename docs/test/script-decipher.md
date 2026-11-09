@@ -42,6 +42,11 @@
 | TS-script-decipher-032 | AC-script-decipher-034 | カオス度が閾値以上なら、少ない側の教えだけを信じる人が、隣のうち住人の少ない地域へ移る。同じ数なら後に加わった教えの側・東。つがいの相手は一緒に移り、残る人との好感度は消える | 受け入れ条件のとおり | 1 年を計算する | 崇拝の 3 人が地域 3 へ移る | 自動 | `tests/TheogonyX.Core.Tests/SchismTests.cs` |
 | TS-script-decipher-033 | AC-script-decipher-036 | 隣の地域が無ければ追放は起きない | 地域が 1 つだけの星 | 1 年を計算する | 誰も移らない | 自動 | `tests/TheogonyX.Core.Tests/SchismTests.cs` |
 | TS-script-decipher-034 | AC-script-decipher-034・035 | 追放は年表に 1 行残り、セーブから戻る。隣でない地域への行は拒む | 追放の条件を満たした星 | 1 年進めて保存し、読み戻す／移った地域を書き換える | 戻る／拒む | 自動 | `tests/TheogonyX.Core.Tests/SchismTests.cs` |
+| TS-script-decipher-035 | AC-script-decipher-039 | 祭壇は信者が閾値以上で建ち、目印の隣か地域の真ん中に置かれ、建物・廃墟のマスは避ける | 受け入れ条件のとおり | 1 年を計算する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/MarkTests.cs` |
+| TS-script-decipher-036 | AC-script-decipher-040 | 柵・壁は隣のある側の端の列に建つ（同じシードで同じ場所）。1 地域 1 年に 1 つで、信者の多い方から | 受け入れ条件のとおり | 1 年ずつ計算する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/MarkTests.cs` |
+| TS-script-decipher-037 | AC-script-decipher-041 | 信者がいる間は修繕され、いなくなって寿命の年数がたつと消える（寿命の境） | 受け入れ条件のとおり | 159 年・160 年を計算する | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/MarkTests.cs` |
+| TS-script-decipher-038 | AC-script-decipher-042 | 印が年表に 1 行残り、セーブ（版 22）から戻る。地域の外の印は拒む | 印の条件を満たした星 | 1 年進めて保存し、読み戻す／印の列を書き換える | 戻る／拒む | 自動 | `tests/TheogonyX.Core.Tests/MarkTests.cs` |
+| TS-script-decipher-039 | AC-script-decipher-039・040 | 印の絵が地表に出て、信者が印へ歩く（祀る人は祭壇を囲む）。年表の文 | Godot で、地域に読みの教えの信者が 2 人以上いる星 | 年を進めて詳細の視点で見る。年表を開く | 祭壇・柵・切り株（木以外は更地）・壁の絵が出る。信者が印のまわりに集まる。年表に印の行が出る | 手動 | `game/scenes/main/MarkView.cs`・`ResidentView.cs` |
 | TS-script-decipher-017 | （画面。仕様書の「書く」） | 手帳の書き込みと、文を書いて語りかける欄 | Godot 4.7.2 で動かす | 下の手順 | 下の手順のとおり | 手動 | — |
 
 ## 手動テストの手順

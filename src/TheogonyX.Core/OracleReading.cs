@@ -82,6 +82,9 @@ public static class OracleReadings
     /// <summary>読みが、動詞の種別 <paramref name="type"/> の行にあるか（セーブの検証に使う）。</summary>
     public static bool Fits(DogmaType type, OracleReading reading) => Table.Any(entry => entry.Key.Item1 == type && entry.Value == reading);
 
+    /// <summary>読みが表のどの動詞の種別の行にあるか。</summary>
+    public static DogmaType TypeOf(OracleReading reading) => Table.First(entry => entry.Value == reading).Key.Item1;
+
     /// <summary>動詞の種別と危機から読みを引く。</summary>
     public static OracleReading Of(DogmaType type, Crisis crisis) => Table[(type, crisis)];
 

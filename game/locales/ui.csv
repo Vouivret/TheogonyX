@@ -20,6 +20,10 @@ READING_STRIP,取り尽くす,strip bare
 READING_BURN,焼き払う,burn
 READING_ARM,武器と壁にする,make weapons and walls
 HISTORY_EXILED,{0} 年　{2}を信じる {1} 人が、教えの対立で地域 {3} を追われ、地域 {4} へ移った,"Year {0}: {1} believers in {2} were driven out of region {3} over a clash of teachings and moved to region {4}"
+HISTORY_MARK_REVERE,{0} 年　地域 {1} の人は{2}を祀り、祭壇を築いた,"Year {0}: the people of region {1} revered the {2} and raised an altar"
+HISTORY_MARK_SEAL,{0} 年　地域 {1} の人は{2}に触れぬよう境を閉ざし、柵を立てた,"Year {0}: the people of region {1} sealed their border to keep from the {2} and put up a fence"
+HISTORY_MARK_CLEAR,{0} 年　地域 {1} の人は{2}を壊して土地を切り開いた,"Year {0}: the people of region {1} broke the {2} to clear the land"
+HISTORY_MARK_ARM,{0} 年　地域 {1} の人は{2}を武器と壁に作り替え、壁を築いた,"Year {0}: the people of region {1} turned the {2} into weapons and raised a wall"
 CRISIS_LABEL,いまの危機: {0},Current crisis: {0}
 CRISIS_PEACE,平時,Peace
 CRISIS_WANT,欠乏,Want

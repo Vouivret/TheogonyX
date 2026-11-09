@@ -63,10 +63,12 @@ public sealed class Civilization
     private readonly List<Building> _buildings;
     private readonly List<Ruin> _ruins;
     private List<Relic> _relics;
+    private List<Mark> _marks;
 
+    /// <param name="marks">地表に残った読みの跡の印（docs/domain/structures.md）。null なら無し。</param>
     public Civilization(
         IEnumerable<RegionCivilization> regions, IEnumerable<Building> buildings, IEnumerable<Ruin> ruins, IEnumerable<Relic> relics,
-        int nextBuildingId)
+        int nextBuildingId, IEnumerable<Mark>? marks = null)
     {
         ArgumentNullException.ThrowIfNull(regions);
         ArgumentNullException.ThrowIfNull(buildings);
@@ -77,6 +79,7 @@ public sealed class Civilization
         _buildings = [.. buildings];
         _ruins = [.. ruins];
         _relics = [.. relics];
+        _marks = [.. marks ?? []];
         NextBuildingId = nextBuildingId;
     }
 
@@ -92,6 +95,9 @@ public sealed class Civilization
     /// <summary>地下の遺物。</summary>
     public IReadOnlyList<Relic> Relics => _relics;
 
+    /// <summary>地表に残った読みの跡の印。建った順。</summary>
+    public IReadOnlyList<Mark> Marks => _marks;
+
     /// <summary>次に建つ建物の ID。</summary>
     public int NextBuildingId { get; private set; }
 
@@ -99,10 +105,11 @@ public sealed class Civilization
     public static Civilization CreateInitial(CivilizationRules rules) => CreateInitial(rules, [], 0);
 
     /// <summary>今の値と同じ中身の、別の状態（セーブに書き出す写し）。</summary>
-    public Civilization Copy() => new(_regions, _buildings, _ruins, _relics, NextBuildingId);
+    public Civilization Copy() => new(_regions, _buildings, _ruins, _relics, NextBuildingId, _marks);
 
     /// <summary>
     /// 世界再創生: 地上の建物と廃墟をすべて地下 1 層目に沈め（マクロ沈下）、遺物だけを残して地域を初期値に戻した状態を返す。
+    /// 読みの跡の印は消す（石の印を地層に沈めるのは、地層を広げる段で決める。docs/domain/structures.md）。
     /// 廃墟の上に建物がある枠では、廃墟が 2 層目、建物が 1 層目になる。
     /// </summary>
     public Civilization Recreate(WorldState world, IReadOnlyList<Dogma> dogmas, CivilizationRules rules)
@@ -137,6 +144,8 @@ public sealed class Civilization
     }
 
     internal void SetRegion(int region, RegionCivilization state) => _regions[region] = state;
+
+    internal void ReplaceMarks(IEnumerable<Mark> marks) => _marks = [.. marks];
 
     internal void AddBuilding(BuildingType type, int region, int column, int row, int collapseYear)
     {

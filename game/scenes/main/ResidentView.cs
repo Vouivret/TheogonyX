@@ -27,6 +27,7 @@ public sealed class ResidentView
     private const int IconSize = 12; // 欲求の印の大きさ（px）
     private const float ChildScale = 0.7f;
     private const float CoupleGap = 3f; // 並んで寝るつがいの、建物のそばの点からのずれ（px）
+    private const float RingRadius = 18f; // 祭壇を囲む輪の半径（px）
     private const float FriendGap = 10f; // 親しい人の近くを歩くときの、その人の足元からの広がり（px）
 
     // 精神崩壊中の住人は、絵に色を掛けて見分ける（狂乱は赤く、自閉・絶望は灰色に）
@@ -289,6 +290,35 @@ public sealed class ResidentView
         _infoPanel.Visible = true;
     }
 
+    // 住人が信じる読みの教えの印で、同じ地域にあるもの。2 つ以上なら、教えの一覧で先にある教えの印
+    private Mark? MarkOf(Resident person)
+    {
+        var marks = _timeControl.Civilization?.Marks ?? [];
+        var dogmas = _timeControl.Dogmas;
+        int Order(Mark mark)
+        {
+            var index = dogmas.ToList().FindIndex(dogma => dogma.TargetSymbolId == mark.SymbolId && dogma.Reading == mark.Reading);
+            return index < 0 ? int.MaxValue : index;
+        }
+        return marks
+            .Where(mark => mark.Region == person.Region
+                && person.Beliefs.Any(belief => belief.Reading == mark.Reading && belief.SymbolId == mark.SymbolId))
+            .OrderBy(Order)
+            .FirstOrDefault();
+    }
+
+    // 祭壇を囲む輪の中の順番（ID の順）と、輪の人数。同じ地域で、その印の教えを信じる人で数える
+    private (int Rank, int Count) RingSlot(Resident person, Mark mark)
+    {
+        var ring = (_timeControl.Residents?.People ?? [])
+            .Where(other => other.Region == mark.Region
+                && other.Beliefs.Any(belief => belief.Reading == mark.Reading && belief.SymbolId == mark.SymbolId))
+            .Select(other => other.Id)
+            .Order()
+            .ToList();
+        return (Mathf.Max(0, ring.IndexOf(person.Id)), Mathf.Max(1, ring.Count));
+    }
+
     // いちばん親しい人の ID（好感度が「親しい人」の区切りに届く相手がいなければ null）
     private int? FriendOf(Resident person) => _timeControl.Residents?.ClosestOf(person.Id, _needs.Affinity.FriendAtOrAbove);
 
@@ -404,6 +434,18 @@ public sealed class ResidentView
             if (places.Count > 0)
             {
                 return view.BesideBuilding(places[(int)(CrowdHash.Hash(view._seed, id, _step) % (uint)places.Count)], id, _step + 1);
+            }
+            // 集まる・何もしない日は、自分の読みの印へ行く（祀る人は祭壇を囲んで輪になる）
+            if (Resident.Task is ResidentTask.Gather or ResidentTask.Idle && view.MarkOf(Resident) is { } mark)
+            {
+                var foot = MarkView.FootPosition(view._terrainOrigin, mark);
+                if (mark.Reading == OracleReading.Revere)
+                {
+                    var (rank, count) = view.RingSlot(Resident, mark);
+                    var angle = (rank + 0.25f) / count * Mathf.Tau; // 祀る人の中の順番で、輪に均等に並ぶ
+                    return foot + new Vector2(Mathf.Floor(Mathf.Cos(angle) * RingRadius), Mathf.Floor(Mathf.Sin(angle) * RingRadius * 0.6f) - 2f);
+                }
+                return foot + new Vector2(Mathf.Floor((CrowdHash.Next01(view._seed, id, _step) - 0.5f) * 24f), 3f);
             }
             if (Resident.Task == ResidentTask.Gather)
             {
