@@ -29,6 +29,7 @@ unique_name_in_owner = true
 unique_name_in_owner = true
 
 [node name="Actors" type="Node2D" parent="WorldView/WorldViewport" unique_id=1637808064]
+texture_filter = 1
 y_sort_enabled = true
 
 [node name="Prophet" type="Sprite2D" parent="WorldView/WorldViewport/Actors" unique_id=12535335]

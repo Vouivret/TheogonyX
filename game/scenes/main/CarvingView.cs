@@ -36,7 +36,7 @@ public sealed class CarvingView
         _terrainOrigin = terrain.Position;
         _viewport = owner.GetNode<SubViewport>("%WorldViewport");
         // 建物・予言者より手前に描く（印が隠れないように）
-        _marks = new Node2D { Name = "Carvings", ZIndex = 10 };
+        _marks = new Node2D { Name = "Carvings", ZIndex = 10, TextureFilter = CanvasItem.TextureFilterEnum.Nearest };
         terrain.GetParent().AddChild(_marks);
 
         _rubbing = new GlyphView { Name = "Rubbing", CustomMinimumSize = new Vector2(64, 64), SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
