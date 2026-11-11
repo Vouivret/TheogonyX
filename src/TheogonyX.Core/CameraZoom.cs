@@ -9,8 +9,11 @@ namespace TheogonyX.Core;
 /// </summary>
 public static class CameraZoom
 {
-    // ズームの補間をここまで近づいたら目標に合わせる（倍率の対数の差）
-    private const double SnapLogDistance = 0.001;
+    /// <summary>街の視点になる倍率（これ未満は星の視点）。</summary>
+    public const double TownFromZoom = 1.0;
+
+    /// <summary>暮らしの視点になる倍率（これ未満は街の視点）。</summary>
+    public const double LifeFromZoom = 2.0;
 
     /// <summary>ホイール 1 目盛りで移る先のズームの段。端の段から外へは動かない。</summary>
     /// <param name="steps">ズームの段（小さい順）。</param>
@@ -37,16 +40,6 @@ public static class CameraZoom
             }
         }
         return steps[0];
-    }
-
-    /// <summary>ズームを目標へ滑らかに近づける（倍率の対数で補間するので、拡大と縮小の速さがそろう）。目標を越えない。</summary>
-    /// <param name="smoothing">近づく速さ（1 秒あたり。大きいほど速い）。</param>
-    public static double Approach(double current, double target, double smoothing, double deltaSeconds)
-    {
-        var from = Math.Log(current);
-        var to = Math.Log(target);
-        var next = from + (to - from) * (1 - Math.Exp(-smoothing * deltaSeconds));
-        return Math.Abs(to - next) < SnapLogDistance ? target : Math.Exp(next);
     }
 
     /// <summary>ズームを変えても、画面上の <paramref name="anchorOffset"/> の位置にある世界の点が動かないカメラの中心（1 軸ぶん）。</summary>
@@ -76,18 +69,9 @@ public static class CameraZoom
         return Math.Clamp(center, boundsMin + half, boundsMax - half);
     }
 
-    /// <summary>
-    /// 詳細の視点の度合い（0: 中拡大・大陸のみ、1: 詳細のみ）。<paramref name="from"/> 以下で 0、<paramref name="to"/> 以上で 1、間は直線で変わる。
-    /// 群衆の点と住人の絵を重ねて薄くしながら切り替えるのに使う。
-    /// </summary>
-    public static double DetailBlend(double zoom, double from, double to)
-    {
-        if (!(from < to))
-        {
-            throw new ArgumentOutOfRangeException(nameof(to), to, "to は from より大きくなければならない");
-        }
-        return Math.Clamp((zoom - from) / (to - from), 0.0, 1.0);
-    }
+    /// <summary>倍率から視点の段を決める。<see cref="TownFromZoom"/> 未満は星、<see cref="LifeFromZoom"/> 未満は街、それ以上は暮らし。</summary>
+    public static CameraViewLevel LevelOf(double zoom) =>
+        zoom < TownFromZoom ? CameraViewLevel.Star : zoom < LifeFromZoom ? CameraViewLevel.Town : CameraViewLevel.Life;
 
     /// <summary>
     /// 整数倍のズームで、ドットが画面の px にそろうカメラの中心（1 軸ぶん。1 / 倍率 の倍数に丸める）。整数倍でなければそのまま返す。
@@ -100,4 +84,17 @@ public static class CameraZoom
         }
         return Math.Round(center * zoom, MidpointRounding.AwayFromZero) / zoom;
     }
+}
+
+/// <summary>視点の 3 段。ホイールの 1 目盛りで切り替わる。</summary>
+public enum CameraViewLevel
+{
+    /// <summary>星の視点: 地表全体と、群衆の点。</summary>
+    Star,
+
+    /// <summary>街の視点: 家と住人の絵。</summary>
+    Town,
+
+    /// <summary>暮らしの視点: 住人の営みを見る（欲求の印・行動）。</summary>
+    Life,
 }

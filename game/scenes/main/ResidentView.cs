@@ -52,6 +52,11 @@ public sealed class ResidentView
     private readonly Texture2D[] _iconTextures;
     private readonly Texture2D _rampageIcon;
     private readonly Texture2D _catatoniaIcon;
+    // 暮らしの視点で全住人の頭上に出す、いまの行動の印（交流・祈り・研究）。空腹・住居は欲求の印と同じ絵
+    private readonly Texture2D _socialIcon;
+    private readonly Texture2D _esteemIcon;
+    private readonly Texture2D _actualizationIcon;
+    private bool _showTasks;
     private readonly Node2D _iconRow;
     private readonly PanelContainer _infoPanel;
     private readonly Label _infoLabel;
@@ -80,6 +85,9 @@ public sealed class ResidentView
             LoadIcon("shelter", GamePalette.Of("clay")),
             LoadIcon("sanity", GamePalette.Of("magic")),
         ];
+        _socialIcon = LoadIcon("social", GamePalette.Of("sky"));
+        _esteemIcon = LoadIcon("esteem", GamePalette.Of("sun"));
+        _actualizationIcon = LoadIcon("actualization", GamePalette.Of("leaf"));
         _rampageIcon = LoadIcon("state_rampage", GamePalette.Of("red"));
         _catatoniaIcon = LoadIcon("state_catatonia", GamePalette.Of("ash"));
         _iconRow = new Node2D { Name = "NeedIcons", Visible = false, ZIndex = 1 };
@@ -172,6 +180,7 @@ public sealed class ResidentView
             walker.Resident = person;
             walker.Node.Texture = _dolls[person.Id % DollKinds];
             walker.Node.Scale = Vector2.One * (person.AgeIn(_timeControl.World.Year) < _needs.AdultAge ? ChildScale : 1f);
+            walker.SetTaskIcon(_showTasks ? TaskIconOf(person) : null);
             walker.Node.Modulate = person.Breakdown switch
             {
                 BreakdownKind.Rampage => RampageTint,
@@ -207,6 +216,32 @@ public sealed class ResidentView
         }
         ShowInfo();
     }
+
+    /// <summary>暮らしの視点かどうか。暮らしの視点では、全住人の頭上に、いまの行動の印を出す（docs/domain/camera-views.md）。</summary>
+    public void SetLifeView(bool life)
+    {
+        _showTasks = life;
+        foreach (var walker in _walkers.Values)
+        {
+            walker.SetTaskIcon(life ? TaskIconOf(walker.Resident) : null);
+        }
+    }
+
+    // 住人の行動の印。何もしない日は無し。精神崩壊中は状態の印
+    private Texture2D? TaskIconOf(Resident person) => person.Breakdown switch
+    {
+        BreakdownKind.Rampage => _rampageIcon,
+        BreakdownKind.Catatonia => _catatoniaIcon,
+        _ => person.Task switch
+        {
+            ResidentTask.SeekFood => _iconTextures[0],
+            ResidentTask.SeekShelter => _iconTextures[1],
+            ResidentTask.Gather => _socialIcon,
+            ResidentTask.Pray => _esteemIcon,
+            ResidentTask.Research => _actualizationIcon,
+            _ => null,
+        },
+    };
 
     /// <summary>住人の絵の濃さ（0〜1。視点で切り替える）。0 なら隠し、情報の枠も閉じる。</summary>
     public void SetOpacity(float opacity)
@@ -383,12 +418,34 @@ public sealed class ResidentView
         private uint _step;
         private bool _wasNight;
 
+        private Sprite2D? _taskIcon;
+
         public Sprite2D Node { get; } = node;
+
+        /// <summary>頭上の行動の印を替える（null なら消す）。夜に横になっている間は出さない。</summary>
+        public void SetTaskIcon(Texture2D? texture)
+        {
+            if (texture is null)
+            {
+                _taskIcon?.QueueFree();
+                _taskIcon = null;
+                return;
+            }
+            if (_taskIcon is null)
+            {
+                // 住人の足元が原点。頭の上に、住人の絵の幅の中央で置く（拡大の倍率は住人と同じに縮む）
+                _taskIcon = new Sprite2D { Name = "TaskIcon", Centered = false, ZIndex = 1, Position = new Vector2(-IconSize / 2f, -DollHeight - IconSize) };
+                Node.AddChild(_taskIcon);
+            }
+            _taskIcon.Texture = texture;
+        }
 
         public Resident Resident { get; set; } = resident;
 
         public void Update(float delta, bool night, IReadOnlyList<Building> buildings, ResidentView view)
         {
+            // 夜に横になっている間は、行動の印も一緒に倒れるので出さない
+            _taskIcon?.Visible = Node.Rotation == 0f;
             if (night != _wasNight)
             {
                 _wasNight = night;

@@ -6,37 +6,19 @@ public class CameraZoomTests
 {
     private const double Tolerance = 0.0001;
 
-    private static readonly double[] Steps = [0.25, 0.5, 0.75, 1.0, 2.0, 3.0, 4.0];
+    private static readonly double[] Steps = [0.5, 1.0, 2.0, 3.0, 4.0];
 
     [Theory]
     [Trait("TS", "TS-camera-views-001")]
     [InlineData(1.0, 1, 2.0)]
-    [InlineData(1.0, -1, 0.75)]
+    [InlineData(1.0, -1, 0.5)]
     [InlineData(4.0, 1, 4.0)] // いちばん大きい段
-    [InlineData(0.25, -1, 0.25)] // いちばん小さい段
+    [InlineData(0.5, -1, 0.5)] // いちばん小さい段
     [InlineData(1.5, 1, 2.0)] // 段の間（補間の途中で目標を変えたとき）
     [InlineData(1.5, -1, 1.0)]
     public void NextStep_ホイール1目盛り_隣の段に移り端の段からは動かない(double target, int direction, double expected)
     {
         Assert.Equal(expected, CameraZoom.NextStep(Steps, target, direction), Tolerance);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-camera-views-002")]
-    public void Approach_1フレーム_今と目標の間に近づく()
-    {
-        var zoom = CameraZoom.Approach(1.0, 2.0, 12.0, 1.0 / 60);
-
-        Assert.InRange(zoom, 1.0 + Tolerance, 2.0 - Tolerance);
-    }
-
-    [Theory]
-    [Trait("TS", "TS-camera-views-002")]
-    [InlineData(1.0, 2.0)]
-    [InlineData(2.0, 1.0)]
-    public void Approach_十分に時間がたつ_目標ちょうどになる(double current, double target)
-    {
-        Assert.Equal(target, CameraZoom.Approach(current, target, 12.0, 10.0));
     }
 
     [Theory]
@@ -88,21 +70,15 @@ public class CameraZoomTests
     }
 
     [Theory]
-    [Trait("TS", "TS-camera-views-005")]
-    [InlineData(0.5, 0.0)]
-    [InlineData(1.0, 0.0)]
-    [InlineData(1.5, 0.5)]
-    [InlineData(2.0, 1.0)]
-    [InlineData(4.0, 1.0)]
-    public void DetailBlend_範囲の中で直線に変わり外では0か1(double zoom, double expected)
+    [Trait("TS", "TS-camera-views-009")]
+    [InlineData(0.5, CameraViewLevel.Star)]
+    [InlineData(0.99, CameraViewLevel.Star)]
+    [InlineData(1.0, CameraViewLevel.Town)]
+    [InlineData(1.99, CameraViewLevel.Town)]
+    [InlineData(2.0, CameraViewLevel.Life)]
+    [InlineData(4.0, CameraViewLevel.Life)]
+    public void LevelOf_倍率の境目_星と街と暮らしに分かれる(double zoom, CameraViewLevel expected)
     {
-        Assert.Equal(expected, CameraZoom.DetailBlend(zoom, 1.0, 2.0), Tolerance);
-    }
-
-    [Fact]
-    [Trait("TS", "TS-camera-views-005")]
-    public void DetailBlend_範囲が正しくない_例外になる()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() => CameraZoom.DetailBlend(1.0, 2.0, 2.0));
+        Assert.Equal(expected, CameraZoom.LevelOf(zoom));
     }
 }

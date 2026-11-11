@@ -152,14 +152,15 @@ public partial class WorldCore : Node2D
         _screen.TimeAdvanced += () => LogExiles(timeControl);
         _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
-        // 詳細の視点は住人の絵、中拡大・大陸は群衆の点。境目は重ねて薄くしながら切り替える（docs/domain/camera-views.md の「群衆の描き方」）
-        var blend = (float detail) =>
+        // 星の視点は群衆の点、街と暮らしの視点は住人の絵。半透明で重ねず、段が変わったらその場で切り替える（ドットが崩れない）
+        var level = (CameraViewLevel viewLevel) =>
         {
-            _residents.SetOpacity(detail);
-            _crowd.SetOpacity(1f - detail);
+            _residents.SetOpacity(viewLevel == CameraViewLevel.Star ? 0f : 1f);
+            _crowd.SetOpacity(viewLevel == CameraViewLevel.Star ? 1f : 0f);
+            _residents.SetLifeView(viewLevel == CameraViewLevel.Life);
         };
-        _camera.DetailBlendChanged += blend;
-        blend(_camera.DetailBlend);
+        _camera.LevelChanged += level;
+        level(_camera.Level);
         _screen.WorldReset += _crowd.OnWorldReset;
         _dreams = new DreamView(this, prophet, timeControl);
         _screen.TimeAdvanced += _dreams.OnTimeAdvanced;

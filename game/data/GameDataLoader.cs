@@ -159,13 +159,13 @@ public static class GameDataLoader
         {
             throw new InvalidDataException($"住人の印の定義の値が範囲外: file=rules.json value={icons}");
         }
-        if (!stepsValid || !steps.Contains(camera.StartZoom) || !double.IsFinite(camera.ZoomSmoothing) || camera.ZoomSmoothing <= 0
+        if (!stepsValid || !steps.Contains(camera.StartZoom)
             || !double.IsFinite(camera.PanSpeed) || camera.PanSpeed <= 0)
         {
             throw new InvalidDataException(
-                $"カメラの定義の値が範囲外: file=rules.json zoomSteps={string.Join(',', steps)} startZoom={camera.StartZoom} zoomSmoothing={camera.ZoomSmoothing} panSpeed={camera.PanSpeed}");
+                $"カメラの定義の値が範囲外: file=rules.json zoomSteps={string.Join(',', steps)} startZoom={camera.StartZoom} panSpeed={camera.PanSpeed}");
         }
-        return new CameraSettings(steps, camera.StartZoom, camera.ZoomSmoothing, camera.PanSpeed, icons);
+        return new CameraSettings(steps, camera.StartZoom, camera.PanSpeed, icons);
     }
 
     public static CivilizationRules ParseCivilization(string rulesJson)
@@ -485,7 +485,7 @@ public static class GameDataLoader
     private sealed record CampfireFile(int Column, string Color, float Energy, float RadiusTiles, float FlickerAmount, float FlickerSpeed);
 
     private sealed record CameraFile(
-        IReadOnlyList<double>? ZoomSteps, double StartZoom, double ZoomSmoothing, double PanSpeed, ResidentIconSettings? ResidentIcons);
+        IReadOnlyList<double>? ZoomSteps, double StartZoom, double PanSpeed, ResidentIconSettings? ResidentIcons);
 
     private sealed record CivilizationFile(
         int ColumnsPerRegion,

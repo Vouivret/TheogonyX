@@ -55,7 +55,7 @@ public sealed class CarvingView
         _panel = new PanelContainer { Name = "RubbingPanel", Visible = false, ZIndex = 1, ThemeTypeVariation = "Sheet" };
         _panel.AddChild(column);
         owner.GetNode<Node>("Hud").AddChild(_panel);
-        _panel.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.Center);
         _panel.GrowHorizontal = Control.GrowDirection.Both;
         _panel.GrowVertical = Control.GrowDirection.Both;
         close.Pressed += () => _panel.Visible = false;

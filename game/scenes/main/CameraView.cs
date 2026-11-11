@@ -5,7 +5,7 @@ using TheogonyX.Data;
 namespace TheogonyX.Scenes.Main;
 
 /// <summary>
-/// 星の地表を映すカメラ。マウスホイールでズームの段を切り替え、ドラッグか WASD キーで動かす（docs/domain/camera-views.md）。
+/// 星の地表を映すカメラ。マウスホイールでズームの段を切り替え（切り替えの一瞬だけ、地図がモザイクから合焦する）、ドラッグか WASD キーで動かす（docs/domain/camera-views.md）。
 /// カメラは地表を描く <c>SubViewport</c> の中に置くので、HUD は動かない。計算はコアの <see cref="CameraZoom"/> が行う。
 /// </summary>
 public sealed class CameraView
@@ -20,26 +20,24 @@ public sealed class CameraView
     // 動かせる範囲（世界の px）。地表の広さに、上へ AboveTerrain を足したもの
     private readonly Rect2 _bounds;
 
+    // 切り替えの演出（ピクセル・フォーカス）。経過の秒ごとのモザイクの大きさ（画素）。最後の段が終わると元の絵に戻る
+    private static readonly (double Until, float Block)[] FocusSteps = [(0.04, 8f), (0.08, 4f), (0.12, 2f)];
+
+    private readonly SubViewportContainer _map;
+    private readonly ShaderMaterial _focus;
+    private double _focusElapsed = double.PositiveInfinity;
+
     private double _zoom;
-    private double _targetZoom;
     private double _centerX;
     private double _centerY;
 
-    // ズームの中心にするマウスの位置（画面の中心から見た px）
-    private Vector2 _anchorOffset;
     private bool _dragging;
-    private double _blend = -1;
 
-    // 群衆の点から住人の絵へ、重ねて薄くしながら切り替える倍率の範囲。1.0 倍以下は群衆だけ、2.0 倍以上は住人だけ
-    // TODO(AI_UNSURE): 範囲は AI が仮に置いた（docs/domain/camera-views.md の「未決」）
-    private const double BlendFromZoom = 1.0;
-    private const double BlendToZoom = 2.0;
+    /// <summary>視点の段（星・街・暮らし）が変わったとき。</summary>
+    public event System.Action<CameraViewLevel>? LevelChanged;
 
-    /// <summary>詳細の視点の度合い（0: 群衆の点だけ、1: 住人の絵だけ）が変わったとき。</summary>
-    public event System.Action<float>? DetailBlendChanged;
-
-    /// <summary>今の詳細の視点の度合い。</summary>
-    public float DetailBlend => (float)CameraZoom.DetailBlend(_zoom, BlendFromZoom, BlendToZoom);
+    /// <summary>今の視点の段。</summary>
+    public CameraViewLevel Level => CameraZoom.LevelOf(_zoom);
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
     public CameraView(Node owner, CameraSettings settings)
@@ -54,8 +52,9 @@ public sealed class CameraView
         var used = terrain.GetUsedRect();
         var terrainRect = new Rect2(terrain.Position + ((Vector2)used.Position * WorldScreen.TileSize), (Vector2)used.Size * WorldScreen.TileSize);
         _bounds = new Rect2(terrainRect.Position - new Vector2(0, AboveTerrain), terrainRect.Size + new Vector2(0, AboveTerrain));
+        _map = owner.GetNode<SubViewportContainer>("WorldView");
+        _focus = new ShaderMaterial { Shader = GD.Load<Shader>("res://scenes/main/pixel_focus.gdshader") };
         _zoom = settings.StartZoom;
-        _targetZoom = settings.StartZoom;
         // 起動時は、範囲の上端に合わせて見せる（地表の上と、立っている予言者が映る）
         _centerX = _bounds.GetCenter().X;
         _centerY = _bounds.Position.Y + (_viewSize.Y / 2f / (float)_zoom);
@@ -73,8 +72,7 @@ public sealed class CameraView
         {
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } wheel:
                 var direction = wheel.ButtonIndex == MouseButton.WheelUp ? 1 : -1;
-                _targetZoom = CameraZoom.NextStep(_settings.ZoomSteps, _targetZoom, direction);
-                _anchorOffset = wheel.Position - _viewSize / 2;
+                ChangeZoom(CameraZoom.NextStep(_settings.ZoomSteps, _zoom, direction), wheel.Position - _viewSize / 2);
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Left or MouseButton.Middle } button:
                 _dragging = button.Pressed;
@@ -93,7 +91,7 @@ public sealed class CameraView
         }
     }
 
-    /// <summary>毎フレーム呼ぶ。WASD キーで動かし、ズームを目標の段へ近づける。</summary>
+    /// <summary>毎フレーム呼ぶ。WASD キーで動かし、切り替えの演出を進める。</summary>
     public void Process(double delta)
     {
         // 物理的なキーの位置で見るので、キーボードの配列によらず同じ場所のキーで動く
@@ -105,15 +103,52 @@ public sealed class CameraView
             _centerY = CameraZoom.Pan(_centerY, y, _settings.PanSpeed, _zoom, delta);
             Apply();
         }
-        if (_zoom == _targetZoom)
+        ProcessFocus(delta);
+    }
+
+    // ズームは一瞬で切り替える。マウスの下の世界の点は動かさず、段が変われば知らせる
+    private void ChangeZoom(double next, Vector2 anchorOffset)
+    {
+        if (next == _zoom)
         {
             return;
         }
-        var next = CameraZoom.Approach(_zoom, _targetZoom, _settings.ZoomSmoothing, delta);
-        _centerX = CameraZoom.ZoomAround(_centerX, _anchorOffset.X, _zoom, next);
-        _centerY = CameraZoom.ZoomAround(_centerY, _anchorOffset.Y, _zoom, next);
+        var before = Level;
+        _centerX = CameraZoom.ZoomAround(_centerX, anchorOffset.X, _zoom, next);
+        _centerY = CameraZoom.ZoomAround(_centerY, anchorOffset.Y, _zoom, next);
         _zoom = next;
         Apply();
+        _focusElapsed = 0;
+        SetBlock(FocusSteps[0].Block);
+        if (Level != before)
+        {
+            LevelChanged?.Invoke(Level);
+        }
+    }
+
+    private void ProcessFocus(double delta)
+    {
+        if (double.IsPositiveInfinity(_focusElapsed))
+        {
+            return;
+        }
+        _focusElapsed += delta;
+        foreach (var (until, block) in FocusSteps)
+        {
+            if (_focusElapsed < until)
+            {
+                SetBlock(block);
+                return;
+            }
+        }
+        _focusElapsed = double.PositiveInfinity;
+        _map.Material = null;
+    }
+
+    private void SetBlock(float block)
+    {
+        _focus.SetShaderParameter("block", block);
+        _map.Material = _focus;
     }
 
     private static int KeyAxis(Key negative, Key positive) =>
@@ -123,16 +158,10 @@ public sealed class CameraView
     {
         _centerX = CameraZoom.ClampCenter(_centerX, _zoom, _viewSize.X, _bounds.Position.X, _bounds.End.X);
         _centerY = CameraZoom.ClampCenter(_centerY, _zoom, _viewSize.Y, _bounds.Position.Y, _bounds.End.Y);
-        // 補間の途中は丸めない（整数倍に止まったときだけドットを画面の px にそろえる）
-        var settled = _zoom == _targetZoom;
-        var x = settled ? CameraZoom.SnapCenter(_centerX, _zoom) : _centerX;
-        var y = settled ? CameraZoom.SnapCenter(_centerY, _zoom) : _centerY;
+        // 整数倍のときは、ドットを画面の px にそろえる
+        var x = CameraZoom.SnapCenter(_centerX, _zoom);
+        var y = CameraZoom.SnapCenter(_centerY, _zoom);
         _camera.Position = new Vector2((float)x, (float)y);
         _camera.Zoom = new Vector2((float)_zoom, (float)_zoom);
-        if (DetailBlend != _blend)
-        {
-            _blend = DetailBlend;
-            DetailBlendChanged?.Invoke(DetailBlend);
-        }
     }
 }
