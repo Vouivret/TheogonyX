@@ -50,7 +50,7 @@ public sealed class StrataView
         _ground = new ColorRect
         {
             Position = _terrainOrigin,
-            Size = new Vector2(rules.Regions.Columns, rules.Rows) * WorldScreen.TileSize,
+            Size = (Vector2)terrain.GetUsedRect().Size * WorldScreen.TileSize,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
         _underground.AddChild(_ground);

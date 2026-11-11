@@ -48,6 +48,7 @@ public sealed class WorldScreen
     private readonly Control _menu;
 
     private Tween? _resetBlink;
+    private TileType[,]? _drawn;
 
     // 次の年までの残りとして表示している秒数。同じなら書き換えない。
     private int _shownRemainingSeconds = -1;
@@ -207,14 +208,20 @@ public sealed class WorldScreen
 
     private void DrawTerrain()
     {
-        var tiles = TerrainClassifier.ClassifyTiles(_timeControl.World, _terrainRules);
-        for (var x = 0; x < _terrainRules.Columns; x++)
+        // 新しい星ならその地域ごとのタイル、今の小さな星なら星全体の値から決めたタイル。前に描いたものと違うマスだけ描き直す
+        var tiles = _timeControl.Tiles ?? TerrainClassifier.ClassifyTiles(_timeControl.World, _terrainRules);
+        for (var x = 0; x < tiles.GetLength(0); x++)
         {
-            for (var y = 0; y < _terrainRules.Rows; y++)
+            for (var y = 0; y < tiles.GetLength(1); y++)
             {
+                if (_drawn is not null && _drawn.GetLength(0) == tiles.GetLength(0) && _drawn[x, y] == tiles[x, y])
+                {
+                    continue;
+                }
                 _terrain.SetCell(new Vector2I(x, y), 0, new Vector2I(((int)tiles[x, y] * TerrainArt.Variants) + TerrainArt.VariantAt(x, y), 0));
             }
         }
+        _drawn = tiles;
         TerrainDrawn?.Invoke(tiles);
     }
 

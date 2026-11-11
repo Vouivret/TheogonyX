@@ -115,7 +115,7 @@ public static class MarkSimulator
         }
 
         var built = new List<Mark>();
-        var regions = civilizationRules.Regions;
+        var regions = civilizationRules.Layout;
         for (var region = 0; region < regions.Count; region++)
         {
             var candidate = residents.People
@@ -197,10 +197,10 @@ public static class MarkSimulator
         MarkPlace place, string symbolId, int region, IReadOnlyList<Mark> marks, Civilization civilization,
         IReadOnlyList<ScriptLandmark> landmarks, CivilizationRules rules, Random random)
     {
-        var regions = rules.Regions;
-        var first = regions.FirstColumn(region);
-        var last = first + regions.ColumnsPerRegion - 1;
-        var landmark = landmarks.FirstOrDefault(item => item.SymbolId == symbolId && regions.RegionOf(item.Column) == region);
+        var layout = rules.Layout;
+        var (first, top, width, height) = layout.TileRect(region, rules.Rows);
+        var last = first + width - 1;
+        var landmark = landmarks.FirstOrDefault(item => item.SymbolId == symbolId && layout.RegionAt(item.Column, item.Row) == region);
         int column;
         int row;
         if (place != MarkPlace.Border && landmark is not null)
@@ -212,34 +212,34 @@ public static class MarkSimulator
         }
         else if (place == MarkPlace.SymbolOrCenter)
         {
-            column = first + (regions.ColumnsPerRegion / 2);
-            row = rules.Rows / 2;
+            column = first + (width / 2);
+            row = top + (height / 2);
         }
         else if (place == MarkPlace.Border)
         {
-            var west = region > 0;
-            var east = region < regions.Count - 1;
+            var west = layout.Step(region, TravelDirection.West) is not null;
+            var east = layout.Step(region, TravelDirection.East) is not null;
             column = (west, east) switch
             {
                 (true, true) => random.Next(2) == 0 ? first : last,
                 (true, false) => first,
                 (false, true) => last,
-                _ => first + random.Next(regions.ColumnsPerRegion),
+                _ => first + random.Next(width),
             };
-            row = random.Next(rules.Rows);
+            row = top + random.Next(height);
         }
         else
         {
-            column = first + random.Next(regions.ColumnsPerRegion);
-            row = random.Next(rules.Rows);
+            column = first + random.Next(width);
+            row = top + random.Next(height);
         }
         bool Covers(int left, int top) => left <= column && column <= left + 1 && top <= row && row <= top + 1;
         bool Taken() => marks.Any(mark => mark.Column == column && mark.Row == row)
             || civilization.Buildings.Any(building => Covers(building.Column, building.Row))
             || civilization.Ruins.Any(ruin => Covers(ruin.Column, ruin.Row));
-        for (var tries = 0; tries < rules.Rows && Taken(); tries++)
+        for (var tries = 0; tries < height && Taken(); tries++)
         {
-            row = (row + 1) % rules.Rows;
+            row = top + ((row - top + 1) % height);
         }
         return (column, row);
     }

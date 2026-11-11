@@ -104,6 +104,15 @@ public sealed class Civilization
     /// <summary>すべての地域が初期値で、建物・廃墟・遺物の無い状態。</summary>
     public static Civilization CreateInitial(CivilizationRules rules) => CreateInitial(rules, [], 0);
 
+    /// <summary>新しい星（<paramref name="regionCount"/> 地域）の、すべての地域が初期値で、建物・廃墟・遺物の無い状態。</summary>
+    public static Civilization CreateInitial(int regionCount, CivilizationRules rules)
+    {
+        ArgumentNullException.ThrowIfNull(rules);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(regionCount);
+        var region = new RegionCivilization(rules.InitialTech, rules.InitialCulture, StageOf(rules.InitialTech, rules), StageOf(rules.InitialCulture, rules));
+        return new Civilization(Enumerable.Repeat(region, regionCount), [], [], [], 0);
+    }
+
     /// <summary>今の値と同じ中身の、別の状態（セーブに書き出す写し）。</summary>
     public Civilization Copy() => new(_regions, _buildings, _ruins, _relics, NextBuildingId, _marks);
 
@@ -182,7 +191,7 @@ public sealed class Civilization
     {
         ArgumentNullException.ThrowIfNull(rules);
         var region = new RegionCivilization(rules.InitialTech, rules.InitialCulture, StageOf(rules.InitialTech, rules), StageOf(rules.InitialCulture, rules));
-        return new Civilization(Enumerable.Repeat(region, rules.Regions.Count), [], [], relics, nextBuildingId);
+        return new Civilization(Enumerable.Repeat(region, rules.Layout.Count), [], [], relics, nextBuildingId);
     }
 
     private void BuryRuin(Ruin ruin, WorldState world, IReadOnlyList<Dogma> dogmas, CivilizationRules rules)

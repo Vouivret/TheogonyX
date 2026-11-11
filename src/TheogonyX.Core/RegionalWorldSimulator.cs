@@ -4,7 +4,9 @@ namespace TheogonyX.Core;
 public static class RegionalWorldSimulator
 {
     /// <summary>1 年進める。world を書き換える。崩壊した星は何もしない。</summary>
-    public static void AdvanceYear(RegionalWorld world, IReadOnlyList<Dogma> dogmas, WorldRules rules, PlanetRules planet)
+    /// <param name="share">ドグマの効き目に掛ける、住人のうちの信者の割合（0〜1）。null なら 1（信仰を使わない）。</param>
+    public static void AdvanceYear(
+        RegionalWorld world, IReadOnlyList<Dogma> dogmas, WorldRules rules, PlanetRules planet, Func<Dogma, double>? share = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(dogmas);
@@ -16,7 +18,7 @@ public static class RegionalWorldSimulator
         }
         world.Year++;
 
-        var total = SumDogmas(dogmas, rules);
+        var total = SumDogmas(dogmas, rules, share);
         var grid = world.Grid;
         var influence = new double[grid.Count];
         for (var region = 0; region < grid.Count; region++)
@@ -83,7 +85,7 @@ public static class RegionalWorldSimulator
             || average.Temperature <= collapse.TemperatureAtOrBelow;
     }
 
-    private static EnvironmentValues SumDogmas(IReadOnlyList<Dogma> dogmas, WorldRules rules)
+    private static EnvironmentValues SumDogmas(IReadOnlyList<Dogma> dogmas, WorldRules rules, Func<Dogma, double>? share)
     {
         var sum = new EnvironmentValues();
         foreach (var dogma in dogmas)
@@ -95,7 +97,7 @@ public static class RegionalWorldSimulator
                     continue;
                 }
                 var amount = effect.PerYear;
-                var intensity = dogma.Intensity;
+                var intensity = dogma.Intensity * (share is null ? 1f : (float)share(dogma));
                 sum = new EnvironmentValues(
                     sum.ForestAmount + amount.ForestAmount * intensity,
                     sum.WaterAmount + amount.WaterAmount * intensity,

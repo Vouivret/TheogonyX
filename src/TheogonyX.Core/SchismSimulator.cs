@@ -44,8 +44,16 @@ public static class SchismSimulator
     /// <returns>この年の追放。</returns>
     public static IReadOnlyList<Exile> AdvanceYear(
         Residents residents, IReadOnlyList<Dogma> dogmas, int year, int regionCount, SchismRules rules, Action<float> addChaos, Func<float> chaosLevel,
+        IReadOnlySet<int>? closedRegions = null) =>
+        AdvanceYear(residents, dogmas, year, new RegionMap(regionCount, 1), rules, addChaos, chaosLevel, closedRegions);
+
+    /// <summary>地域の並び（<paramref name="layout"/>）で追放を決める。隣は <see cref="RegionLayout.Neighbors"/>（東寄りを先に並べる）。</summary>
+    public static IReadOnlyList<Exile> AdvanceYear(
+        Residents residents, IReadOnlyList<Dogma> dogmas, int year, RegionLayout layout, SchismRules rules, Action<float> addChaos, Func<float> chaosLevel,
         IReadOnlySet<int>? closedRegions = null)
     {
+        ArgumentNullException.ThrowIfNull(layout);
+        var regionCount = layout.Count;
         ArgumentNullException.ThrowIfNull(residents);
         ArgumentNullException.ThrowIfNull(dogmas);
         ArgumentNullException.ThrowIfNull(rules);
@@ -78,7 +86,7 @@ public static class SchismSimulator
         var exiles = new List<Exile>();
         foreach (var (region, symbolId) in conflicts)
         {
-            var neighbors = new[] { region + 1, region - 1 }.Where(other => other >= 0 && other < regionCount && closedRegions?.Contains(other) != true).ToList();
+            var neighbors = layout.Neighbors(region).Reverse().Where(other => closedRegions?.Contains(other) != true).ToList();
             if (neighbors.Count == 0)
             {
                 continue;

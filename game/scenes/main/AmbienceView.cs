@@ -54,7 +54,9 @@ public sealed class AmbienceView
         _civilizationRules = civilizationRules;
         // 予言者は、最初に立つ列の地域の中での位置を保ったまま、居場所の地域に立つ
         var startColumn = prophetSettings.Column - 1;
-        _columnInRegion = startColumn - civilizationRules.Regions.FirstColumn(civilizationRules.Regions.RegionOf(startColumn));
+        _columnInRegion = civilizationRules.Layout is PlanetRegionLayout planetLayout
+            ? planetLayout.RegionSize / 2
+            : startColumn - civilizationRules.Regions.FirstColumn(civilizationRules.Regions.RegionOf(startColumn));
         _campfireSettings = campfireSettings;
         _lightingSettings = lightingSettings;
         _ambience = owner.GetNode<CanvasModulate>("%Ambience");
@@ -69,9 +71,13 @@ public sealed class AmbienceView
 
         // 足元を地表の一番上の行の上端に合わせる。原点は足元（Y ソートで足元の高さを比べるため。ShowTexture で Offset を合わせる）。
         _terrainPosition = terrain.Position;
-        _prophet.Position = terrain.Position + new Vector2((prophetSettings.Column - 1) * WorldScreen.TileSize, 0);
+        // 新しい星では、予言者の最初の地域の中ほどの上端に立つ（焚き火も、そこから今までと同じ位置）
+        var startRegion = timeControl.Prophet?.Region ?? civilizationRules.Regions.RegionOf(startColumn);
+        var start = civilizationRules.Layout.TileRect(startRegion, civilizationRules.Rows);
+        var startOffset = new Vector2(start.Column + _columnInRegion - startColumn, start.Row) * WorldScreen.TileSize;
+        _prophet.Position = terrain.Position + startOffset + new Vector2(startColumn * WorldScreen.TileSize, 0);
 
-        (_flame, _campfireLight) = CreateCampfire(_prophet.GetParent(), terrain.Position, campfireSettings);
+        (_flame, _campfireLight) = CreateCampfire(_prophet.GetParent(), terrain.Position + startOffset, campfireSettings);
 
         // 色は白にし、向きと強さだけを受け持つ（色は CanvasModulate がかける）。法線マップのある絵だけに当てる。
         _sunLight = new DirectionalLight2D
@@ -121,8 +127,8 @@ public sealed class AmbienceView
 
         if (_timeControl.Prophet is { } prophetState)
         {
-            var column = _civilizationRules.Regions.FirstColumn(prophetState.Region) + _columnInRegion;
-            _prophet.Position = new Vector2(_terrainPosition.X + (column * WorldScreen.TileSize), _prophet.Position.Y);
+            var rect = _civilizationRules.Layout.TileRect(prophetState.Region, _civilizationRules.Rows);
+            _prophet.Position = _terrainPosition + new Vector2((rect.Column + _columnInRegion) * WorldScreen.TileSize, rect.Row * WorldScreen.TileSize);
         }
 
         if (world.IsDestroyed)

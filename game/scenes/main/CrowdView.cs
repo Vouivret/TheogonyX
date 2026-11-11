@@ -35,14 +35,17 @@ public sealed class CrowdView : IDisposable
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
     public CrowdView(
-        Node owner, int seed, TimeControl timeControl, AutoPlayClock clock, TerrainRules terrainRules, CrowdRules rules, CrowdLook look, ProphetSettings prophetSettings)
+        Node owner, int seed, TimeControl timeControl, AutoPlayClock clock, TerrainRules terrainRules, CrowdRules rules, CrowdLook look, ProphetSettings prophetSettings,
+        float? holySiteTile = null)
     {
         _timeControl = timeControl;
         _clock = clock;
         _rules = rules;
-        var holySiteX = prophetSettings.Column - 1 + ProphetWidthPixels / 2f / WorldScreen.TileSize;
-        _crowd = new Crowd(seed, rules, terrainRules.Columns, terrainRules.Rows, holySiteX);
-        _field = PotentialField.Build(TerrainClassifier.ClassifyTiles(timeControl.World, terrainRules), rules.TileForces);
+        // 新しい星では、星のタイルの大きさで場を作る。聖地は予言者の最初の地域の中ほど
+        var tiles = timeControl.Tiles ?? TerrainClassifier.ClassifyTiles(timeControl.World, terrainRules);
+        var holySiteX = (holySiteTile ?? prophetSettings.Column - 1) + ProphetWidthPixels / 2f / WorldScreen.TileSize;
+        _crowd = new Crowd(seed, rules, tiles.GetLength(0), tiles.GetLength(1), holySiteX);
+        _field = PotentialField.Build(tiles, rules.TileForces);
 
         if (look.UseGpu)
         {

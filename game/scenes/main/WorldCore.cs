@@ -43,6 +43,9 @@ public partial class WorldCore : Node2D
     private double _secondsSinceSave;
     private TimeControl? _timeControl;
 
+    // 新しい星（段 1b-2）のセーブ形式ができるまで（段 1b-2c）、セーブの読み書きをしない
+    private const bool PlanetSaveReady = false;
+
     // 読めなかったことを出来事の行に出しておく秒数
     private const double SaveNoticeSeconds = 10.0;
 
@@ -80,6 +83,10 @@ public partial class WorldCore : Node2D
         var crowdLook = GameDataLoader.ParseCrowdLook(rulesJson, palette);
         var prophetDreamRules = GameDataLoader.ParseProphetDreams(rulesJson);
         var civilizationRules = GameDataLoader.ParseCivilization(rulesJson);
+        // 新しい星（192 × 72 タイル。段 1b-2）。地域は 16 × 6 の格子
+        var planetRules = GameDataLoader.ParsePlanetRules(rulesJson);
+        var layout = new PlanetRegionLayout(new PlanetGrid(planetRules.Columns, planetRules.Bands), planetRules.RegionSize);
+        civilizationRules = civilizationRules with { Layout = layout };
         var needsRules = GameDataLoader.ParseNeeds(rulesJson);
         var historyRules = GameDataLoader.ParseHistory(rulesJson);
         var beliefRules = GameDataLoader.ParseBelief(rulesJson);
@@ -91,7 +98,14 @@ public partial class WorldCore : Node2D
         _saveSettings = GameDataLoader.ParseSave(ReadText("res://data/save.json"));
         _saveStore = new SaveStore("user://save", TimeProvider.System);
         var oracleRules = GameDataLoader.ParseOracleRules(rulesJson, dreamRules);
-        var saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, needsRules, oracleRules, out var loadFailed, out var outdated);
+        // TODO(AI_UNSURE): 新しい星のセーブ形式は段 1b-2c。それまでは読み書きしない（今のセーブファイルには触らない）
+        SaveData? saved = null;
+        var loadFailed = false;
+        var outdated = false;
+        if (PlanetSaveReady)
+        {
+            saved = LoadSave(_saveStore, dreamRules, prophetDreamRules, civilizationRules, needsRules, oracleRules, out loadFailed, out outdated);
+        }
         // 字の状態が定義に合わないセーブは、何も当てはめる前に壊れたセーブとして扱う
         if (saved?.Script is { } savedScript && !FitsScript(scriptRules, civilizationRules.Regions, savedScript))
         {
@@ -105,7 +119,7 @@ public partial class WorldCore : Node2D
         var seed = saved?.Seed ?? (int)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() & int.MaxValue);
         var timeControl = new TimeControl(
             worldRules, timeSettings.JumpYears, new CivilizationSetup(civilizationRules, terrainRules, seed, needsRules), historyRules, beliefRules, journeyRules,
-            new MarkSetup(markRules, scriptLandmarks));
+            new MarkSetup(markRules, []), new PlanetSetup(planetRules));
         _timeControl = timeControl;
         var clock = new AutoPlayClock(new Dictionary<AutoPlaySpeed, double>
         {
@@ -117,7 +131,7 @@ public partial class WorldCore : Node2D
         var prophet = new ProphetDreams(timeControl, prophetDreamRules, deck, oracleRules);
         var symbolIds = dreamRules.Symbols.Select(symbol => symbol.Id).ToList();
         prophet.AttachScript(new ScriptState(
-            scriptRules, PlanetScript.Create(scriptRules, symbolIds, seed), civilizationRules.Regions, scriptLandmarks, tabooPlateShare), seed);
+            scriptRules, PlanetScript.Create(scriptRules, symbolIds, seed), layout, [], tabooPlateShare), seed);
         if (saved is not null)
         {
             SaveGame.Apply(saved, timeControl, prophet, clock);
@@ -127,14 +141,16 @@ public partial class WorldCore : Node2D
         {
             GD.Print($"event=game_started seed={seed}");
         }
-        _writeSave = () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, seed, clock));
+        _writeSave = PlanetSaveReady ? () => SaveDataSerializer.Write(SaveGame.Capture(timeControl, prophet, seed, clock)) : null;
         _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings, worldRules);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings, lightingSettings, civilizationRules);
         _sky = new SkyView(this, _ambience, civilizationRules, seed);
-        // 新しい星の地表を、今のゲームの地表の下に描く（段 1b-1）。星のシードはゲームのシードと同じ（セーブされる）
-        var planetRules = GameDataLoader.ParsePlanetRules(rulesJson);
-        var planet = new PlanetView(PlanetGenerator.Generate(planetRules, worldRules, seed), terrainRules, GetNode<TileMapLayer>("%Terrain"));
-        _camera = new CameraView(this, cameraSettings, planet);
+        var terrainNode = GetNode<TileMapLayer>("%Terrain");
+        var planet = new PlanetView(terrainNode, timeControl.Tiles!);
+        _screen.TerrainDrawn += planet.Redraw;
+        var startRect = layout.TileRect(timeControl.Prophet!.Region, 0);
+        var startFoot = terrainNode.Position + (new Vector2(startRect.Column + (startRect.Width / 2f), startRect.Row) * WorldScreen.TileSize);
+        _camera = new CameraView(this, cameraSettings, planet, startFoot);
         _layout = new HudLayout(this);
         _buildings = new BuildingView(this, timeControl, lightingSettings);
         _screen.TerrainDrawn += _buildings.Refresh;
@@ -153,7 +169,7 @@ public partial class WorldCore : Node2D
         _screen.TimeAdvanced += () => LogForgottenDogmas(timeControl);
         _screen.TimeAdvanced += () => LogProphetMoves(timeControl);
         _screen.TimeAdvanced += () => LogExiles(timeControl);
-        _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings);
+        _crowd = new CrowdView(this, seed, timeControl, clock, terrainRules, crowdRules, crowdLook, prophetSettings, startRect.Column + (startRect.Width / 2f));
         _screen.TerrainDrawn += _crowd.OnTerrainDrawn;
         // 星の視点は群衆の点、街と暮らしの視点は住人の絵。半透明で重ねず、段が変わったらその場で切り替える（ドットが崩れない）
         var level = (CameraViewLevel viewLevel) =>

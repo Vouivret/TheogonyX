@@ -6,7 +6,7 @@ namespace TheogonyX.Core.Tests;
 public class PlanetTests
 {
     // plan/feat-planet-grid-1a.md の「仮の値」（game/data/rules.json の planet と同じ）。本番の値には依存させない。
-    private static readonly PlanetRules Rules = new(
+    internal static readonly PlanetRules Rules = new(
         Columns: 16, Bands: 6, RegionSize: 12, PlateCount: 7, ContinentSeeds: 3,
         SeaShare: new FloatRange(0.3f, 0.4f), PlainWeight: 4f, ForestWeight: 4f, MountainWeight: 2f, BoundaryMountainMultiplier: 4f,
         DeepSea: new IntRange(-4000, -200), ShallowSea: new IntRange(-200, -1), CoastLand: new IntRange(1, 50),
@@ -20,7 +20,7 @@ public class PlanetTests
 
     private static readonly PlanetRules NoIslands = Rules with { IslandSeeds = 0, ArcChance = 0f, HotspotCount = 0, ShelfChance = 0f };
 
-    private static readonly WorldRules World = TestRules.World with
+    internal static readonly WorldRules World = TestRules.World with
     {
         Initial = new EnvironmentValues(ForestAmount: 50f, WaterAmount: 100f, Temperature: 15f, ChaosLevel: 0f, HarmonyLevel: 50f),
     };

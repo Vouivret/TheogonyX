@@ -28,7 +28,7 @@ public sealed class SkyView
         _ambience = ambience;
         _clearColor = RenderingServer.GetDefaultClearColor();
         var terrain = owner.GetNode<TileMapLayer>("%Terrain");
-        var terrainSize = new Vector2(rules.Regions.Columns, rules.Rows) * WorldScreen.TileSize;
+        var terrainSize = (Vector2)terrain.GetUsedRect().Size * WorldScreen.TileSize;
         var skyRect = new Rect2(terrain.Position - new Vector2(SkyMargin, SkyMargin), terrainSize + new Vector2(SkyMargin * 2, SkyMargin * 2));
 
         // 環境光（CanvasModulate）は地表と同じ層にしかかからないので、空は地表の後ろの別の層に置き、色は自分でかける。

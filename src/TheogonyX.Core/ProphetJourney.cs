@@ -42,12 +42,25 @@ public static class ProphetJourney
     private const uint JourneySalt = 0x4A4F5552; // "JOUR"
 
     /// <summary>最初の居場所。知っている土地は、そこと両隣。</summary>
-    public static ProphetState Initial(int region, int regionCount) => new(region, KnownAround([], region, regionCount));
+    public static ProphetState Initial(int region, int regionCount) => Initial(region, new RegionMap(regionCount, 1));
+
+    /// <summary>最初の居場所。知っている土地は、そことその隣。</summary>
+    public static ProphetState Initial(int region, RegionLayout layout) => new(region, KnownAround([], region, layout));
 
     /// <summary>1 年進める。動いたときは <see cref="ProphetMove"/> も返す。乱数は「シード・年」から作る。</summary>
     public static (ProphetState State, ProphetMove? Move) AdvanceYear(
-        ProphetState prophet, Residents residents, int year, int seed, int regionCount, JourneyRules rules)
+        ProphetState prophet, Residents residents, int year, int seed, int regionCount, JourneyRules rules) =>
+        AdvanceYear(prophet, residents, year, seed, new RegionMap(regionCount, 1), rules);
+
+    /// <summary>
+    /// 地域の並び（<paramref name="layout"/>）で 1 年進める。<paramref name="canEnter"/> が false の地域（海など）には入らない。
+    /// 行き先の向きへ進めなくなった（端か、入れない地域）か、次の一歩が無くなったら、行き先を消す。
+    /// </summary>
+    public static (ProphetState State, ProphetMove? Move) AdvanceYear(
+        ProphetState prophet, Residents residents, int year, int seed, RegionLayout layout, JourneyRules rules, Func<int, bool>? canEnter = null)
     {
+        ArgumentNullException.ThrowIfNull(layout);
+        bool CanEnter(int region) => canEnter?.Invoke(region) ?? true;
         ArgumentNullException.ThrowIfNull(prophet);
         ArgumentNullException.ThrowIfNull(residents);
         ArgumentNullException.ThrowIfNull(rules);
@@ -58,15 +71,14 @@ public static class ProphetJourney
         var destination = prophet.Destination;
         if (destination != TravelDirection.None)
         {
-            var step = destination == TravelDirection.East ? 1 : -1;
-            var next = prophet.Region + step;
-            if (next >= 0 && next < regionCount)
+            var next = layout.Step(prophet.Region, destination);
+            if (next is { } step && CanEnter(step))
             {
-                to = next;
+                to = step;
                 reason = ProphetMoveReason.Destination;
             }
-            // 着いた（端に着いた）ら行き先を消す
-            if (next < 0 || next >= regionCount || next + step < 0 || next + step >= regionCount)
+            // 着いた（端か、入れない地域に着いた）ら行き先を消す
+            if (next is not { } ahead || !CanEnter(ahead) || layout.Step(ahead, destination) is null)
             {
                 destination = TravelDirection.None;
             }
@@ -75,7 +87,7 @@ public static class ProphetJourney
         {
             // 西の隣を先に見て、同じ点数なら西を取る
             var best = 0;
-            foreach (var neighbor in new[] { prophet.Region - 1, prophet.Region + 1 }.Where(region => region >= 0 && region < regionCount))
+            foreach (var neighbor in layout.Neighbors(prophet.Region).Where(CanEnter))
             {
                 var people = residents.People.Where(person => person.Region == neighbor).ToList();
                 var score = people.Count - people.Count(person => person.Beliefs.Count > 0);
@@ -91,10 +103,10 @@ public static class ProphetJourney
         {
             return (prophet with { Destination = destination }, null);
         }
-        var state = new ProphetState(target, KnownAround(prophet.KnownRegions, target, regionCount), destination);
+        var state = new ProphetState(target, KnownAround(prophet.KnownRegions, target, layout), destination);
         return (state, new ProphetMove(year, prophet.Region, target, reason));
     }
 
-    private static List<int> KnownAround(IEnumerable<int> known, int region, int regionCount) =>
-        known.Concat([region - 1, region, region + 1]).Where(candidate => candidate >= 0 && candidate < regionCount).Distinct().Order().ToList();
+    private static List<int> KnownAround(IEnumerable<int> known, int region, RegionLayout layout) =>
+        known.Concat([region]).Concat(layout.Neighbors(region)).Distinct().Order().ToList();
 }

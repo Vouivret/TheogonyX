@@ -133,14 +133,14 @@ public static class CivilizationSimulator
     internal static bool TryBuild(
         Civilization civilization, TileType[,] tiles, int region, BuildingType type, int year, CivilizationRules rules, Func<Random> random)
     {
-        var first = rules.Regions.FirstColumn(region);
+        var (first, top, width, height) = rules.Layout.TileRect(region, rules.Rows);
         var ruined = new List<(int Column, int Row)>();
         var free = new List<(int Column, int Row)>();
-        for (var column = first; column < first + rules.Regions.ColumnsPerRegion; column += 2)
+        for (var column = first; column < first + width; column += 2)
         {
-            for (var row = 0; row + 1 < rules.Rows; row += 2)
+            for (var row = top; row + 1 < top + height; row += 2)
             {
-                if (IsBuildable(tiles, column, row) && !civilization.HasBuildingAt(column, row))
+                if (IsBuildable(tiles, column, row, rules.Layout) && !civilization.HasBuildingAt(column, row))
                 {
                     (civilization.RuinAt(column, row) is null ? free : ruined).Add((column, row));
                 }
@@ -161,7 +161,7 @@ public static class CivilizationSimulator
         return true;
     }
 
-    private static bool IsBuildable(TileType[,] tiles, int column, int row) =>
-        tiles[column, row] == TileType.Grassland && tiles[column + 1, row] == TileType.Grassland
-        && tiles[column, row + 1] == TileType.Grassland && tiles[column + 1, row + 1] == TileType.Grassland;
+    private static bool IsBuildable(TileType[,] tiles, int column, int row, RegionLayout layout) =>
+        layout.IsBuildable(tiles[column, row]) && layout.IsBuildable(tiles[column + 1, row])
+        && layout.IsBuildable(tiles[column, row + 1]) && layout.IsBuildable(tiles[column + 1, row + 1]);
 }

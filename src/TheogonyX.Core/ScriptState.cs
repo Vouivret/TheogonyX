@@ -58,7 +58,7 @@ public sealed class ScriptState
     private readonly Dictionary<string, string> _notebook = [];
 
     /// <param name="regions">地域と列の対応（禁忌の札を刻む列を決める）。</param>
-    public ScriptState(ScriptRules rules, PlanetScript script, RegionMap regions, IReadOnlyList<ScriptLandmark> landmarks, float tabooPlateShare)
+    public ScriptState(ScriptRules rules, PlanetScript script, RegionLayout regions, IReadOnlyList<ScriptLandmark> landmarks, float tabooPlateShare)
     {
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(script);
@@ -76,7 +76,7 @@ public sealed class ScriptState
 
     public PlanetScript Script { get; private set; }
 
-    public RegionMap Regions { get; }
+    public RegionLayout Regions { get; }
 
     public IReadOnlyList<ScriptLandmark> Landmarks { get; }
 
@@ -173,9 +173,10 @@ public sealed class ScriptState
             _carvings.Remove(steles[0]);
             steles.RemoveAt(0);
         }
-        var used = steles.Select(carving => carving.Row).ToHashSet();
+        var origin = Regions.TileRect(region, 0);
+        var used = steles.Select(carving => carving.Row - origin.Row).ToHashSet();
         var row = Enumerable.Range(1, Rules.MaxStelesPerRegion).First(candidate => !used.Contains(candidate));
-        var stele = new CarvedGlyph(CarvingKind.Stele, sentence, region, Regions.FirstColumn(region), row, year, Stage);
+        var stele = new CarvedGlyph(CarvingKind.Stele, sentence, region, origin.Column, origin.Row + row, year, Stage);
         _carvings.Add(stele);
         return stele;
     }
@@ -290,7 +291,7 @@ public sealed class ScriptState
             if (Script.Find(RadicalKind.Meaning, landmark.SymbolId) is not null)
             {
                 _carvings.Add(new CarvedGlyph(
-                    CarvingKind.Landmark, Script.SentenceFor(landmark.SymbolId), Regions.RegionOf(landmark.Column), landmark.Column, landmark.Row, 0, Stage));
+                    CarvingKind.Landmark, Script.SentenceFor(landmark.SymbolId), Regions.RegionAt(landmark.Column, landmark.Row), landmark.Column, landmark.Row, 0, Stage));
             }
         }
     }
@@ -319,7 +320,8 @@ public sealed class ScriptState
             }
             if (sentence is not null && index < 0)
             {
-                _carvings.Add(new CarvedGlyph(CarvingKind.Taboo, sentence, region, Regions.FirstColumn(region), 0, year, Stage));
+                var origin = Regions.TileRect(region, 0);
+                _carvings.Add(new CarvedGlyph(CarvingKind.Taboo, sentence, region, origin.Column, origin.Row, year, Stage));
             }
         }
     }

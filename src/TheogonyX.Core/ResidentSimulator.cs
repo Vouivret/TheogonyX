@@ -26,6 +26,7 @@ public static class ResidentSimulator
     /// <summary>
     /// 1 年進める。<paramref name="residents"/>・<paramref name="civilization"/>（狂乱で壊れる建物と、住人が建てる家）・<paramref name="world"/>（狂乱で上がるカオス度）を書き換える。
     /// 文明の計算の後に呼ぶ。星が崩壊した年には呼ばない。
+    /// 新しい星では、<paramref name="mayImmigrate"/>（移り住んでよい地域。null ならすべて）と <paramref name="tilesOverride"/>（家を建てるタイルの種別。null なら今の地表から求める）を渡す。
     /// </summary>
     /// <returns>その年に起きた出来事（移り住む・死・精神崩壊・誕生・つがい）。</returns>
     public static IReadOnlyList<ResidentEvent> AdvanceYear(
@@ -38,7 +39,9 @@ public static class ResidentSimulator
         TerrainRules terrain,
         int seed,
         BeliefRules? belief = null,
-        IReadOnlySet<int>? closedRegions = null)
+        IReadOnlySet<int>? closedRegions = null,
+        Func<int, bool>? mayImmigrate = null,
+        TileType[,]? tilesOverride = null)
     {
         ArgumentNullException.ThrowIfNull(residents);
         ArgumentNullException.ThrowIfNull(civilization);
@@ -49,7 +52,7 @@ public static class ResidentSimulator
         ArgumentNullException.ThrowIfNull(terrain);
 
         var year = world.Year;
-        var regionCount = civilizationRules.Regions.Count;
+        var regionCount = civilizationRules.Layout.Count;
         var events = new List<ResidentEvent>();
         var people = residents.People.ToList();
         var graves = residents.Graves.ToList();
@@ -67,7 +70,7 @@ public static class ResidentSimulator
         // 1. 移り住む（正常な大人が少ない地域に 1 人。修繕中の柵がある地域には来ない）
         for (var region = 0; region < regionCount; region++)
         {
-            if (closedRegions?.Contains(region) != true && people.Count(person => person.Region == region && IsAdult(person) && person.Breakdown is null) < rules.ImmigrateBelowAdults)
+            if (closedRegions?.Contains(region) != true && (mayImmigrate?.Invoke(region) ?? true) && people.Count(person => person.Region == region && IsAdult(person) && person.Breakdown is null) < rules.ImmigrateBelowAdults)
             {
                 var arrived = new Resident(
                     nextId, region, year - rules.ImmigrantAge, 0, 0, 0, 0, 0, rules.MaxHealth, rules.MaxSanity, null, 0,
@@ -267,7 +270,7 @@ public static class ResidentSimulator
         // 7. 屋根を探す住人がいる地域に、家を 1 軒建てる（地域の番号の順。空いた枠が無ければ建たない）。
         //    建てたのは、屋根を探す住人のうち ID のいちばん小さい人とし、建てた数が届いたら「街を包む者」の称号を得る
         //    TODO(AI_UNSURE): 建てた人の決め方と軒数（rules.json の builderHouses）は AI が仮に置いた。人間が決め直す
-        TileType[,]? tiles = null;
+        TileType[,]? tiles = tilesOverride;
         foreach (var region in people.Where(person => person.Task == ResidentTask.SeekShelter).Select(person => person.Region).Distinct().Order())
         {
             tiles ??= TerrainClassifier.ClassifyTiles(world, terrain);

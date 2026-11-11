@@ -27,6 +27,11 @@ public sealed class TimeControl
     private readonly BeliefRules? _belief;
     private readonly JourneyRules? _journey;
     private readonly MarkSetup? _marks;
+    private readonly PlanetSetup? _planetSetup;
+    private readonly PlanetRegionLayout? _layout;
+    private RegionalWorld? _planet;
+    private EnvironmentValues _mirror;
+    private TileType[,]? _tiles;
 
     /// <param name="jumpYears">100年跳躍ボタンで進める年数。</param>
     /// <param name="civilization">地域の文明の計算に使う定義。null なら文明の計算をしない。</param>
@@ -34,12 +39,23 @@ public sealed class TimeControl
     /// <param name="belief">住人の信仰の定義。null なら信仰を使わず、ドグマはいつも全員に効く。住人の計算をしないときは無視する。</param>
     /// <param name="journey">予言者の旅の定義。null なら予言者は動かない。住人の計算をしないときは無視する。</param>
     /// <param name="marks">読みの跡の印の定義。null なら印を建てない。信仰を使わないときは無視する。</param>
+    /// <param name="planet">
+    /// 新しい星（地域ごとの環境の値。plan/feat-planet-grid-1b.md の段 1b-2）の定義。null なら今の小さな星（星全体で 1 組の値）。
+    /// 渡すときは <paramref name="civilization"/> も要る（シードは <see cref="CivilizationSetup.Seed"/>）。<see cref="World"/> は全地域の平均を映す。
+    /// </param>
     public TimeControl(
         WorldRules worldRules, int jumpYears, CivilizationSetup? civilization = null, HistoryRules? history = null, BeliefRules? belief = null,
-        JourneyRules? journey = null, MarkSetup? marks = null)
+        JourneyRules? journey = null, MarkSetup? marks = null, PlanetSetup? planet = null)
     {
         ArgumentNullException.ThrowIfNull(worldRules);
         ArgumentOutOfRangeException.ThrowIfNegative(jumpYears);
+        if (planet is not null)
+        {
+            ArgumentNullException.ThrowIfNull(civilization, nameof(civilization));
+            _planetSetup = planet;
+            _layout = new PlanetRegionLayout(new PlanetGrid(planet.Rules.Columns, planet.Rules.Bands), planet.Rules.RegionSize);
+            civilization = civilization with { Rules = civilization.Rules with { Layout = _layout } };
+        }
 
         _worldRules = worldRules;
         _jumpYears = jumpYears;
@@ -47,8 +63,8 @@ public sealed class TimeControl
         _belief = civilization?.Needs is null ? null : belief;
         _journey = civilization?.Needs is null ? null : journey;
         _marks = _belief is null ? null : marks;
+        World = planet is null ? WorldState.CreateInitial(worldRules) : GeneratePlanet(civilization!);
         Prophet = InitialProphet();
-        World = WorldState.CreateInitial(worldRules);
         Civilization = civilization is null ? null : Civilization.CreateInitial(civilization.Rules);
         Residents = civilization?.Needs is null ? null : Residents.CreateInitial();
         History = history is null ? null : new History([], history, new ChapterStart(World.Year, World.ChaosLevel));
@@ -57,6 +73,12 @@ public sealed class TimeControl
     public TimeControlState State { get; private set; } = TimeControlState.Stopped;
 
     public WorldState World { get; private set; }
+
+    /// <summary>新しい星（地域ごとの値・土台の地形・タイル）。今の小さな星なら null。</summary>
+    public RegionalWorld? Planet => _planet;
+
+    /// <summary>新しい星のタイルの種別（添字は [列, 行]）。今の小さな星なら null。値が変わると求め直す。</summary>
+    public TileType[,]? Tiles => _planet is null ? null : _tiles ??= PlanetTiles.Classify(_planet, _civilizationSetup!.Terrain.Anomalies);
 
     public IReadOnlyList<Dogma> Dogmas => _dogmas;
 
@@ -114,7 +136,7 @@ public sealed class TimeControl
         }
         if (_belief is not null && Residents is not null && _civilizationSetup is { } setup)
         {
-            BeliefSimulator.Seed(Residents, preached, Prophet?.Region ?? setup.Rules.Regions.RegionOf(setup.Rules.ProphetColumn), _belief);
+            BeliefSimulator.Seed(Residents, preached, Prophet?.Region ?? InitialRegion(setup), _belief, setup.Rules.Layout);
         }
     }
 
@@ -191,7 +213,7 @@ public sealed class TimeControl
     public void Reset()
     {
         var next = NextState(TimeControlAction.Reset);
-        var initial = WorldState.CreateInitial(_worldRules);
+        var initial = _planet is null ? WorldState.CreateInitial(_worldRules) : GeneratePlanet(_civilizationSetup!);
         History?.CloseChapter(World.Year, World.ChaosLevel);
         History?.Add(new HistoryEntry(World.Year, HistoryEventType.WorldRecreated));
         History?.RestartChapter(initial.Year, initial.ChaosLevel);
@@ -220,6 +242,14 @@ public sealed class TimeControl
         ArgumentNullException.ThrowIfNull(civilization);
         ArgumentNullException.ThrowIfNull(residents);
         World = world;
+        if (_planet is not null)
+        {
+            // 新しい星は、シードから地形を作り直し、セーブの星全体の値は全地域へ同じだけ足して合わせる（地域ごとの値のセーブは段 1b-2c）
+            GeneratePlanet(_civilizationSetup!);
+            _planet.Year = world.Year;
+            _planet.IsDestroyed = world.IsDestroyed;
+            ApplyWorldDelta();
+        }
         Civilization = _civilizationSetup is null ? null : civilization.Copy();
         Residents = _civilizationSetup?.Needs is null ? null : residents.Copy();
         History = History is null ? null : new History(history ?? [], History.Rules, chapter ?? new ChapterStart(world.Year, world.ChaosLevel));
@@ -253,12 +283,20 @@ public sealed class TimeControl
                 var yearEvents = new List<ResidentEvent>();
                 if (setup is not null && civilization is not null)
                 {
-                    CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed, share, Prophet?.Region);
+                    if (_planet is not null)
+                    {
+                        PlanetCivilizationSimulator.AdvanceYear(civilization, _planet, Tiles!, _dogmas, setup.Rules, setup.Seed, share, Prophet?.Region);
+                    }
+                    else
+                    {
+                        CivilizationSimulator.AdvanceYear(civilization, World, _dogmas, setup.Terrain, setup.Rules, setup.Seed, share, Prophet?.Region);
+                    }
                     if (residents is not null && setup.Needs is not null)
                     {
                         var closed = _marks is { } setupMarks ? MarkSimulator.ClosedRegions(civilization.Marks, World.Year, setupMarks.Rules) : null;
                         yearEvents.AddRange(ResidentSimulator.AdvanceYear(
-                            residents, civilization, World, _dogmas, setup.Needs, setup.Rules, setup.Terrain, setup.Seed, belief, closed));
+                            residents, civilization, World, _dogmas, setup.Needs, setup.Rules, setup.Terrain, setup.Seed, belief, closed,
+                            _planet is null ? null : MayImmigrate(residents, setup), Tiles));
                         if (belief is not null)
                         {
                             BeliefSimulator.Spread(residents, World.Year, setup.Seed, belief, setup.Needs.Affinity);
@@ -266,7 +304,7 @@ public sealed class TimeControl
                             if (belief.Schism is { } schism)
                             {
                                 var yearExiles = SchismSimulator.AdvanceYear(
-                                    residents, _dogmas, World.Year, setup.Rules.Regions.Count, schism, AddChaos, () => World.ChaosLevel, closed);
+                                    residents, _dogmas, World.Year, setup.Rules.Layout, schism, AddChaos, () => World.ChaosLevel, WithSeaRegions(closed));
                                 exiles.AddRange(yearExiles);
                                 foreach (var exile in yearExiles)
                                 {
@@ -287,7 +325,9 @@ public sealed class TimeControl
                         }
                         if (_journey is not null && Prophet is not null)
                         {
-                            var (state, move) = ProphetJourney.AdvanceYear(Prophet, residents, World.Year, setup.Seed, setup.Rules.Regions.Count, _journey);
+                            var (state, move) = ProphetJourney.AdvanceYear(
+                                Prophet, residents, World.Year, setup.Seed, setup.Rules.Layout, _journey,
+                                region => _planet is null || _planet.Terrain[region] != BaseTerrain.Sea);
                             Prophet = state;
                             if (move is not null)
                             {
@@ -301,7 +341,14 @@ public sealed class TimeControl
                 history?.AdvanceChapters(World.Year, World.ChaosLevel);
             };
         var wasDestroyed = World.IsDestroyed;
-        WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules, afterYear, share);
+        if (_planet is null)
+        {
+            WorldSimulator.SimulateTimeSkip(World, _dogmas, years, _worldRules, afterYear, share);
+        }
+        else
+        {
+            SimulatePlanetYears(years, afterYear, share);
+        }
         ResidentEvents = events;
         ForgottenDogmas = forgotten;
         ProphetMoves = moves;
@@ -315,10 +362,107 @@ public sealed class TimeControl
     }
 
     private ProphetState? InitialProphet() =>
-        _civilizationSetup is null
-            ? null
-            : ProphetJourney.Initial(
-                _civilizationSetup.Rules.Regions.RegionOf(_civilizationSetup.Rules.ProphetColumn), _civilizationSetup.Rules.Regions.Count);
+        _civilizationSetup is null ? null : ProphetJourney.Initial(InitialRegion(_civilizationSetup), _civilizationSetup.Rules.Layout);
+
+    // 予言者の最初の地域。新しい星では星を作ったときに決まった地域、今の小さな星では定義の列の地域
+    private int InitialRegion(CivilizationSetup setup) =>
+        _planet?.ProphetRegion ?? setup.Rules.Regions.RegionOf(setup.Rules.ProphetColumn);
+
+    // 追放の行き先にしない地域: 修繕中の柵がある地域に、新しい星では海の地域を足す
+    private IReadOnlySet<int>? WithSeaRegions(IReadOnlySet<int>? closed)
+    {
+        if (_planet is null)
+        {
+            return closed;
+        }
+        var result = closed is null ? new HashSet<int>() : new HashSet<int>(closed);
+        for (var region = 0; region < _planet.Terrain.Count; region++)
+        {
+            if (_planet.Terrain[region] == BaseTerrain.Sea)
+            {
+                result.Add(region);
+            }
+        }
+        return result;
+    }
+
+    // 星をシードから作り直し（地形は同じ、値は初期値）、星全体の値（全地域の平均）を返す
+    private WorldState GeneratePlanet(CivilizationSetup setup)
+    {
+        _planet = PlanetGenerator.Generate(_planetSetup!.Rules, _worldRules, setup.Seed);
+        _tiles = null;
+        _mirror = _planet.Average();
+        return _planet.ToWorldState();
+    }
+
+    // 新しい星を years 年進める。毎年、World に加えられた変化（カオス度の加算・印の効き）を全地域へ同じだけ足してから、地域ごとの 1 年を進め、
+    // World を全地域の平均に合わせ直す。崩壊したらその年で止まる
+    private void SimulatePlanetYears(int years, Action? afterYear, Func<Dogma, double>? share)
+    {
+        for (var i = 0; i < years && !World.IsDestroyed; i++)
+        {
+            ApplyWorldDelta();
+            RegionalWorldSimulator.AdvanceYear(_planet!, _dogmas, _worldRules, _planetSetup!.Rules, share);
+            _tiles = null;
+            var average = _planet!.Average();
+            World.Year = _planet.Year;
+            World.ForestAmount = average.ForestAmount;
+            World.WaterAmount = average.WaterAmount;
+            World.Temperature = average.Temperature;
+            World.ChaosLevel = average.ChaosLevel;
+            World.HarmonyLevel = average.HarmonyLevel;
+            World.IsDestroyed = _planet.IsDestroyed;
+            _mirror = average;
+            if (World.IsDestroyed)
+            {
+                break;
+            }
+            afterYear?.Invoke();
+        }
+    }
+
+    // World が、最後に合わせた平均からずれていたら、そのずれを全地域へ同じだけ足す（範囲は越えない）
+    private void ApplyWorldDelta()
+    {
+        var delta = new EnvironmentValues(
+            World.ForestAmount - _mirror.ForestAmount, World.WaterAmount - _mirror.WaterAmount, World.Temperature - _mirror.Temperature,
+            World.ChaosLevel - _mirror.ChaosLevel, World.HarmonyLevel - _mirror.HarmonyLevel);
+        if (delta == default)
+        {
+            return;
+        }
+        var values = _planet!.Values;
+        var min = _worldRules.Min;
+        var max = _worldRules.Max;
+        for (var region = 0; region < values.Length; region++)
+        {
+            var v = values[region];
+            values[region] = new EnvironmentValues(
+                Math.Clamp(v.ForestAmount + delta.ForestAmount, min.ForestAmount, max.ForestAmount),
+                Math.Clamp(v.WaterAmount + delta.WaterAmount, min.WaterAmount, max.WaterAmount),
+                Math.Clamp(v.Temperature + delta.Temperature, min.Temperature, max.Temperature),
+                Math.Clamp(v.ChaosLevel + delta.ChaosLevel, min.ChaosLevel, max.ChaosLevel),
+                Math.Clamp(v.HarmonyLevel + delta.HarmonyLevel, min.HarmonyLevel, max.HarmonyLevel));
+        }
+        _tiles = null;
+        _mirror = _planet.Average();
+    }
+
+    // 新しい星で、住人が移り住んでよい地域: 住みつける陸の地域のうち、予言者の最初の地域と、隣に（正常な大人が足りている）人のいる地域
+    private Func<int, bool> MayImmigrate(Residents residents, CivilizationSetup setup)
+    {
+        var needs = setup.Needs!;
+        var settleable = PlanetCivilizationSimulator.Settleable(_planet!, Tiles!, setup.Rules);
+        var year = World.Year;
+        var adults = residents.People
+            .Where(person => person.AgeIn(year) >= needs.AdultAge && person.Breakdown is null)
+            .GroupBy(person => person.Region)
+            .ToDictionary(group => group.Key, group => group.Count());
+        var layout = setup.Rules.Layout;
+        var start = _planet!.ProphetRegion;
+        return region => settleable[region]
+            && (region == start || layout.Neighbors(region).Any(other => adults.GetValueOrDefault(other) >= needs.ImmigrateBelowAdults));
+    }
 
     // 信者が 0 人になった教えを一覧から消し、年表に残す
     private void ForgetDogmas(Residents residents, List<Dogma> forgotten)
@@ -341,3 +485,6 @@ public sealed class TimeControl
 /// <param name="Terrain">毎年のタイル種別（建てられる場所と環境の倍率）を求めるのに使う。</param>
 /// <param name="Needs">住人の欲求と健康の定義。null なら住人の計算をしない。</param>
 public sealed record CivilizationSetup(CivilizationRules Rules, TerrainRules Terrain, int Seed, NeedsRules? Needs = null);
+
+/// <summary>新しい星（地域ごとの環境の値）の定義。星の形は <see cref="PlanetGenerator"/>、シードは <see cref="CivilizationSetup.Seed"/>。</summary>
+public sealed record PlanetSetup(PlanetRules Rules);

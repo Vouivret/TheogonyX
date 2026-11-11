@@ -18,6 +18,17 @@
 | TS-regional-environment-006 | — | タイルの標高は、陸が 1 m 以上、海が −1 m 以下（なめらかにした後も）。最初の値は段の気温の補正と土台の補正で決まる | 定義の補正（段 −30・−7・+10・+10・−7・−30、山岳 −10、森林の森林量 +20、海の森林量 −50） | 星を作る | 補正どおりの値 | 自動 | `tests/TheogonyX.Core.Tests/PlanetTests.cs` |
 | TS-regional-environment-007 | AC-regional-environment-001, 002 | 96 地域の平均。ドグマが無く値がそろった星は 1 年で変わらない | 水資源が半分の地域で 0、残りで 100／全地域が同じ値 | 平均を見る／1 年進める | 50／変わらず年だけ 1 進む | 自動 | `tests/TheogonyX.Core.Tests/PlanetTests.cs` |
 | TS-regional-environment-008 | AC-regional-environment-003 | ドグマは予言者の地域がいちばん効き、距離 8 以上には効かず、平均は効果どおり | 全地域の森林量 50、ならす速さ 0、森林量 +0.5 / 年のドグマ 1 つ | 1 年進める | 予言者の地域が最大の増え、距離 8 以上は 0、平均の増えは 0.5 | 自動 | `tests/TheogonyX.Core.Tests/PlanetTests.cs` |
+| TS-regional-environment-010 | AC-regional-environment-011 | 海は水、極の陸は氷河、陸は水にならない | 仮の値の星（シード 1）、今の異常の条件 | タイルの種別を決める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PlanetCivilizationTests.cs` |
+| TS-regional-environment-011 | AC-regional-environment-012 | 建物は陸の建てられる 2 × 2 の枠だけ。枠は地域の中に収まる | 同上。120 年進める | 建物を見る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PlanetCivilizationTests.cs` |
+| TS-regional-environment-012 | AC-regional-environment-008 | 海だけの地域は技術が 0 のまま、建物が建たない（住人の側は段 1b-2b） | 海の地域がある星。120 年進める | 地域の値と建物を見る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PlanetCivilizationTests.cs` |
+| TS-regional-environment-013 | AC-regional-environment-013 | ドグマの効きが格子の距離で弱まる（隣・輪・斜め・ゼロの距離・縦は輪でない） | ゼロの距離 4 | 係数を求める | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PlanetCivilizationTests.cs` |
+| TS-regional-environment-014 | AC-regional-environment-014 | 同じ入力なら同じ建物・地域の値 | シード 3 の星を 2 つ。150 年 | 比べる | 一致する | 自動 | `tests/TheogonyX.Core.Tests/PlanetCivilizationTests.cs` |
+| TS-regional-environment-015 | AC-regional-environment-015 | 星全体の値として見ると平均・年・崩壊 | 年 42・崩壊 | 値を見る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PlanetCivilizationTests.cs` |
+| TS-regional-environment-016 | AC-regional-environment-016 | 星全体の値が平均で、年が進み、文明が 96 地域 | 仮の値の星（シード 1） | 100 年跳躍 | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PlanetTimeControlTests.cs` |
+| TS-regional-environment-017 | AC-regional-environment-017 | 住人は最初の地域から始まり、隣へ広がり、海に住まない | 同上 | 1 年、続けて 400 年 | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PlanetTimeControlTests.cs` |
+| TS-regional-environment-018 | AC-regional-environment-018 | 建物は建てられる陸のタイルの枠だけ | 同上。400 年 | 建物を見る | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PlanetTimeControlTests.cs` |
+| TS-regional-environment-019 | AC-regional-environment-019 | カオス度の加算が全地域に足され、決定的 | シード 2 の星を 2 つ | カオス度 20 を足して 1 年 | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PlanetTimeControlTests.cs` |
+| TS-regional-environment-020 | AC-regional-environment-020 | 世界再創生でも同じ星で、年と住人は初期 | シード 3。100 年後 | 世界再創生 | 受け入れ条件のとおり | 自動 | `tests/TheogonyX.Core.Tests/PlanetTimeControlTests.cs` |
 | TS-regional-environment-009 | — | 平均が閾値を越えたら崩壊する。1 地域だけが越えても崩壊しない。崩壊した星は変わらない | カオス度 100 が 1 地域／全地域 | 1 年進める | 崩壊しない／崩壊し、次の年は年が進まない | 自動 | `tests/TheogonyX.Core.Tests/PlanetTests.cs` |
 
 ## 確かめていないこと（1a の範囲）

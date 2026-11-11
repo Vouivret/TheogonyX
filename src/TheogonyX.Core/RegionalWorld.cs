@@ -61,6 +61,22 @@ public sealed class RegionalWorld
     /// <summary>タイルのある地域の番号。</summary>
     public int RegionAt(int x, int y) => Grid.Index(x / RegionSize, y / RegionSize);
 
+    /// <summary>全地域の平均を星全体の値として見た <see cref="WorldState"/>（年と崩壊も写す。HUD と文明の計算が使う）。</summary>
+    public WorldState ToWorldState()
+    {
+        var average = Average();
+        return new WorldState
+        {
+            Year = Year,
+            ForestAmount = average.ForestAmount,
+            WaterAmount = average.WaterAmount,
+            Temperature = average.Temperature,
+            ChaosLevel = average.ChaosLevel,
+            HarmonyLevel = average.HarmonyLevel,
+            IsDestroyed = IsDestroyed,
+        };
+    }
+
     /// <summary>全地域（海を含む）の平均。</summary>
     public EnvironmentValues Average()
     {

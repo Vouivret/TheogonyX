@@ -365,18 +365,20 @@ public sealed class ResidentView
     private Vector2 RandomPointIn(int region, uint index, uint step)
     {
         var size = WorldScreen.TileSize;
-        var left = _rules.Regions.FirstColumn(region) * size;
-        var width = _rules.Regions.ColumnsPerRegion * size;
+        var rect = _rules.Layout.TileRect(region, _rules.Rows);
+        var left = rect.Column * size;
+        var width = rect.Width * size;
         var x = left + (2 + (CrowdHash.Next01(_seed, index, step * 2) * (width - 4)));
-        var y = DollHeight + (CrowdHash.Next01(_seed, index, (step * 2) + 1) * ((_rules.Rows * size) - DollHeight));
+        var y = (rect.Row * size) + DollHeight + (CrowdHash.Next01(_seed, index, (step * 2) + 1) * ((rect.Height * size) - DollHeight));
         return _terrainOrigin + new Vector2(Mathf.Floor(x), Mathf.Floor(y));
     }
 
     private Vector2 CenterOf(int region)
     {
         var size = WorldScreen.TileSize;
-        var x = (_rules.Regions.FirstColumn(region) + (_rules.Regions.ColumnsPerRegion / 2f)) * size;
-        return _terrainOrigin + new Vector2(x, _rules.Rows * size / 2f);
+        var rect = _rules.Layout.TileRect(region, _rules.Rows);
+        var x = (rect.Column + (rect.Width / 2f)) * size;
+        return _terrainOrigin + new Vector2(x, (rect.Row + (rect.Height / 2f)) * size);
     }
 
     // 建物の足元の少し手前（建物の絵と重ならないよう下にずらす）

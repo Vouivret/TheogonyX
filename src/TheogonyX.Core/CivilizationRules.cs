@@ -60,6 +60,7 @@ public sealed record CivilizationRules
             }
         }
         Regions = regions;
+        Layout = regions;
         Rows = rows;
         ProphetColumn = prophetColumn;
         InitialTech = initialTech;
@@ -76,6 +77,12 @@ public sealed record CivilizationRules
 
     public RegionMap Regions { get; }
     public int Rows { get; }
+
+    /// <summary>
+    /// 地域の並びの決まり。ふつうは <see cref="Regions"/>（今の小さな星）。新しい星のときは <c>rules with { Layout = new PlanetRegionLayout(...) }</c> で替える
+    /// （地域の数・隣り合い・タイルの範囲は、これを使って求める）。
+    /// </summary>
+    public RegionLayout Layout { get; init; }
     public int ProphetColumn { get; }
     public double InitialTech { get; }
     public double InitialCulture { get; }

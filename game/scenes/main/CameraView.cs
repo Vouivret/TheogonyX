@@ -43,7 +43,8 @@ public sealed class CameraView
     public CameraViewLevel Level => CameraZoom.LevelOf(_zoom);
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public CameraView(Node owner, CameraSettings settings, PlanetView planet)
+    /// <param name="startFoot">起動時に見せる場所（予言者の足元。世界の px）。</param>
+    public CameraView(Node owner, CameraSettings settings, PlanetView planet, Vector2 startFoot)
     {
         _settings = settings;
         var viewport = owner.GetNode<SubViewport>("%WorldViewport");
@@ -51,17 +52,14 @@ public sealed class CameraView
         // 動かせる範囲は新しい星の地表の広さ（縦だけ。東西は輪）。起動時は、今のゲームの地表の上端に合わせて見せる（地表の上に立つ予言者が映る）。
         // 予言者と焚き火は地表の上端に立つので、上の帯の下に頭まで映るよう、地表の上を少し見せる。
         // 見えている幅がそれ以上のときは、範囲の中央に置く
-        var terrain = owner.GetNode<TileMapLayer>("%Terrain");
-        var used = terrain.GetUsedRect();
-        var terrainRect = new Rect2(terrain.Position + ((Vector2)used.Position * WorldScreen.TileSize), (Vector2)used.Size * WorldScreen.TileSize);
         _bounds = planet.Bounds;
         _circumference = planet.Circumference;
         _map = owner.GetNode<SubViewportContainer>("WorldView");
         _focus = new ShaderMaterial { Shader = GD.Load<Shader>("res://scenes/main/pixel_focus.gdshader") };
         _zoom = settings.StartZoom;
         // 起動時は、範囲の上端に合わせて見せる（地表の上と、立っている予言者が映る）
-        _centerX = terrainRect.GetCenter().X;
-        _centerY = terrainRect.Position.Y - AboveTerrain + (_viewSize.Y / 2f / (float)_zoom);
+        _centerX = startFoot.X;
+        _centerY = startFoot.Y - AboveTerrain + (_viewSize.Y / 2f / (float)_zoom);
 
         _camera = new Camera2D { Name = "Camera" };
         viewport.AddChild(_camera);

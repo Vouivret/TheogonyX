@@ -48,14 +48,14 @@ public static class BeliefSimulator
     }
 
     /// <summary>神託を告げた。予言者の地域から <see cref="BeliefRules.SeedRegions"/> 地域以内の住人が、教えの強度で信じ始める。</summary>
-    public static void Seed(Residents residents, Dogma dogma, int prophetRegion, BeliefRules rules)
+    public static void Seed(Residents residents, Dogma dogma, int prophetRegion, BeliefRules rules, RegionLayout? layout = null)
     {
         ArgumentNullException.ThrowIfNull(residents);
         ArgumentNullException.ThrowIfNull(dogma);
         ArgumentNullException.ThrowIfNull(rules);
         var belief = new Belief(dogma.TargetSymbolId, dogma.Type, dogma.Intensity, dogma.Reading);
         var people = residents.People
-            .Select(person => Math.Abs(person.Region - prophetRegion) <= rules.SeedRegions ? Believe(person, belief, rules.MaxBeliefs) : person)
+            .Select(person => (layout?.Distance(person.Region, prophetRegion) ?? Math.Abs(person.Region - prophetRegion)) <= rules.SeedRegions ? Believe(person, belief, rules.MaxBeliefs) : person)
             .ToList();
         residents.Replace(people, [.. residents.Graves], residents.NextResidentId);
     }
