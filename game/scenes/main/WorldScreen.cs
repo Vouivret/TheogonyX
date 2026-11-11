@@ -312,7 +312,7 @@ public sealed class WorldScreen
 
     private static string Tr(string key) => TranslationServer.Translate(key).ToString();
 
-    private static TileSet CreateTileSet()
+    internal static TileSet CreateTileSet()
     {
         var source = new TileSetAtlasSource
         {

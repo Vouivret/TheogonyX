@@ -131,7 +131,10 @@ public partial class WorldCore : Node2D
         _screen = new WorldScreen(this, timeControl, clock, terrainRules, timeSettings, worldRules);
         _ambience = new AmbienceView(this, timeControl, ambienceRules, prophetSettings, campfireSettings, lightingSettings, civilizationRules);
         _sky = new SkyView(this, _ambience, civilizationRules, seed);
-        _camera = new CameraView(this, cameraSettings);
+        // 新しい星の地表を、今のゲームの地表の下に描く（段 1b-1）。星のシードはゲームのシードと同じ（セーブされる）
+        var planetRules = GameDataLoader.ParsePlanetRules(rulesJson);
+        var planet = new PlanetView(PlanetGenerator.Generate(planetRules, worldRules, seed), terrainRules, GetNode<TileMapLayer>("%Terrain"));
+        _camera = new CameraView(this, cameraSettings, planet);
         _layout = new HudLayout(this);
         _buildings = new BuildingView(this, timeControl, lightingSettings);
         _screen.TerrainDrawn += _buildings.Refresh;

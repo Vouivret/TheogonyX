@@ -46,6 +46,17 @@ public class CameraZoomTests
     }
 
     [Theory]
+    [Trait("TS", "TS-camera-views-012")]
+    [InlineData(3100.0, 28.0)]
+    [InlineData(-10.0, 3062.0)]
+    [InlineData(3072.0, 0.0)]
+    [InlineData(1500.0, 1500.0)]
+    public void WrapCenter_東西は1周3072px_端を越えたら戻る(double center, double expected)
+    {
+        Assert.Equal(expected, CameraZoom.WrapCenter(center, 0.0, 3072.0), Tolerance);
+    }
+
+    [Theory]
     [Trait("TS", "TS-camera-views-007")]
     [InlineData(1, 1.0, 340.0)] // 画面の上で 1 秒に 100 px なので、1 倍では世界の 100 px
     [InlineData(1, 2.0, 290.0)] // 2 倍では世界の 50 px

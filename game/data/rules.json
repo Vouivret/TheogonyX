@@ -260,7 +260,7 @@
     "maxEntries": 200
   },
   "camera": {
-    "zoomSteps": [0.5, 1.0, 2.0, 3.0, 4.0],
+    "zoomSteps": [0.125, 0.25, 0.5, 1.0, 2.0, 3.0, 4.0],
     "startZoom": 1.0,
     "panSpeed": 240.0,
     "residentIcons": { "hunger": 0.6, "shelter": 0.6, "sanityBelow": 30.0 }

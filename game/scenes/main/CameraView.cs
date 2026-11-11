@@ -14,11 +14,14 @@ public sealed class CameraView
     private readonly Camera2D _camera;
     private readonly Vector2 _viewSize;
 
-    // 地表の上に足す px。予言者（16 px）と焚き火の炎が、上の帯（地図の 12〜18 px ぶん）より下に映る高さ
+    // 起動時に、今のゲームの地表の上に足して見せる px。予言者（16 px）と焚き火の炎が、上の帯（地図の 12〜18 px ぶん）より下に映る高さ
     private const float AboveTerrain = 48f;
 
-    // 動かせる範囲（世界の px）。地表の広さに、上へ AboveTerrain を足したもの
+    // 動かせる範囲（世界の px）。新しい星の地表の広さ（縦だけ。東西は輪）
     private readonly Rect2 _bounds;
+
+    // 東西の 1 周の px。東西は端でつながり、中心がこの範囲を出たら 1 周ぶん戻す
+    private readonly float _circumference;
 
     // 切り替えの演出（ピクセル・フォーカス）。経過の秒ごとのモザイクの大きさ（画素）。最後の段が終わると元の絵に戻る
     private static readonly (double Until, float Block)[] FocusSteps = [(0.04, 8f), (0.08, 4f), (0.12, 2f)];
@@ -40,24 +43,25 @@ public sealed class CameraView
     public CameraViewLevel Level => CameraZoom.LevelOf(_zoom);
 
     /// <param name="owner">ノードを探すためのシーンの根。</param>
-    public CameraView(Node owner, CameraSettings settings)
+    public CameraView(Node owner, CameraSettings settings, PlanetView planet)
     {
         _settings = settings;
         var viewport = owner.GetNode<SubViewport>("%WorldViewport");
         _viewSize = viewport.Size;
-        // 動かせる範囲は地表の広さに、上へ AboveTerrain px を足したもの（地表を描いた後に作る）。
+        // 動かせる範囲は新しい星の地表の広さ（縦だけ。東西は輪）。起動時は、今のゲームの地表の上端に合わせて見せる（地表の上に立つ予言者が映る）。
         // 予言者と焚き火は地表の上端に立つので、上の帯の下に頭まで映るよう、地表の上を少し見せる。
         // 見えている幅がそれ以上のときは、範囲の中央に置く
         var terrain = owner.GetNode<TileMapLayer>("%Terrain");
         var used = terrain.GetUsedRect();
         var terrainRect = new Rect2(terrain.Position + ((Vector2)used.Position * WorldScreen.TileSize), (Vector2)used.Size * WorldScreen.TileSize);
-        _bounds = new Rect2(terrainRect.Position - new Vector2(0, AboveTerrain), terrainRect.Size + new Vector2(0, AboveTerrain));
+        _bounds = planet.Bounds;
+        _circumference = planet.Circumference;
         _map = owner.GetNode<SubViewportContainer>("WorldView");
         _focus = new ShaderMaterial { Shader = GD.Load<Shader>("res://scenes/main/pixel_focus.gdshader") };
         _zoom = settings.StartZoom;
         // 起動時は、範囲の上端に合わせて見せる（地表の上と、立っている予言者が映る）
-        _centerX = _bounds.GetCenter().X;
-        _centerY = _bounds.Position.Y + (_viewSize.Y / 2f / (float)_zoom);
+        _centerX = terrainRect.GetCenter().X;
+        _centerY = terrainRect.Position.Y - AboveTerrain + (_viewSize.Y / 2f / (float)_zoom);
 
         _camera = new Camera2D { Name = "Camera" };
         viewport.AddChild(_camera);
@@ -156,7 +160,7 @@ public sealed class CameraView
 
     private void Apply()
     {
-        _centerX = CameraZoom.ClampCenter(_centerX, _zoom, _viewSize.X, _bounds.Position.X, _bounds.End.X);
+        _centerX = CameraZoom.WrapCenter(_centerX, _bounds.Position.X, _circumference);
         _centerY = CameraZoom.ClampCenter(_centerY, _zoom, _viewSize.Y, _bounds.Position.Y, _bounds.End.Y);
         // 整数倍のときは、ドットを画面の px にそろえる
         var x = CameraZoom.SnapCenter(_centerX, _zoom);

@@ -69,6 +69,13 @@ public static class CameraZoom
         return Math.Clamp(center, boundsMin + half, boundsMax - half);
     }
 
+    /// <summary>東西がつながった星で、カメラの中心を 1 周の範囲 [<paramref name="origin"/>, <paramref name="origin"/> + <paramref name="circumference"/>) に戻す（1 軸ぶん）。</summary>
+    public static double WrapCenter(double center, double origin, double circumference)
+    {
+        var offset = (center - origin) % circumference;
+        return origin + (offset < 0 ? offset + circumference : offset);
+    }
+
     /// <summary>倍率から視点の段を決める。<see cref="TownFromZoom"/> 未満は星、<see cref="LifeFromZoom"/> 未満は街、それ以上は暮らし。</summary>
     public static CameraViewLevel LevelOf(double zoom) =>
         zoom < TownFromZoom ? CameraViewLevel.Star : zoom < LifeFromZoom ? CameraViewLevel.Town : CameraViewLevel.Life;
