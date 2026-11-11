@@ -46,6 +46,22 @@ public static class GameDataLoader
         }
     }
 
+    /// <summary>星の格子と星を作る処理の定義（rules.json の planet）。値が範囲外なら読み込みを失敗させる。</summary>
+    public static PlanetRules ParsePlanetRules(string rulesJson)
+    {
+        var planet = Parse<RulesFile>(rulesJson, "rules.json").Planet
+            ?? throw new InvalidDataException("星の定義が無い: file=rules.json key=planet");
+        try
+        {
+            planet.Validate();
+        }
+        catch (ArgumentException ex)
+        {
+            throw new InvalidDataException("星の定義の値が範囲外: file=rules.json key=planet", ex);
+        }
+        return planet;
+    }
+
     public static TimeControlSettings ParseTimeControl(string rulesJson) => Parse<RulesFile>(rulesJson, "rules.json").TimeControl;
 
     /// <summary>パレット（game/data/palette.json）。定義が正しくなければ読み込みを失敗させる。</summary>
@@ -541,6 +557,7 @@ public static class GameDataLoader
 
     private sealed record RulesFile(
         WorldRules World,
+        PlanetRules? Planet,
         TerrainFile Terrain,
         TimeControlSettings TimeControl,
         AmbienceFile Ambience,
